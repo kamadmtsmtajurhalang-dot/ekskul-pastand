@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Skrip Otomatisasi Deploy Presensi Ekskul MTs Muhammadiyah Tajurhalang
-Sinkronisasi Git -> GitHub -> PythonAnywhere (Git Pull & Web Reload)
+Sinkronisasi Git -> GitHub -> PythonAnywhere (File Sync & Web Reload)
 """
 
 import os
@@ -12,6 +12,7 @@ import urllib.request
 import urllib.error
 
 ENV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env.deploy")
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def load_env():
     """Membaca konfigurasi dari file .env.deploy atau environment variables"""
@@ -58,13 +59,89 @@ def pa_api_request(endpoint, token, method="GET", data=None):
     except Exception as e:
         return 500, {"error": str(e)}
 
+def upload_file_to_pa(local_path, remote_path, token, user):
+    """Unggah satu file ke server PythonAnywhere via Files API"""
+    boundary = "----WebKitFormBoundaryAntigravitySync7MA4YW"
+    filename = os.path.basename(local_path)
+    
+    with open(local_path, "rb") as f:
+        file_bytes = f.read()
+        
+    part_header = (
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="content"; filename="{filename}"\r\n'
+        f"Content-Type: application/octet-stream\r\n\r\n"
+    ).encode("utf-8")
+    part_footer = f"\r\n--{boundary}--\r\n".encode("utf-8")
+    body = part_header + file_bytes + part_footer
+    
+    url = f"https://www.pythonanywhere.com/api/v0/user/{user}/files/path{remote_path}"
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Token {token}",
+            "Content-Type": f"multipart/form-data; boundary={boundary}"
+        },
+        method="POST"
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status in (200, 201)
+    except Exception as e:
+        print(f"    ⚠️ Gagal unggah {filename}: {e}")
+        return False
+
+def sync_pythonanywhere_files(cfg):
+    """Sinkronkan file kode (app.py, templates, static, dll) ke PythonAnywhere tanpa menimpa database"""
+    pa_user = cfg.get("PYTHONANYWHERE_USERNAME")
+    pa_token = cfg.get("PYTHONANYWHERE_API_TOKEN")
+    
+    if not (pa_user and pa_token):
+        print("❌ Kredensial PythonAnywhere tidak lengkap.")
+        return False
+        
+    print("\n📦 Menyinkronkan file aplikasi ke server PythonAnywhere...")
+    target_remote_dir = f"/home/{pa_user}/presensi_ekskul"
+    
+    # File & folder yang akan disinkronkan
+    sync_files = ["app.py", "database.py", "requirements.txt"]
+    
+    # Ambil file templates
+    tmpl_dir = os.path.join(REPO_DIR, "templates")
+    if os.path.exists(tmpl_dir):
+        for root, _, files in os.walk(tmpl_dir):
+            for file in files:
+                rel = os.path.relpath(os.path.join(root, file), REPO_DIR)
+                sync_files.append(rel)
+                
+    # Ambil file static jika ada
+    static_dir = os.path.join(REPO_DIR, "static")
+    if os.path.exists(static_dir):
+        for root, _, files in os.walk(static_dir):
+            for file in files:
+                rel = os.path.relpath(os.path.join(root, file), REPO_DIR)
+                sync_files.append(rel)
+                
+    success_count = 0
+    for rel_path in sync_files:
+        loc = os.path.join(REPO_DIR, rel_path)
+        if os.path.exists(loc) and not loc.endswith(".db"):
+            rem = f"{target_remote_dir}/{rel_path}"
+            ok = upload_file_to_pa(loc, rem, pa_token, pa_user)
+            if ok:
+                success_count += 1
+                
+    print(f"  ✅ Selesai: {success_count}/{len(sync_files)} file kode tersinkronisasi ke PythonAnywhere.")
+    return True
+
 def check_status(cfg):
     """Cek koneksi ke GitHub dan PythonAnywhere"""
     print("=" * 60)
     print("🔍 MEMERIKSA STATUS KONEKSI OTOMATISASI")
     print("=" * 60)
     
-    # 1. Cek Konfigurasi GitHub
     gh_user = cfg.get("GITHUB_USERNAME")
     gh_repo = cfg.get("GITHUB_REPO")
     gh_token = cfg.get("GITHUB_TOKEN")
@@ -76,7 +153,6 @@ def check_status(cfg):
         print(f"  - Repo  : {gh_repo}")
         print(f"  - Token : {masked_token}")
         
-        # Test GitHub API
         gh_req = urllib.request.Request(
             f"https://api.github.com/repos/{gh_user}/{gh_repo}",
             headers={"Authorization": f"Bearer {gh_token}", "User-Agent": "Antigravity-Deploy"}
@@ -90,7 +166,6 @@ def check_status(cfg):
     else:
         print("  ❌ Konfigurasi GitHub belum lengkap di .env.deploy")
 
-    # 2. Cek Konfigurasi PythonAnywhere
     pa_user = cfg.get("PYTHONANYWHERE_USERNAME")
     pa_token = cfg.get("PYTHONANYWHERE_API_TOKEN")
     pa_domain = cfg.get("PYTHONANYWHERE_DOMAIN") or (f"{pa_user}.pythonanywhere.com" if pa_user else None)
@@ -102,7 +177,6 @@ def check_status(cfg):
         print(f"  - Domain : {pa_domain}")
         print(f"  - Token  : {masked_pa}")
         
-        # Test CPU quota API
         status, res = pa_api_request(f"{pa_user}/cpu/", pa_token)
         if status == 200:
             print(f"  ✅ Koneksi PythonAnywhere Berhasil!")
@@ -110,7 +184,6 @@ def check_status(cfg):
         else:
             print(f"  ❌ Gagal koneksi PythonAnywhere: (HTTP {status}) {res}")
             
-        # Test Webapp
         if pa_domain:
             status, res = pa_api_request(f"{pa_user}/webapps/{pa_domain}/", pa_token)
             if status == 200:
@@ -133,24 +206,21 @@ def push_github(cfg):
         
     remote_url = f"https://{gh_token}@github.com/{gh_user}/{gh_repo}.git"
     
-    # Update remote origin
-    subprocess.run(["git", "remote", "remove", "origin"], stderr=subprocess.DEVNULL)
-    res = subprocess.run(["git", "remote", "add", "origin", remote_url], capture_output=True, text=True)
+    subprocess.run(["git", "remote", "remove", "origin"], cwd=REPO_DIR, stderr=subprocess.DEVNULL)
+    res = subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=REPO_DIR, capture_output=True, text=True)
     if res.returncode != 0:
-        subprocess.run(["git", "remote", "set-url", "origin", remote_url])
+        subprocess.run(["git", "remote", "set-url", "origin", remote_url], cwd=REPO_DIR)
         
-    # Get current branch
-    branch_res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True)
+    branch_res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=REPO_DIR, capture_output=True, text=True)
     branch = branch_res.stdout.strip() or "master"
     
     print(f"🚀 Pushing branch '{branch}' ke GitHub...")
-    push_res = subprocess.run(["git", "push", "-u", "origin", branch], capture_output=True, text=True)
+    push_res = subprocess.run(["git", "push", "-u", "origin", branch], cwd=REPO_DIR, capture_output=True, text=True)
     
     if push_res.returncode == 0:
         print("✅ Berhasil push ke GitHub!")
         return True
     else:
-        # Bersihkan token dari output error jika ada
         safe_err = push_res.stderr.replace(gh_token, "[TOKEN]")
         print(f"❌ Gagal push ke GitHub:\n{safe_err}")
         return False
@@ -184,18 +254,24 @@ def main():
         check_status(cfg)
     elif action == "github":
         push_github(cfg)
+    elif action == "sync":
+        sync_pythonanywhere_files(cfg)
     elif action == "reload":
         reload_pythonanywhere(cfg)
     elif action == "all":
         print("🚀 Memulai Deploy Otomatis (GitHub & PythonAnywhere)...")
-        if push_github(cfg):
-            reload_pythonanywhere(cfg)
+        gh_ok = push_github(cfg)
+        pa_sync_ok = sync_pythonanywhere_files(cfg)
+        pa_reload_ok = reload_pythonanywhere(cfg)
+        if gh_ok and pa_sync_ok and pa_reload_ok:
+            print("\n🎉 SELURUH PROSES DEPLOYMENT & SINKRONISASI BERHASIL 100%!")
     else:
         print("Penggunaan:")
         print("  python3 deploy.py check   - Cek status koneksi GitHub & PythonAnywhere")
         print("  python3 deploy.py github  - Push kode ke GitHub")
+        print("  python3 deploy.py sync    - Unggah file terbaru ke server PythonAnywhere")
         print("  python3 deploy.py reload  - Reload web app di PythonAnywhere")
-        print("  python3 deploy.py all     - Push ke GitHub lalu reload PythonAnywhere")
+        print("  python3 deploy.py all     - Eksekusi penuh (GitHub + PythonAnywhere sync & reload)")
 
 if __name__ == "__main__":
     main()

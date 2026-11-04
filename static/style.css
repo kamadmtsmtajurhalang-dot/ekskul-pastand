@@ -59,6 +59,17 @@ body {
     color: white;
 }
 
+.brand-logo {
+    height: 38px;
+    width: auto;
+    max-width: 44px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #ffffff;
+    padding: 2px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
 .brand-badge {
     background: #F59E0B;
     color: #0F172A;
@@ -218,10 +229,27 @@ body {
     margin-bottom: 6px;
 }
 
+.login-logo-img {
+    height: 68px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
+}
+
 .login-title {
     font-size: 18px;
     font-weight: 800;
     color: var(--dark);
+}
+
+.login-school-sub {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-top: 2px;
+    margin-bottom: 4px;
 }
 
 .login-desc {
