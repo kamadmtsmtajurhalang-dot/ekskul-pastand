@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}PRESENSI EKSKUL MTs Muhammadiyah Tajurhalang TA 2026/2027{% endblock %}</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1E3A8A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Presensi Ekskul">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,6 +52,21 @@
         </div>
     </header>
 
+    <!-- PWA Install Prompt Banner -->
+    <div id="pwaInstallBanner" class="pwa-install-banner" style="display: none;">
+        <div class="pwa-banner-content">
+            <img src="/static/icon-192.png" alt="Icon" class="pwa-banner-icon">
+            <div class="pwa-banner-text">
+                <strong>Pasang Aplikasi Presensi</strong>
+                <span>Akses layar penuh langsung dari HP Anda</span>
+            </div>
+        </div>
+        <div class="pwa-banner-actions">
+            <button id="pwaInstallBtn" class="btn-pwa-install">📲 Install</button>
+            <button id="pwaCloseBtn" class="btn-pwa-close" title="Tutup">✕</button>
+        </div>
+    </div>
+
     <!-- Main Container -->
     <main class="main-container">
         <!-- Flash Messages -->
@@ -73,6 +99,52 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // PWA Service Worker & Install Prompt Handling
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('PWA ServiceWorker registered:', reg.scope))
+                    .catch(err => console.log('PWA ServiceWorker registration failed:', err));
+            });
+        }
+
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwaInstallBanner');
+        const installBtn = document.getElementById('pwaInstallBtn');
+        const closeBtn = document.getElementById('pwaCloseBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (!sessionStorage.getItem('pwa_banner_closed')) {
+                if (installBanner) installBanner.style.display = 'flex';
+            }
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const choiceResult = await deferredPrompt.userChoice;
+                    console.log('User choice:', choiceResult.outcome);
+                    deferredPrompt = null;
+                    if (installBanner) installBanner.style.display = 'none';
+                }
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                if (installBanner) installBanner.style.display = 'none';
+                sessionStorage.setItem('pwa_banner_closed', 'true');
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA successfully installed');
+            if (installBanner) installBanner.style.display = 'none';
+        });
     </script>
     {% block scripts %}{% endblock %}
 </body>

@@ -5,7 +5,7 @@ import io
 from datetime import datetime
 from functools import wraps
 from flask import (
-    Flask, render_template, request, jsonify, redirect, url_for, session, Response, flash
+    Flask, render_template, request, jsonify, redirect, url_for, session, Response, flash, send_from_directory
 )
 from database import get_db, init_db
 
@@ -53,6 +53,23 @@ def haversine(lat1, lon1, lat2, lon2):
         math.sin(delta_lambda / 2.0) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(R * c, 1)
+
+# =========================================================
+# PWA (PROGRESSIVE WEB APP) ROUTES
+# =========================================================
+
+@app.route('/sw.js')
+def service_worker():
+    response = send_from_directory('static', 'sw.js')
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
+@app.route('/manifest.json')
+def manifest():
+    response = send_from_directory('static', 'manifest.json')
+    response.headers['Content-Type'] = 'application/manifest+json'
+    return response
 
 # =========================================================
 # AUTHENTICATION ROUTES (LOGIN / LOGOUT / REGISTER SISWA)
