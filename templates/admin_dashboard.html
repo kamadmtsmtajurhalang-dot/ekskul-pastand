@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Admin Master — Presensi MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block content %}
+<div class="screen-wrapper">
+    <!-- Admin Hero Card -->
+    <div class="card admin-hero-card">
+        <div class="admin-hero-header">
+            <div>
+                <span class="badge-tag tag-amber">👑 Akun Admin Master (Kamad/Kesiswaan)</span>
+                <h1 class="page-heading" style="color:white; margin-top:4px;">Panel Pengelola Ekstrakurikuler</h1>
+                <p style="font-size:12px; color:#E2E8F0;">Pusat kendali cabang ekskul, akun pelatih, data siswa, dan kalibrasi GPS lapangan.</p>
+            </div>
+        </div>
+
+        <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+                <span class="astat-val">{{ ekskul_list|length }}</span>
+                <span class="astat-label">Cabang Ekskul</span>
+            </div>
+            <div class="admin-stat-card">
+                <span class="astat-val">{{ total_pelatih }}</span>
+                <span class="astat-label">Pelatih Bertugas</span>
+            </div>
+            <div class="admin-stat-card">
+                <span class="astat-val">{{ total_siswa }}</span>
+                <span class="astat-label">Siswa Terdaftar</span>
+            </div>
+            <div class="admin-stat-card">
+                <span class="astat-val">{{ total_sesi }}</span>
+                <span class="astat-label">Sesi Latihan</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. KELOLA DATA SISWA & FITUR IMPORT CSV/EXCEL -->
+    <div class="card form-card" style="border-left: 4px solid #10B981;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h2 class="card-title">📥 Unggah / Import Data Siswa via Excel / CSV</h2>
+                <p class="card-desc">Unggah data siswa madrasah sekaligus. Siswa akan otomatis terdaftar dan masuk ke ekskul pilihannya.</p>
+            </div>
+            <a href="/admin/template-csv" class="btn-quick all-hadir">
+                📄 Unduh Template CSV Contoh
+            </a>
+        </div>
+
+        <form action="/admin/siswa/import" method="POST" enctype="multipart/form-data" style="margin-top: 14px;">
+            <div class="form-group">
+                <label class="form-label">Pilih Berkas CSV Data Siswa</label>
+                <input type="file" name="file_siswa" class="form-control" accept=".csv, text/csv" required>
+                <small style="color: #64748B;">Format kolom: <b>Nama Siswa, Kelas, L/P, Ekskul</b> (Bisa dibuka & disimpan dari Microsoft Excel sebagai format .CSV).</small>
+            </div>
+            <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); margin-top: 10px;">
+                🚀 Proses & Import Data Siswa Sekarang
+            </button>
+        </form>
+    </div>
+
+    <!-- 2. KELOLA EKSKUL & PELATIH YANG BERTUGAS -->
+    <div class="card table-card">
+        <h2 class="card-title" style="margin-bottom: 8px;">🏆 Daftar Ekskul & Pelatih yang Bertugas</h2>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">No</th>
+                        <th>Cabang Ekskul</th>
+                        <th>Jadwal Latihan</th>
+                        <th>Pelatih Bertugas</th>
+                        <th style="text-align: center;">Siswa</th>
+                        <th style="text-align: center;">Sesi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in ekskul_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td><b>{{ e.icon }} {{ e.nama }}</b></td>
+                        <td>{{ e.hari_latihan }}<br/><small style="color:#64748B;">{{ e.jam_latihan }}</small></td>
+                        <td><span class="badge-tag tag-blue">{{ e.pelatih_nama if e.pelatih_nama else 'Belum ada' }}</span></td>
+                        <td style="text-align: center;"><b>{{ e.total_siswa }}</b></td>
+                        <td style="text-align: center;">{{ e.total_sesi }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3. TAMBAH EKSKUL & AKUN PELATIH BARU -->
+    <div class="card form-card">
+        <h2 class="card-title">➕ Tambah Cabang Ekskul Baru</h2>
+        <form action="/admin/ekskul/tambah" method="POST" style="margin-top: 10px;">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Nama Cabang Ekskul</label>
+                    <input type="text" name="nama" class="form-control" placeholder="Contoh: Tenis Meja / Robotik" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ikon Emoji</label>
+                    <input type="text" name="icon" class="form-control" placeholder="Contoh: 🏓 atau 🤖" value="🏅" required>
+                </div>
+            </div>
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Hari Latihan</label>
+                    <input type="text" name="hari_latihan" class="form-control" placeholder="Contoh: Senin & Kamis" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Jam Latihan</label>
+                    <input type="text" name="jam_latihan" class="form-control" placeholder="Contoh: 15:30 - 17:00" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Pelatih Penanggung Jawab</label>
+                <input type="text" name="pelatih_nama" class="form-control" placeholder="Nama Guru / Pelatih...">
+            </div>
+            <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
+                ➕ Simpan Cabang Ekskul Baru
+            </button>
+        </form>
+    </div>
+
+    <div class="card form-card">
+        <h2 class="card-title">👤 Buat Akun Login Pelatih Baru</h2>
+        <form action="/admin/pelatih/tambah" method="POST" style="margin-top: 10px;">
+            <div class="form-group">
+                <label class="form-label">Pilih Cabang Ekskul yang Diampu</label>
+                <select name="ekskul_id" class="form-control" required>
+                    {% for e in ekskul_list %}
+                    <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Pelatih</label>
+                <input type="text" name="nama" class="form-control" placeholder="Contoh: Coach Budi Hartono, S.Pd." required>
+            </div>
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Username Login</label>
+                    <input type="text" name="username" class="form-control" placeholder="Contoh: coach_tenismeja" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kata Sandi</label>
+                    <input type="password" name="password" class="form-control" placeholder="Kata sandi..." required>
+                </div>
+            </div>
+            <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
+                👤 Buat Akun Pelatih
+            </button>
+        </form>
+    </div>
+
+    <!-- 4. PENGATURAN GPS LOKASI LAPANGAN -->
+    <div class="card form-card">
+        <h2 class="card-title">📍 Kalibrasi GPS Titik Lapangan Madrasah</h2>
+        <form action="/admin/lokasi/update" method="POST" style="margin-top: 10px;">
+            <div class="form-group">
+                <label class="form-label">Nama Lokasi</label>
+                <input type="text" name="nama_lokasi" class="form-control" value="{{ lokasi.nama_lokasi if lokasi else 'Kampus & Lapangan MTs Muhammadiyah Tajurhalang' }}" required>
+            </div>
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Latitude</label>
+                    <input type="number" step="0.000001" id="adminLat" name="latitude" class="form-control" value="{{ lokasi.latitude if lokasi else -6.47892 }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Longitude</label>
+                    <input type="number" step="0.000001" id="adminLng" name="longitude" class="form-control" value="{{ lokasi.longitude if lokasi else 106.75805 }}" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Radius Toleransi Presensi (Meter)</label>
+                <input type="number" name="radius_meter" class="form-control" value="{{ lokasi.radius_meter if lokasi else 250 }}" required>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                <button type="button" class="btn-quick all-hadir" onclick="getAdminCurrentGps()">
+                    📌 Ambil Koordinat GPS HP Saat Ini
+                </button>
+                <button type="submit" class="btn-card-action btn-detail" style="border: none;">
+                    💾 Simpan Pengaturan Lokasi
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 5. DAFTAR MASTER SELURUH SISWA -->
+    <div class="card table-card">
+        <h2 class="card-title" style="margin-bottom: 8px;">🎒 Data Master Siswa Terdaftar ({{ siswa_list|length }} Siswa)</h2>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">No</th>
+                        <th>Nama Siswa</th>
+                        <th style="text-align: center;">Kelas</th>
+                        <th style="text-align: center;">L/P</th>
+                        <th>Ekskul Pilihan</th>
+                        <th>Username</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in siswa_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td><b>{{ s.nama }}</b></td>
+                        <td style="text-align: center;">{{ s.kelas }}</td>
+                        <td style="text-align: center;">{{ s.jenis_kelamin }}</td>
+                        <td><span class="badge-tag tag-blue">{{ s.icon_ekskul }} {{ s.nama_ekskul }}</span></td>
+                        <td><code>{{ s.username }}</code></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getAdminCurrentGps() {
+    if (!navigator.geolocation) {
+        alert("Browser tidak mendukung GPS.");
+        return;
+    }
+    alert("Mengambil koordinat GPS saat ini...");
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        document.getElementById('adminLat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('adminLng').value = pos.coords.longitude.toFixed(6);
+        alert("Koordinat GPS berhasil disesuaikan dengan posisi Anda saat ini!");
+    }, function(err) {
+        alert("Gagal membaca GPS: " + err.message);
+    }, { enableHighAccuracy: true });
+}
+</script>
+{% endblock %}

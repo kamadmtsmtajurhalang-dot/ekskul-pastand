@@ -1,4 +1,4 @@
-/* CSS Presensi Ekskul MTs Muhammadiyah Tajurhalang */
+/* CSS Presensi Ekskul MTs Muhammadiyah Tajurhalang - Multi-Role Edition */
 :root {
     --primary: #1E3A8A;       /* Deep Navy */
     --primary-light: #3B82F6; /* Sky Blue */
@@ -42,18 +42,19 @@ body {
 }
 
 .header-container {
-    max-width: 720px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 12px 16px;
+    padding: 10px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
 }
 
 .brand-link {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     text-decoration: none;
     color: white;
 }
@@ -62,9 +63,9 @@ body {
     background: #F59E0B;
     color: #0F172A;
     font-weight: 800;
-    font-size: 13px;
-    padding: 5px 8px;
-    border-radius: 8px;
+    font-size: 12px;
+    padding: 4px 7px;
+    border-radius: 7px;
     letter-spacing: 0.5px;
 }
 
@@ -74,96 +75,105 @@ body {
 }
 
 .brand-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
     letter-spacing: 0.5px;
 }
 
 .brand-subtitle {
-    font-size: 10.5px;
+    font-size: 10px;
     color: #BFDBFE;
 }
 
 .header-clock {
-    font-size: 12px;
+    font-size: 11px;
     background: rgba(255, 255, 255, 0.15);
-    padding: 4px 10px;
-    border-radius: 20px;
+    padding: 4px 8px;
+    border-radius: 16px;
     font-weight: 600;
     letter-spacing: 0.5px;
 }
 
-/* Nav Tabs */
-.nav-tabs {
+/* User Session Pill in Header */
+.user-pill {
     display: flex;
-    max-width: 720px;
-    margin: 0 auto;
-    background: rgba(15, 23, 42, 0.25);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    align-items: center;
+    gap: 8px;
 }
 
-.nav-item {
-    flex: 1;
+.user-info-text {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 4px;
-    text-decoration: none;
-    color: #CBD5E1;
-    font-size: 11px;
-    font-weight: 600;
-    transition: all 0.2s;
-    border-bottom: 3px solid transparent;
+    align-items: flex-end;
 }
 
-.nav-item.active {
+.user-name {
+    font-size: 11.5px;
+    font-weight: 700;
     color: #FFFFFF;
-    background: rgba(255, 255, 255, 0.12);
-    border-bottom: 3px solid #F59E0B;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.nav-icon {
-    font-size: 16px;
-    margin-bottom: 2px;
+.user-role-badge {
+    font-size: 9.5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    display: inline-block;
 }
+
+.badge-admin   { background: #FEF3C7; color: #92400E; }
+.badge-pelatih { background: #DBEAFE; color: #1E40AF; }
+.badge-siswa   { background: #DCFCE7; color: #166534; }
+
+.btn-logout {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #FECACA;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background: #EF4444;
+    color: white;
+}
+
+/* Flash Messages */
+.flash-container {
+    margin-bottom: 12px;
+}
+
+.alert {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.alert-success { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+.alert-danger  { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+.alert-info    { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
 
 /* Main Container */
 .main-container {
-    max-width: 720px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 16px;
+    padding: 14px;
 }
 
 .screen-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-}
-
-/* Page Titles */
-.page-title-box {
-    margin-bottom: 4px;
-}
-
-.page-heading {
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--dark);
-}
-
-.page-subheading {
-    font-size: 12.5px;
-    color: var(--muted);
-}
-
-.back-link {
-    display: inline-block;
-    color: var(--primary);
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 4px;
+    gap: 12px;
 }
 
 /* Cards */
@@ -176,15 +186,379 @@ body {
 }
 
 .card-title {
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 700;
     color: var(--dark);
 }
 
 .card-desc {
-    font-size: 11.5px;
+    font-size: 11px;
     color: var(--muted);
     margin-top: 2px;
+}
+
+/* Login & Register Wrapper */
+.login-wrapper {
+    max-width: 420px;
+    margin: 20px auto 0 auto;
+}
+
+.login-card {
+    padding: 24px 20px;
+    border-radius: 16px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.login-icon {
+    font-size: 42px;
+    margin-bottom: 6px;
+}
+
+.login-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--dark);
+}
+
+.login-desc {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.register-prompt {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.link-bold {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.demo-accounts-box {
+    margin-top: 20px;
+    padding: 12px;
+    background: #F8FAFC;
+    border: 1px dashed #CBD5E1;
+    border-radius: 10px;
+    font-size: 11.5px;
+}
+
+.demo-title {
+    font-weight: 700;
+    color: var(--dark);
+    display: block;
+    margin-bottom: 6px;
+}
+
+.demo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.demo-item {
+    color: var(--muted);
+}
+
+.demo-role {
+    font-weight: 600;
+    color: var(--dark);
+}
+
+code {
+    background: #E2E8F0;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--dark);
+}
+
+/* Coach Hero Card */
+.coach-hero-card {
+    background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
+    color: white;
+    border: none;
+}
+
+.coach-hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.coach-hero-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.coach-hero-icon {
+    font-size: 36px;
+}
+
+.coach-hero-name {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.coach-hero-sub {
+    font-size: 12px;
+    color: #BFDBFE;
+}
+
+.btn-edit-schedule {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.schedule-badge-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    flex-wrap: wrap;
+}
+
+.schedule-item {
+    font-size: 11.5px;
+}
+
+.sch-label {
+    color: #93C5FD;
+}
+
+.sch-val {
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+/* Pre-Attendance (Izin/Sakit Siswa) */
+.pre-attendance-card {
+    background: #FFFFFF;
+}
+
+.pre-attendance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pre-att-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pre-att-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #F8FAFC;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    gap: 8px;
+}
+
+.pre-att-info {
+    flex: 1;
+}
+
+.pre-student-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dark);
+    display: block;
+}
+
+.pre-status-tag {
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+}
+
+.status-hadir, .status-akan\ hadir { background: #DCFCE7; color: #166534; }
+.status-izin { background: #FEF3C7; color: #92400E; }
+.status-sakit { background: #DBEAFE; color: #1E40AF; }
+
+.pre-reason {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.pre-att-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-approve {
+    background: #10B981;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-reject {
+    background: #EF4444;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Student Hero Card */
+.student-hero-card {
+    background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+    color: white;
+    border: none;
+}
+
+.student-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.student-avatar {
+    font-size: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.student-hero-name {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.student-hero-sub {
+    font-size: 12px;
+    color: #CCFBF1;
+}
+
+.student-tags-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+/* Pre-Status Radio Cards for Students */
+.pre-status-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+@media (max-width: 480px) {
+    .pre-status-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pre-radio-card {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #FFFFFF;
+    transition: all 0.2s;
+}
+
+.pre-radio-card input {
+    margin-top: 3px;
+}
+
+.radio-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.radio-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.radio-desc {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* Admin Dashboard Hero & Stats */
+.admin-hero-card {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    color: white;
+    border: none;
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+}
+
+@media (max-width: 480px) {
+    .admin-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.admin-stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+}
+
+.astat-val {
+    font-size: 20px;
+    font-weight: 800;
+    display: block;
+    color: #F59E0B;
+}
+
+.astat-label {
+    font-size: 10.5px;
+    color: #CBD5E1;
 }
 
 /* GPS Location Card */
@@ -207,31 +581,22 @@ body {
 
 .pulse-icon {
     font-size: 22px;
-    animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
 }
 
 .btn-refresh-gps {
     background: #EFF6FF;
     border: 1px solid #BFDBFE;
     color: var(--primary);
-    padding: 6px 12px;
+    padding: 5px 10px;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
 }
 
 .gps-status-box {
-    margin-top: 12px;
-    padding: 12px;
+    margin-top: 10px;
+    padding: 10px;
     background: #F8FAFC;
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -241,23 +606,18 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
 }
 
-.gps-badge.valid {
-    color: #15803D;
-}
-
-.gps-badge.invalid {
-    color: #DC2626;
-}
+.gps-badge.valid { color: #15803D; }
+.gps-badge.invalid { color: #DC2626; }
 
 .gps-details {
     display: flex;
     gap: 16px;
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: 6px;
+    padding-top: 6px;
     border-top: 1px dashed var(--border);
 }
 
@@ -266,44 +626,29 @@ body {
     flex-direction: column;
 }
 
-.metric-label {
-    font-size: 10.5px;
-    color: var(--muted);
-}
-
-.metric-value {
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--dark);
-}
-
-.gps-note {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 6px;
-}
+.metric-label { font-size: 10px; color: var(--muted); }
+.metric-value { font-size: 12px; font-weight: 800; color: var(--dark); }
+.gps-note { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
 
 /* Forms */
 .form-group {
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .form-label {
     display: block;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     color: var(--dark);
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
-.req {
-    color: var(--danger);
-}
+.req { color: var(--danger); }
 
 .form-control {
     width: 100%;
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: 9px 11px;
+    font-size: 12.5px;
     border: 1.5px solid var(--border);
     border-radius: 8px;
     outline: none;
@@ -325,7 +670,7 @@ body {
 .form-grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 8px;
 }
 
 @media (max-width: 480px) {
@@ -335,9 +680,7 @@ body {
 }
 
 /* Roster / Student Attendance */
-.roster-card {
-    background: #FFFFFF;
-}
+.roster-card { background: #FFFFFF; }
 
 .roster-header {
     display: flex;
@@ -347,18 +690,16 @@ body {
     gap: 8px;
 }
 
-.quick-actions {
-    display: flex;
-    gap: 6px;
-}
+.quick-actions { display: flex; gap: 6px; }
 
 .btn-quick {
     border: none;
-    padding: 6px 12px;
+    padding: 5px 10px;
     border-radius: 6px;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .btn-quick.all-hadir {
@@ -370,17 +711,17 @@ body {
 .summary-pill-box {
     display: flex;
     gap: 6px;
-    margin-top: 12px;
+    margin-top: 10px;
     overflow-x: auto;
 }
 
 .summary-pill {
     flex: 1;
-    min-width: 65px;
-    padding: 6px 4px;
+    min-width: 60px;
+    padding: 5px 3px;
     border-radius: 6px;
     text-align: center;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
 }
 
@@ -390,71 +731,53 @@ body {
 .pill-alpa  { background: #FEE2E2; color: #991B1B; }
 
 /* Search Box */
-.search-box {
-    margin-top: 10px;
-}
+.search-box { margin-top: 8px; }
 
 .search-input {
     width: 100%;
-    padding: 8px 12px;
+    padding: 7px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 11.5px;
     outline: none;
     font-family: inherit;
 }
 
-/* Student Row Card */
+/* Student Row */
 .student-list {
-    margin-top: 12px;
+    margin-top: 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .student-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: #F8FAFC;
     border: 1px solid var(--border);
     border-radius: 8px;
     gap: 8px;
 }
 
-.student-info {
-    flex: 1;
-    min-width: 120px;
-}
-
-.student-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--dark);
-    display: block;
-}
-
-.student-meta {
-    font-size: 11px;
-    color: var(--muted);
-}
+.student-info { flex: 1; }
+.student-name { font-size: 12.5px; font-weight: 700; color: var(--dark); display: block; }
+.student-meta { font-size: 10.5px; color: var(--muted); }
 
 /* Toggle Attendance 4 Buttons */
-.att-buttons {
-    display: flex;
-    gap: 4px;
-}
+.att-buttons { display: flex; gap: 3px; }
 
 .btn-att {
-    width: 38px;
-    height: 38px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
     border: 1px solid var(--border);
     background: #FFFFFF;
     color: var(--muted);
     font-weight: 800;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -462,40 +785,17 @@ body {
     transition: all 0.15s;
 }
 
-.btn-att.active-H {
-    background: #10B981;
-    color: white;
-    border-color: #059669;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-}
-
-.btn-att.active-I {
-    background: #F59E0B;
-    color: white;
-    border-color: #D97706;
-    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
-}
-
-.btn-att.active-S {
-    background: #3B82F6;
-    color: white;
-    border-color: #2563EB;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-}
-
-.btn-att.active-A {
-    background: #EF4444;
-    color: white;
-    border-color: #DC2626;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-}
+.btn-att.active-H { background: #10B981; color: white; border-color: #059669; }
+.btn-att.active-I { background: #F59E0B; color: white; border-color: #D97706; }
+.btn-att.active-S { background: #3B82F6; color: white; border-color: #2563EB; }
+.btn-att.active-A { background: #EF4444; color: white; border-color: #DC2626; }
 
 /* Submit Bar */
 .submit-bar {
     position: sticky;
-    bottom: 12px;
+    bottom: 10px;
     z-index: 90;
-    margin-top: 14px;
+    margin-top: 12px;
 }
 
 .btn-submit {
@@ -503,159 +803,16 @@ body {
     background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
     color: white;
     border: none;
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 14px;
+    padding: 12px;
+    border-radius: 9px;
+    font-size: 13.5px;
     font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(30, 58, 138, 0.3);
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    letter-spacing: 0.3px;
-}
-
-.btn-submit:active {
-    transform: scale(0.98);
-}
-
-/* Filter Pills Scroll */
-.filter-pills-scroll {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    margin-bottom: 10px;
-}
-
-.pill-filter {
-    white-space: nowrap;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-    background: #FFFFFF;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    transition: all 0.2s;
-}
-
-.pill-filter.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-/* Session Cards in Riwayat */
-.session-cards-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.session-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.session-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.session-badge-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.session-icon {
-    font-size: 24px;
-}
-
-.session-ekskul-name {
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--dark);
-}
-
-.session-coach {
-    font-size: 11px;
-    color: var(--muted);
-}
-
-.session-date-box {
-    text-align: right;
-}
-
-.session-date {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--dark);
-}
-
-.session-time {
-    font-size: 11px;
-    color: var(--muted);
-}
-
-.session-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    background: #F8FAFC;
-    padding: 8px 10px;
-    border-radius: 6px;
-}
-
-.info-item {
-    font-size: 11px;
-}
-
-.info-label {
-    color: var(--muted);
-}
-
-.info-value {
-    font-weight: 600;
-    color: var(--dark);
-}
-
-.attendance-summary-row {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.att-stat {
-    font-size: 10.5px;
-    padding: 3px 6px;
-    border-radius: 4px;
-}
-
-.stat-hadir { background: #DCFCE7; color: #166534; }
-.stat-izin  { background: #FEF3C7; color: #92400E; }
-.stat-sakit { background: #DBEAFE; color: #1E40AF; }
-.stat-alpa  { background: #FEE2E2; color: #991B1B; }
-.stat-total { background: #F1F5F9; color: #334155; }
-
-.session-note {
-    font-size: 11px;
-    color: var(--muted);
-    background: #FFFBEB;
-    padding: 6px 8px;
-    border-radius: 4px;
-}
-
-.session-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
 }
 
 .btn-card-action {
@@ -666,6 +823,7 @@ body {
     font-size: 11.5px;
     font-weight: 700;
     text-decoration: none;
+    display: inline-block;
 }
 
 .btn-detail { background: #EFF6FF; color: var(--primary); }
@@ -676,27 +834,27 @@ body {
     display: inline-block;
     padding: 2px 6px;
     border-radius: 4px;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 700;
 }
 
 .tag-green  { background: #DCFCE7; color: #166534; }
 .tag-yellow { background: #FEF3C7; color: #92400E; }
+.tag-amber  { background: #FEF3C7; color: #B45309; }
+.tag-blue   { background: #DBEAFE; color: #1E40AF; }
 .tag-red    { background: #FEE2E2; color: #991B1B; }
 
 /* Tables */
-.table-responsive {
-    overflow-x: auto;
-}
+.table-responsive { overflow-x: auto; }
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 11.5px;
 }
 
 .data-table th, .data-table td {
-    padding: 8px 10px;
+    padding: 7px 9px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -707,53 +865,10 @@ body {
     text-align: left;
 }
 
-.status-badge {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.badge-hadir { background: #DCFCE7; color: #166534; }
-.badge-izin  { background: #FEF3C7; color: #92400E; }
-.badge-sakit { background: #DBEAFE; color: #1E40AF; }
-.badge-alpa  { background: #FEE2E2; color: #991B1B; }
-
-.num-hadir { font-weight: 800; color: #166534; }
-.num-izin  { font-weight: 800; color: #92400E; }
-.num-sakit { font-weight: 800; color: #1E40AF; }
-.num-alpa  { font-weight: 800; color: #991B1B; }
-
-/* Rekap Header Row */
-.rekap-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.btn-export-csv {
-    background: #10B981;
-    color: white;
-    padding: 8px 14px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 12px;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* Modal Overlay */
+/* Modals */
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(15, 23, 42, 0.6);
     display: flex;
     align-items: center;
@@ -764,60 +879,41 @@ body {
 
 .modal-card {
     background: white;
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 360px;
+    border-radius: 14px;
+    padding: 20px;
+    max-width: 340px;
     width: 100%;
     text-align: center;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-.modal-icon {
-    font-size: 40px;
-    margin-bottom: 8px;
-}
-
-.modal-title {
-    font-size: 17px;
-    font-weight: 800;
-    color: var(--dark);
-}
-
-.modal-body {
-    font-size: 12.5px;
-    color: var(--muted);
-    margin: 8px 0 16px 0;
-}
-
-.modal-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+.modal-icon { font-size: 36px; margin-bottom: 6px; }
+.modal-title { font-size: 16px; font-weight: 800; color: var(--dark); }
+.modal-body { font-size: 12px; color: var(--muted); margin: 6px 0 14px 0; }
+.modal-actions { display: flex; flex-direction: column; gap: 6px; }
 
 .btn-modal-primary {
     background: var(--primary);
     color: white;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 9px;
+    border-radius: 7px;
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
 }
 
 .btn-modal-secondary {
     background: #F1F5F9;
     color: var(--dark);
-    padding: 10px;
-    border-radius: 8px;
+    padding: 9px;
+    border-radius: 7px;
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
 }
 
 /* Footer */
 .app-footer {
-    max-width: 720px;
+    max-width: 760px;
     margin: 20px auto 0 auto;
     text-align: center;
     font-size: 10.5px;

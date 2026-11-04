@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Siswa — Presensi Ekskul MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block content %}
+<div class="screen-wrapper">
+    <!-- Profil Siswa Card -->
+    <div class="card student-hero-card">
+        <div class="student-hero-content">
+            <div class="student-avatar">🎒</div>
+            <div>
+                <h1 class="student-hero-name">{{ user.nama }}</h1>
+                <p class="student-hero-sub">{{ user.kelas }} • MTs Muhammadiyah Tajurhalang</p>
+                <div class="student-tags-row">
+                    {% if ekskul_diikuti %}
+                        {% for e in ekskul_diikuti %}
+                        <span class="badge-tag tag-blue">{{ e.icon }} {{ e.nama }} ({{ e.hari_latihan }})</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="badge-tag tag-yellow">⚠️ Belum Memilih Ekskul</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. Statistik Kehadiran Pribadi -->
+    <div class="card stat-card">
+        <h2 class="card-title">📊 Statistik Kehadiran Pribadi Anda</h2>
+        <div class="summary-pill-box" style="margin-top: 10px;">
+            <div class="summary-pill pill-hadir">Hadir: <b>{{ statistik.hadir or 0 }}</b></div>
+            <div class="summary-pill pill-izin">Izin: <b>{{ statistik.izin or 0 }}</b></div>
+            <div class="summary-pill pill-sakit">Sakit: <b>{{ statistik.sakit or 0 }}</b></div>
+            <div class="summary-pill pill-alpa">Alpa: <b>{{ statistik.alpa or 0 }}</b></div>
+        </div>
+    </div>
+
+    <!-- 2. Form Pra-Presensi Sebelum Latihan (Akan Hadir / Izin / Sakit) -->
+    <div class="card form-card" style="border-left: 4px solid var(--primary);">
+        <h2 class="card-title">📣 Konfirmasi Sebelum Latihan Dimulai</h2>
+        <p class="card-desc">Beritahukan kepada Pelatih apakah kamu akan hadir, izin, atau sakit sebelum jam latihan.</p>
+
+        <form action="/siswa/pengajuan/kirim" method="POST" style="margin-top: 12px;">
+            <div class="form-group">
+                <label class="form-label">Pilih Cabang Ekskul</label>
+                <select name="ekskul_id" class="form-control" required>
+                    {% if ekskul_diikuti %}
+                        {% for e in ekskul_diikuti %}
+                        <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }} — Jadwal: {{ e.hari_latihan }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled selected>Pilih ekskul terlebih dahulu di bawah</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tanggal Latihan</label>
+                <input type="date" name="tanggal_latihan" class="form-control" value="{{ today_str }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Pilihan Kehadiran Anda</label>
+                <div class="pre-status-options">
+                    <label class="pre-radio-card radio-hadir">
+                        <input type="radio" name="status_pengajuan" value="Akan Hadir" checked onchange="toggleAlasan(false)">
+                        <div class="radio-content">
+                            <span class="radio-icon">🟢</span>
+                            <span class="radio-title">Akan Hadir</span>
+                            <small class="radio-desc">Saya siap mengikuti latihan hari ini</small>
+                        </div>
+                    </label>
+
+                    <label class="pre-radio-card radio-izin">
+                        <input type="radio" name="status_pengajuan" value="Izin" onchange="toggleAlasan(true)">
+                        <div class="radio-content">
+                            <span class="radio-icon">🟡</span>
+                            <span class="radio-title">Ajukan Izin</span>
+                            <small class="radio-desc">Ada keperluan keluarga / mendesak</small>
+                        </div>
+                    </label>
+
+                    <label class="pre-radio-card radio-sakit">
+                        <input type="radio" name="status_pengajuan" value="Sakit" onchange="toggleAlasan(true)">
+                        <div class="radio-content">
+                            <span class="radio-icon">🔵</span>
+                            <span class="radio-title">Ajukan Sakit</span>
+                            <small class="radio-desc">Sedang kurang sehat / istirahat</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" id="alasanGroup" style="display: none;">
+                <label class="form-label">Keterangan / Alasan Pengajuan <span class="req">*</span></label>
+                <textarea name="alasan" id="alasanInput" class="form-control textarea-compact" rows="2" placeholder="Tuliskan alasan izin atau kondisi sakit Anda..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit" style="margin-top: 14px;">
+                📨 Kirim Konfirmasi ke Pelatih
+            </button>
+        </form>
+    </div>
+
+    <!-- 3. Riwayat Status Pengajuan Siswa -->
+    <div class="card table-card">
+        <h2 class="card-title">📋 Riwayat Konfirmasi & Status Persetujuan Pelatih</h2>
+        {% if riwayat_pengajuan %}
+        <div class="pre-history-list" style="margin-top: 10px;">
+            {% for r in riwayat_pengajuan %}
+            <div class="pre-history-item">
+                <div class="pre-hist-top">
+                    <span class="pre-hist-ekskul">{{ r.icon_ekskul }} {{ r.nama_ekskul }}</span>
+                    <span class="pre-hist-date">{{ r.tanggal_latihan }}</span>
+                </div>
+                <div class="pre-hist-body">
+                    <span class="pre-status-tag status-{{ r.status_pengajuan|lower }}">
+                        {{ r.status_pengajuan }}
+                    </span>
+                    {% if r.alasan %}
+                    <span class="pre-hist-reason">"{{ r.alasan }}"</span>
+                    {% endif %}
+                </div>
+                <div class="pre-hist-approval">
+                    {% if r.status_approval == 'MENUNGGU' %}
+                        <span class="badge-tag tag-yellow">⏳ Menunggu Persetujuan Pelatih</span>
+                    {% elif r.status_approval == 'DISETUJUI' %}
+                        <span class="badge-tag tag-green">✅ Disetujui Pelatih (Otomatis Masuk Rekap)</span>
+                    {% else %}
+                        <span class="badge-tag tag-red">❌ Ditolak Pelatih (Dianggap Alpa jika tidak datang)</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="font-size: 11.5px; color: #64748B; margin-top: 8px;">
+            Belum ada konfirmasi latihan yang Anda kirimkan.
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- 4. Ubah / Pilih Cabang Ekskul -->
+    <div class="card form-card">
+        <h2 class="card-title">⚙️ Ganti / Pilih Cabang Ekstrakurikuler</h2>
+        <form action="/siswa/ekskul/pilih" method="POST" style="margin-top: 8px;">
+            <div class="form-group">
+                <label class="form-label">Pilih Cabang Ekskul Anda</label>
+                <select name="ekskul_id" class="form-control" required>
+                    {% for e in all_ekskul %}
+                    <option value="{{ e.id }}" {% if user.ekskul_id == e.id %}selected{% endif %}>
+                        {{ e.icon }} {{ e.nama }} ({{ e.hari_latihan }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
+                🔄 Simpan Perubahan Ekskul
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAlasan(show) {
+    const el = document.getElementById('alasanGroup');
+    const input = document.getElementById('alasanInput');
+    if (show) {
+        el.style.display = 'block';
+        input.required = true;
+    } else {
+        el.style.display = 'none';
+        input.required = false;
+    }
+}
+</script>
+{% endblock %}

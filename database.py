@@ -21,41 +21,65 @@ def init_db():
         icon TEXT,
         hari_latihan TEXT,
         jam_latihan TEXT,
-        pelatih_default TEXT
+        pelatih_nama TEXT,
+        deskripsi TEXT
     )
     """)
-    
-    # 2. Tabel Siswa
+
+    # 2. Tabel Users (Admin, Pelatih, Siswa)
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS siswa (
+    CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ekskul_id INTEGER NOT NULL,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
         nama TEXT NOT NULL,
-        kelas TEXT NOT NULL,
+        role TEXT NOT NULL, -- 'admin', 'pelatih', 'siswa'
+        ekskul_id INTEGER,  -- untuk pelatih / ekskul utama siswa
+        kelas TEXT,         -- khusus siswa: 'Kelas 7', 'Kelas 8', 'Kelas 9'
         nisn TEXT,
-        jenis_kelamin TEXT,
-        status_aktif INTEGER DEFAULT 1,
+        jenis_kelamin TEXT, -- 'L' / 'P'
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (ekskul_id) REFERENCES ekskul(id)
     )
     """)
-    
-    # 3. Tabel Pengaturan Lokasi Lapangan
+
+    # 3. Tabel Siswa_Ekskul (Relasi Siswa memilih Ekskul)
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS pengaturan_lokasi (
+    CREATE TABLE IF NOT EXISTS siswa_ekskul (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nama_lokasi TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        radius_meter INTEGER DEFAULT 250,
-        is_active INTEGER DEFAULT 1
+        user_id INTEGER NOT NULL,
+        ekskul_id INTEGER NOT NULL,
+        tanggal_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'AKTIF',
+        UNIQUE(user_id, ekskul_id),
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (ekskul_id) REFERENCES ekskul(id)
     )
     """)
-    
-    # 4. Tabel Sesi Latihan (Presensi Pelatih / Guru)
+
+    # 4. Tabel Pengajuan Pra-Presensi Siswa (Sebelum Latihan)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS pengajuan_izin (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        ekskul_id INTEGER NOT NULL,
+        tanggal_latihan TEXT NOT NULL,
+        status_pengajuan TEXT NOT NULL, -- 'Akan Hadir', 'Izin', 'Sakit'
+        alasan TEXT,
+        status_approval TEXT DEFAULT 'MENUNGGU', -- 'MENUNGGU', 'DISETUJUI', 'DITOLAK'
+        catatan_pelatih TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (ekskul_id) REFERENCES ekskul(id)
+    )
+    """)
+
+    # 5. Tabel Sesi Latihan (Presensi Guru/Pelatih)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sesi_latihan (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ekskul_id INTEGER NOT NULL,
+        pelatih_id INTEGER NOT NULL,
         nama_pelatih TEXT NOT NULL,
         tanggal TEXT NOT NULL,
         jam_mulai TEXT NOT NULL,
@@ -67,133 +91,133 @@ def init_db():
         materi_latihan TEXT,
         catatan TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (ekskul_id) REFERENCES ekskul(id)
+        FOREIGN KEY (ekskul_id) REFERENCES ekskul(id),
+        FOREIGN KEY (pelatih_id) REFERENCES users(id)
     )
     """)
-    
-    # 5. Tabel Presensi Siswa per Sesi
+
+    # 6. Tabel Presensi Siswa per Sesi
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS presensi_siswa (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sesi_id INTEGER NOT NULL,
-        siswa_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
         status_kehadiran TEXT NOT NULL, -- 'Hadir', 'Izin', 'Sakit', 'Alpa'
         keterangan TEXT,
+        is_preapproved INTEGER DEFAULT 0,
         FOREIGN KEY (sesi_id) REFERENCES sesi_latihan(id),
-        FOREIGN KEY (siswa_id) REFERENCES siswa(id)
+        FOREIGN KEY (user_id) REFERENCES users(id)
     )
     """)
-    
-    # Isi data bawaan jika tabel ekskul masih kosong
+
+    # 7. Tabel Pengaturan Lokasi
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS pengaturan_lokasi (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama_lokasi TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        radius_meter INTEGER DEFAULT 250,
+        is_active INTEGER DEFAULT 1
+    )
+    """)
+
+    conn.commit()
+
+    # Seeding Default Data jika kosong
     cursor.execute("SELECT COUNT(*) FROM ekskul")
     if cursor.fetchone()[0] == 0:
-        ekskul_data = [
-            ("Voli", "Olahraga", "🏐", "Selasa & Jumat", "15:30 - 17:00", "Coach Rahmat Hidayat"),
-            ("Futsal Putra", "Olahraga", "⚽", "Senin & Kamis", "15:30 - 17:15", "Coach Mulyadi, S.Pd."),
-            ("Futsal Putri", "Olahraga", "⚽", "Rabu & Sabtu", "15:30 - 17:00", "Coach Suci Lestari"),
-            ("Hizbul Wathan", "Kepanduan", "🏕️", "Jumat", "13:30 - 15:30", "Ramanda Samaun, S.P., Gr."),
-            ("Tapak Suci", "Bela Diri", "🥋", "Sabtu", "08:00 - 10:30", "Pendekar Ahmad Fauzi"),
-            ("Badminton", "Olahraga", "🏸", "Rabu & Ahad", "15:30 - 17:00", "Coach Santi Mulyasari, S.Hum.")
+        ekskuls = [
+            ("Voli", "Olahraga", "🏐", "Selasa & Jumat", "15:30 - 17:00", "Coach Rahmat Hidayat", "Latihan teknik bola voli, passing, smash, dan kerja sama tim."),
+            ("Futsal Putra", "Olahraga", "⚽", "Senin & Kamis", "15:30 - 17:15", "Coach Mulyadi, S.Pd.", "Pengembangan skill futsal, taktik bermain, dan turnamen."),
+            ("Futsal Putri", "Olahraga", "⚽", "Rabu & Sabtu", "15:30 - 17:00", "Coach Suci Lestari", "Latihan dasar futsal putri, kebugaran jasmani, dan kekompakan."),
+            ("Hizbul Wathan", "Kepanduan", "🏕️", "Jumat", "13:30 - 15:30", "Ramanda Samaun, S.P., Gr.", "Pendidikan kepanduan Islami, kedisiplinan, pioneering, dan kemandirian."),
+            ("Tapak Suci", "Bela Diri", "🥋", "Sabtu", "08:00 - 10:30", "Pendekar Ahmad Fauzi", "Seni bela diri Tapak Suci Putera Muhammadiyah, jurus dasar, dan ketangkasan."),
+            ("Badminton", "Olahraga", "🏸", "Rabu & Ahad", "15:30 - 17:00", "Coach Santi Mulyasari, S.Hum.", "Teknik bulutangkis, footwork, netting, smash, dan kebugaran.")
         ]
         cursor.executemany("""
-        INSERT INTO ekskul (nama, kategori, icon, hari_latihan, jam_latihan, pelatih_default)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """, ekskul_data)
-        
-        # Default Lokasi Lapangan MTs Muhammadiyah Tajurhalang
-        # Koordinat Tajurhalang Bogor: Sekitar -6.47892, 106.75805
+        INSERT INTO ekskul (nama, kategori, icon, hari_latihan, jam_latihan, pelatih_nama, deskripsi)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, ekskuls)
+
+    # Lokasi Lapangan Default
+    cursor.execute("SELECT COUNT(*) FROM pengaturan_lokasi")
+    if cursor.fetchone()[0] == 0:
         cursor.execute("""
         INSERT INTO pengaturan_lokasi (nama_lokasi, latitude, longitude, radius_meter, is_active)
         VALUES (?, ?, ?, ?, ?)
         """, ("Kampus & Lapangan MTs Muhammadiyah Tajurhalang", -6.47892, 106.75805, 300, 1))
-        
-        # Sample Siswa per Ekskul
-        siswa_samples = [
-            # 1. Voli (ekskul_id 1)
-            (1, "Ahmad Rifai", "Kelas 7", "L"),
-            (1, "Bagas Pratama", "Kelas 8", "L"),
-            (1, "Cahya Ramadhan", "Kelas 8", "L"),
-            (1, "Daffa Arya", "Kelas 9", "L"),
-            (1, "Eka Febriansyah", "Kelas 7", "L"),
-            (1, "Fajar Nugraha", "Kelas 9", "L"),
-            (1, "Galih Saputra", "Kelas 8", "L"),
-            (1, "Hafiz Maulana", "Kelas 7", "L"),
-            (1, "Ilham Kurnia", "Kelas 9", "L"),
-            (1, "Jovan Alamsyah", "Kelas 8", "L"),
-            
-            # 2. Futsal Putra (ekskul_id 2)
-            (2, "Aldi Firmansyah", "Kelas 8", "L"),
-            (2, "Bima Sakti", "Kelas 7", "L"),
-            (2, "Danang Prasetyo", "Kelas 9", "L"),
-            (2, "Faris Al-Ghifari", "Kelas 8", "L"),
-            (2, "Gibran Rakabuming", "Kelas 7", "L"),
-            (2, "Haikal Malik", "Kelas 9", "L"),
-            (2, "Kusuma Wijaya", "Kelas 8", "L"),
-            (2, "Lukman Hakim", "Kelas 9", "L"),
-            (2, "Naufal Zaidan", "Kelas 7", "L"),
-            (2, "Rizky Ramadhan", "Kelas 8", "L"),
-            (2, "Syahrul Gunawan", "Kelas 9", "L"),
-            (2, "Zulfa Rahman", "Kelas 7", "L"),
-            
-            # 3. Futsal Putri (ekskul_id 3)
-            (3, "Aisyah Zahra", "Kelas 7", "P"),
-            (3, "Bella Anggraini", "Kelas 8", "P"),
-            (3, "Citra Lestari", "Kelas 8", "P"),
-            (3, "Dinda Permata", "Kelas 9", "P"),
-            (3, "Fitri Handayani", "Kelas 7", "P"),
-            (3, "Gita Savitri", "Kelas 9", "P"),
-            (3, "Hana Salsabila", "Kelas 8", "P"),
-            (3, "Intan Nuraini", "Kelas 7", "P"),
-            (3, "Kirana Ayu", "Kelas 9", "P"),
-            (3, "Nabila Syakieb", "Kelas 8", "P"),
-            
-            # 4. Hizbul Wathan (ekskul_id 4)
-            (4, "Aditya Pratama", "Kelas 7", "L"),
-            (4, "Anisa Rahma", "Kelas 7", "P"),
-            (4, "Bayu Permana", "Kelas 8", "L"),
-            (4, "Dewi Sartika", "Kelas 8", "P"),
-            (4, "Faisal Basri", "Kelas 9", "L"),
-            (4, "Fatimah Azzahra", "Kelas 9", "P"),
-            (4, "Gunawan Santoso", "Kelas 7", "L"),
-            (4, "Hasan Basri", "Kelas 8", "L"),
-            (4, "Indah Permatasari", "Kelas 8", "P"),
-            (4, "Jamilah Hasan", "Kelas 9", "P"),
-            (4, "Muhammad Iqbal", "Kelas 7", "L"),
-            (4, "Nurul Hidayah", "Kelas 9", "P"),
-            
-            # 5. Tapak Suci (ekskul_id 5)
-            (5, "Alif Al-Farizi", "Kelas 7", "L"),
-            (5, "Bintang Satria", "Kelas 8", "L"),
-            (5, "Chandra Wibawa", "Kelas 9", "L"),
-            (5, "Dzaky Mubarak", "Kelas 7", "L"),
-            (5, "Fauzan Azima", "Kelas 8", "L"),
-            (5, "Ghani Rahmatullah", "Kelas 9", "L"),
-            (5, "Halimah Tusadiah", "Kelas 7", "P"),
-            (5, "Ihsan Kamil", "Kelas 8", "L"),
-            (5, "Khadijah Al-Kubro", "Kelas 8", "P"),
-            (5, "Raihan Fadillah", "Kelas 9", "L"),
-            
-            # 6. Badminton (ekskul_id 6)
-            (6, "Kevin Sanjaya", "Kelas 9", "L"),
-            (6, "Marcus Gideon", "Kelas 8", "L"),
-            (6, "Anthony Ginting", "Kelas 7", "L"),
-            (6, "Gregoria Mariska", "Kelas 8", "P"),
-            (6, "Apriyani Rahayu", "Kelas 9", "P"),
-            (6, "Fajar Alfian", "Kelas 7", "L"),
-            (6, "Rian Ardianto", "Kelas 8", "L"),
-            (6, "Putri Kusuma", "Kelas 7", "P"),
-            (6, "Jonatan Christie", "Kelas 9", "L"),
-            (6, "Siti Fadia", "Kelas 8", "P")
+
+    # Cek & Tambah Akun Default
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        # 1. Admin Master
+        cursor.execute("""
+        INSERT INTO users (username, password, nama, role)
+        VALUES ('admin', 'admin123', 'Administrator Madrasah (Kamad)', 'admin')
+        """)
+
+        # 2. Akun Pelatih untuk masing-masing ekskul (id 1 s.d 6)
+        pelatih_data = [
+            ('coach_voli', 'voli123', 'Coach Rahmat Hidayat', 'pelatih', 1),
+            ('coach_futsal_pa', 'futsal123', 'Coach Mulyadi, S.Pd.', 'pelatih', 2),
+            ('coach_futsal_pi', 'futsal123', 'Coach Suci Lestari', 'pelatih', 3),
+            ('pembina_hw', 'hw123', 'Ramanda Samaun, S.P., Gr.', 'pelatih', 4),
+            ('pelatih_ts', 'ts123', 'Pendekar Ahmad Fauzi', 'pelatih', 5),
+            ('coach_badminton', 'badminton123', 'Coach Santi Mulyasari, S.Hum.', 'pelatih', 6),
         ]
-        
         cursor.executemany("""
-        INSERT INTO siswa (ekskul_id, nama, kelas, jenis_kelamin)
-        VALUES (?, ?, ?, ?)
-        """, siswa_samples)
-        
+        INSERT INTO users (username, password, nama, role, ekskul_id)
+        VALUES (?, ?, ?, ?, ?)
+        """, pelatih_data)
+
+        # 3. Akun Siswa Awal
+        sample_siswa = [
+            # Voli (ekskul 1)
+            ('siswa1', 'siswa123', 'Ahmad Rifai', 'siswa', 1, 'Kelas 7', 'L'),
+            ('siswa2', 'siswa123', 'Bagas Pratama', 'siswa', 1, 'Kelas 8', 'L'),
+            ('siswa3', 'siswa123', 'Cahya Ramadhan', 'siswa', 1, 'Kelas 8', 'L'),
+            ('siswa4', 'siswa123', 'Daffa Arya', 'siswa', 1, 'Kelas 9', 'L'),
+            ('siswa5', 'siswa123', 'Eka Febriansyah', 'siswa', 1, 'Kelas 7', 'L'),
+            # Futsal Putra (ekskul 2)
+            ('siswa6', 'siswa123', 'Aldi Firmansyah', 'siswa', 2, 'Kelas 8', 'L'),
+            ('siswa7', 'siswa123', 'Bima Sakti', 'siswa', 2, 'Kelas 7', 'L'),
+            ('siswa8', 'siswa123', 'Danang Prasetyo', 'siswa', 2, 'Kelas 9', 'L'),
+            ('siswa9', 'siswa123', 'Faris Al-Ghifari', 'siswa', 2, 'Kelas 8', 'L'),
+            ('siswa10', 'siswa123', 'Haikal Malik', 'siswa', 2, 'Kelas 9', 'L'),
+            # Futsal Putri (ekskul 3)
+            ('siswa11', 'siswa123', 'Aisyah Zahra', 'siswa', 3, 'Kelas 7', 'P'),
+            ('siswa12', 'siswa123', 'Bella Anggraini', 'siswa', 3, 'Kelas 8', 'P'),
+            ('siswa13', 'siswa123', 'Citra Lestari', 'siswa', 3, 'Kelas 8', 'P'),
+            ('siswa14', 'siswa123', 'Dinda Permata', 'siswa', 3, 'Kelas 9', 'P'),
+            # Hizbul Wathan (ekskul 4)
+            ('siswa15', 'siswa123', 'Aditya Pratama', 'siswa', 4, 'Kelas 7', 'L'),
+            ('siswa16', 'siswa123', 'Anisa Rahma', 'siswa', 4, 'Kelas 7', 'P'),
+            ('siswa17', 'siswa123', 'Fatimah Azzahra', 'siswa', 4, 'Kelas 9', 'P'),
+            ('siswa18', 'siswa123', 'Gunawan Santoso', 'siswa', 4, 'Kelas 7', 'L'),
+            # Tapak Suci (ekskul 5)
+            ('siswa19', 'siswa123', 'Alif Al-Farizi', 'siswa', 5, 'Kelas 7', 'L'),
+            ('siswa20', 'siswa123', 'Bintang Satria', 'siswa', 5, 'Kelas 8', 'L'),
+            ('siswa21', 'siswa123', 'Halimah Tusadiah', 'siswa', 5, 'Kelas 7', 'P'),
+            # Badminton (ekskul 6)
+            ('siswa22', 'siswa123', 'Kevin Sanjaya', 'siswa', 6, 'Kelas 9', 'L'),
+            ('siswa23', 'siswa123', 'Anthony Ginting', 'siswa', 6, 'Kelas 7', 'L'),
+            ('siswa24', 'siswa123', 'Gregoria Mariska', 'siswa', 6, 'Kelas 8', 'P')
+        ]
+        cursor.executemany("""
+        INSERT INTO users (username, password, nama, role, ekskul_id, kelas, jenis_kelamin)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, sample_siswa)
+
+        # Masukkan ke tabel relasi siswa_ekskul
+        cursor.execute("""
+        INSERT INTO siswa_ekskul (user_id, ekskul_id)
+        SELECT id, ekskul_id FROM users WHERE role = 'siswa' AND ekskul_id IS NOT NULL
+        """)
+
     conn.commit()
     conn.close()
 
 if __name__ == "__main__":
     init_db()
-    print("Database Presensi Ekskul berhasil diinisialisasi!")
+    print("Database Presensi Multi-Role Berhasil Diinisialisasi!")

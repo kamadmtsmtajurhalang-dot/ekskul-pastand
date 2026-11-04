@@ -11,7 +11,7 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- Top Navigation Header -->
+    <!-- Top Header -->
     <header class="app-header">
         <div class="header-container">
             <a href="/" class="brand-link">
@@ -21,42 +21,50 @@
                     <span class="brand-subtitle">MTs Muhammadiyah Tajurhalang</span>
                 </div>
             </a>
+            
+            {% if session.get('user_id') %}
+            <div class="user-pill">
+                <div class="user-info-text">
+                    <span class="user-name">{{ session.get('nama') }}</span>
+                    <span class="user-role-badge badge-{{ session.get('role') }}">
+                        {% if session.get('role') == 'admin' %}👑 Admin Master
+                        {% elif session.get('role') == 'pelatih' %}🏆 Pelatih
+                        {% else %}🎒 Siswa
+                        {% endif %}
+                    </span>
+                </div>
+                <a href="/logout" class="btn-logout" title="Keluar">🚪 Keluar</a>
+            </div>
+            {% else %}
             <div class="header-clock" id="liveClock">--:-- WIB</div>
+            {% endif %}
         </div>
-        
-        <!-- Tab Navigation Bar (Mobile Thumb-Friendly) -->
-        <nav class="nav-tabs">
-            <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
-                <span class="nav-icon">📝</span>
-                <span class="nav-label">Input Presensi</span>
-            </a>
-            <a href="/riwayat" class="nav-item {% if request.path.startswith('/riwayat') %}active{% endif %}">
-                <span class="nav-icon">📋</span>
-                <span class="nav-label">Riwayat Sesi</span>
-            </a>
-            <a href="/rekap" class="nav-item {% if request.path == '/rekap' %}active{% endif %}">
-                <span class="nav-icon">📊</span>
-                <span class="nav-label">Rekap Data</span>
-            </a>
-            <a href="/kelola" class="nav-item {% if request.path == '/kelola' %}active{% endif %}">
-                <span class="nav-icon">⚙️</span>
-                <span class="nav-label">Kelola & GPS</span>
-            </a>
-        </nav>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Main Container -->
     <main class="main-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
 
     <!-- Bottom Footer -->
     <footer class="app-footer">
-        <p>© 2026 MTs Muhammadiyah Tajurhalang Bogor — Sistem Presensi Lapangan Berbasis Lokasi</p>
+        <p>© 2026 MTs Muhammadiyah Tajurhalang Bogor — Sistem Presensi Terintegrasi Multi-Role</p>
     </footer>
 
     <script>
-        // Live clock
         function updateClock() {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';

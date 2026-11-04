@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Riwayat Sesi {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block content %}
+<div class="screen-wrapper">
+    <div class="page-title-box">
+        <a href="/pelatih" class="back-link">← Kembali ke Dashboard Pelatih</a>
+        <h1 class="page-heading">{{ ekskul.icon }} Riwayat Latihan {{ ekskul.nama }}</h1>
+        <p class="page-subheading">Daftar arsip sesi pelatihan dan lembar presensi resmi</p>
+    </div>
+
+    {% if sesi_list %}
+    <div class="session-cards-grid">
+        {% for s in sesi_list %}
+        <div class="card session-card">
+            <div class="session-card-header">
+                <div>
+                    <h3 class="session-ekskul-name">{{ ekskul.nama }}</h3>
+                    <span class="session-coach">Pelatih: <b>{{ s.nama_pelatih }}</b></span>
+                </div>
+                <div class="session-date-box">
+                    <span class="session-date">{{ s.tanggal }}</span>
+                    <span class="session-time">{{ s.jam_mulai }} WIB</span>
+                </div>
+            </div>
+
+            <div class="session-info-grid">
+                <div class="info-item">
+                    <span class="info-label">Materi:</span>
+                    <span class="info-value">{{ s.materi_latihan if s.materi_latihan else 'Latihan Reguler' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status GPS:</span>
+                    <span class="info-value">
+                        {% if s.status_lokasi == 'VALID' %}
+                        <span class="badge-tag tag-green">🟢 Valid ({{ s.jarak_meter }}m)</span>
+                        {% else %}
+                        <span class="badge-tag tag-yellow">🟡 Luar Radius ({{ s.jarak_meter }}m)</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="attendance-summary-row">
+                <div class="att-stat stat-hadir">Hadir: <b>{{ s.total_hadir }}</b></div>
+                <div class="att-stat stat-izin">Izin: <b>{{ s.total_izin }}</b></div>
+                <div class="att-stat stat-sakit">Sakit: <b>{{ s.total_sakit }}</b></div>
+                <div class="att-stat stat-alpa">Alpa: <b>{{ s.total_alpa }}</b></div>
+                <div class="att-stat stat-total">Total: <b>{{ s.total_peserta }}</b></div>
+            </div>
+
+            {% if s.catatan %}
+            <p class="session-note"><i>"{{ s.catatan }}"</i></p>
+            {% endif %}
+
+            <div class="session-actions">
+                <a href="/cetak/{{ s.id }}" target="_blank" class="btn-card-action btn-print">🖨️ Cetak Lembar Presensi Resmi</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card empty-state">
+        <span class="empty-icon">📭</span>
+        <h3>Belum Ada Riwayat Sesi</h3>
+        <p>Anda belum merekam sesi latihan untuk cabang {{ ekskul.nama }}.</p>
+        <a href="/pelatih" class="btn-submit" style="display:inline-block; max-width:220px; margin-top:12px;">Input Sesi Baru</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
