@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Input Presensi Latihan Ekskul — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block content %}
+<div class="screen-wrapper">
+
+    <!-- 1. GPS Lokasi Status Card -->
+    <div class="card location-card" id="locationCard">
+        <div class="location-header">
+            <div class="location-title-box">
+                <span class="pulse-icon" id="gpsPulse">📍</span>
+                <div>
+                    <h2 class="card-title">Verifikasi Lokasi Lapangan</h2>
+                    <p class="card-desc" id="gpsTargetName">{{ lokasi.nama_lokasi if lokasi else 'MTs Muhammadiyah Tajurhalang' }}</p>
+                </div>
+            </div>
+            <button type="button" class="btn-refresh-gps" id="btnRefreshGps" onclick="checkUserLocation(true)">
+                <span class="refresh-icon">🔄</span> Cek GPS
+            </button>
+        </div>
+
+        <div class="gps-status-box" id="gpsStatusBox">
+            <div class="gps-badge" id="gpsBadge">
+                <span id="gpsBadgeIcon">⏳</span>
+                <span id="gpsBadgeText">Mendeteksi koordinat GPS HP Anda...</span>
+            </div>
+            <div class="gps-details" id="gpsDetails" style="display: none;">
+                <div class="gps-metric">
+                    <span class="metric-label">Jarak ke Lapangan:</span>
+                    <span class="metric-value" id="gpsDistance">-- meter</span>
+                </div>
+                <div class="gps-metric">
+                    <span class="metric-label">Batas Toleransi:</span>
+                    <span class="metric-value">{{ lokasi.radius_meter if lokasi else 250 }} meter</span>
+                </div>
+            </div>
+            <p class="gps-note" id="gpsNote">Mohon izinkan akses lokasi (GPS) pada peramban HP Anda.</p>
+        </div>
+    </div>
+
+    <!-- 2. Formulir Presensi Pelatih & Latihan -->
+    <form id="formPresensi" onsubmit="event.preventDefault(); submitPresensi();">
+        <input type="hidden" id="userLat" value="0">
+        <input type="hidden" id="userLng" value="0">
+        <input type="hidden" id="userDistance" value="0">
+        <input type="hidden" id="userLocStatus" value="BELUM_CEK">
+
+        <div class="card form-card">
+            <h2 class="card-title">📋 Data Sesi Pelatihan</h2>
+            
+            <!-- Pilih Cabang Ekskul -->
+            <div class="form-group">
+                <label for="selectEkskul" class="form-label">Cabang Ekstrakurikuler <span class="req">*</span></label>
+                <div class="select-wrapper">
+                    <select id="selectEkskul" class="form-control" onchange="onEkskulChange()" required>
+                        <option value="" disabled selected>-- Pilih Cabang Ekskul --</option>
+                        {% for e in ekskul_list %}
+                        <option value="{{ e.id }}" 
+                                data-pelatih="{{ e.pelatih_default }}" 
+                                data-hari="{{ e.hari_latihan }}"
+                                data-jam="{{ e.jam_latihan }}"
+                                data-icon="{{ e.icon }}">
+                            {{ e.icon }} {{ e.nama }} ({{ e.hari_latihan }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Grid Data Pelatih & Waktu -->
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="namaPelatih" class="form-label">Nama Pelatih / Pembina <span class="req">*</span></label>
+                    <input type="text" id="namaPelatih" class="form-control" placeholder="Nama Guru / Pelatih" required>
+                </div>
+                <div class="form-group">
+                    <label for="jamLatihan" class="form-label">Waktu Presensi</label>
+                    <input type="time" id="jamLatihan" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="materiLatihan" class="form-label">Materi / Fokus Latihan Hari Ini</label>
+                <input type="text" id="materiLatihan" class="form-control" placeholder="Contoh: Passing bawah & servis (Voli) / Jurus dasar (TS)">
+            </div>
+
+            <div class="form-group">
+                <label for="catatanLatihan" class="form-label">Catatan Tambahan (Kondisi Lapangan / Siswa)</label>
+                <textarea id="catatanLatihan" class="form-control textarea-compact" rows="2" placeholder="Catatan opsional pelatih..."></textarea>
+            </div>
+        </div>
+
+        <!-- 3. Daftar Presensi Siswa Anggota Ekskul -->
+        <div class="card roster-card" id="rosterCard" style="display: none;">
+            <div class="roster-header">
+                <div>
+                    <h2 class="card-title" id="rosterTitle">👥 Presensi Kehadiran Siswa</h2>
+                    <p class="card-desc" id="rosterSub">Ketuk status (H / I / S / A) untuk tiap siswa</p>
+                </div>
+                <!-- Tombol Aksi Cepat Semua Hadir -->
+                <div class="quick-actions">
+                    <button type="button" class="btn-quick all-hadir" onclick="setAllAttendance('Hadir')">
+                        ✅ Semua Hadir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Counter Ringkasan Realtime -->
+            <div class="summary-pill-box">
+                <div class="summary-pill pill-hadir">Hadir: <b id="countHadir">0</b></div>
+                <div class="summary-pill pill-izin">Izin: <b id="countIzin">0</b></div>
+                <div class="summary-pill pill-sakit">Sakit: <b id="countSakit">0</b></div>
+                <div class="summary-pill pill-alpa">Alpa: <b id="countAlpa">0</b></div>
+            </div>
+
+            <!-- Search Filter Siswa -->
+            <div class="search-box">
+                <input type="text" id="searchSiswa" class="search-input" placeholder="🔍 Cari nama siswa..." onkeyup="filterSiswa()">
+            </div>
+
+            <!-- Container Siswa -->
+            <div class="student-list" id="studentListContainer">
+                <!-- Di-generate otomatis oleh JavaScript -->
+            </div>
+        </div>
+
+        <!-- 4. Tombol Submit Besar Ramah Jempol di Bawah -->
+        <div class="submit-bar" id="submitBar" style="display: none;">
+            <button type="submit" class="btn-submit" id="btnSubmit">
+                💾 Simpan & Rekap Presensi Latihan
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Dialog Sukses -->
+<div class="modal-overlay" id="modalSuccess" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-icon">🎉</div>
+        <h3 class="modal-title">Presensi Berhasil Disimpan!</h3>
+        <p class="modal-body" id="modalSuccessMsg">Data kehadiran guru dan siswa telah berhasil direkam ke dalam basis data.</p>
+        <div class="modal-actions">
+            <a href="/" class="btn-modal-primary" onclick="closeModal()">Input Sesi Lain</a>
+            <a href="/riwayat" class="btn-modal-secondary">Lihat Riwayat</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

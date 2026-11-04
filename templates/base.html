@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}Presensi Ekskul — MTs Muhammadiyah Tajurhalang{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <a href="/" class="brand-link">
+                <div class="brand-badge">MTs</div>
+                <div class="brand-text">
+                    <span class="brand-title">PRESENSI EKSKUL</span>
+                    <span class="brand-subtitle">MTs Muhammadiyah Tajurhalang</span>
+                </div>
+            </a>
+            <div class="header-clock" id="liveClock">--:-- WIB</div>
+        </div>
+        
+        <!-- Tab Navigation Bar (Mobile Thumb-Friendly) -->
+        <nav class="nav-tabs">
+            <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <span class="nav-icon">📝</span>
+                <span class="nav-label">Input Presensi</span>
+            </a>
+            <a href="/riwayat" class="nav-item {% if request.path.startswith('/riwayat') %}active{% endif %}">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Riwayat Sesi</span>
+            </a>
+            <a href="/rekap" class="nav-item {% if request.path == '/rekap' %}active{% endif %}">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Rekap Data</span>
+            </a>
+            <a href="/kelola" class="nav-item {% if request.path == '/kelola' %}active{% endif %}">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Kelola & GPS</span>
+            </a>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Bottom Footer -->
+    <footer class="app-footer">
+        <p>© 2026 MTs Muhammadiyah Tajurhalang Bogor — Sistem Presensi Lapangan Berbasis Lokasi</p>
+    </footer>
+
+    <script>
+        // Live clock
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+            const clockEl = document.getElementById('liveClock');
+            if (clockEl) clockEl.innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
