@@ -1,0 +1,182 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Data Master Pelatih — Presensi MTs Muhammadiyah Tajurhalang TA 2026/2027{% endblock %}
+
+{% block admin_content %}
+<!-- Page Header -->
+<div class="card admin-hero-card" style="padding: 16px 20px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-tag tag-amber" style="font-size: 11px; padding: 2px 8px; border-radius: 6px;">🏆 Menu Pelatih</span>
+                <span style="font-size: 12px; color: #93C5FD; font-weight: 600;">Total: {{ pelatih_list|length }} Akun</span>
+            </div>
+            <h1 style="color: white; margin: 6px 0 2px 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">
+                Data Master Pelatih Ekstrakurikuler
+            </h1>
+            <p style="font-size: 12px; color: #94A3B8; margin: 0;">
+                Kelola kredensial akun pelatih, penetapan cabang ekskul, jadwal rutin latihan, dan pengaturan kata sandi.
+            </p>
+        </div>
+        <div>
+            <a href="#formTambahPelatih" class="btn-admin-profile" style="background: #2563EB; color: white; text-decoration: none; border-color: #3B82F6;" onclick="document.getElementById('inputNamaPelatih').focus();">
+                ➕ Tambah Pelatih Baru
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Form Tambah Pelatih Baru -->
+<div class="card form-card" id="formTambahPelatih" style="margin-bottom: 18px; border-top: 3px solid #2563EB;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h2 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #0F172A;">
+            👤 Buat Akun Login Pelatih Baru
+        </h2>
+        <span style="font-size: 11.5px; color: #64748B;">Role: <b>Pelatih Ekskul</b></span>
+    </div>
+
+    <form action="/admin/pelatih/tambah" method="POST">
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Pelatih <span class="req">*</span></label>
+                <input type="text" id="inputNamaPelatih" name="nama" class="form-control" placeholder="Contoh: Coach Ahmad Fauzi, S.Pd" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Username Login <span class="req">*</span></label>
+                <input type="text" name="username" class="form-control" placeholder="Contoh: pelatih_futsal" required>
+                <small style="color: #64748B;">Gunakan huruf kecil atau angka tanpa spasi.</small>
+            </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top: 6px;">
+            <div class="form-group">
+                <label class="form-label">Kata Sandi Awal <span class="req">*</span></label>
+                <input type="text" name="password" class="form-control" value="pelatih123" required>
+                <small style="color: #64748B;">Sandi awal dapat diganti mandiri oleh pelatih.</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Cabang Ekskul yang Diampu <span class="req">*</span></label>
+                <select name="ekskul_id" class="form-control" required>
+                    <option value="">-- Pilih Cabang Ekskul --</option>
+                    {% for e in ekskul_list %}
+                    <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+            <button type="submit" class="btn-submit" style="width: auto; padding: 9px 22px; font-size: 13px;">
+                ➕ Simpan & Buat Akun Pelatih
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Tabel Master Data Pelatih -->
+<div class="card table-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+        <div>
+            <h2 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #0F172A;">
+                🏆 Daftar Pelatih Terdaftar ({{ pelatih_list|length }} Akun)
+            </h2>
+            <p style="font-size: 12px; color: #64748B; margin: 3px 0 0 0;">
+                Klik tombol <b>Reset Sandi</b> jika pelatih lupa kata sandi akunnya.
+            </p>
+        </div>
+
+        <!-- Search Pelatih Box -->
+        <div style="position: relative; width: 240px; max-width: 100%;">
+            <input type="text" id="searchPelatihInput" onkeyup="filterPelatihTable()" class="form-control search-input" placeholder="🔍 Cari nama / ekskul..." style="padding: 7px 12px 7px 32px; font-size: 12.5px;">
+            <span style="position: absolute; left: 10px; top: 8px; color: #94A3B8; font-size: 13px;">🔍</span>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table" id="tablePelatih">
+            <thead>
+                <tr>
+                    <th style="width: 36px; text-align: center;">No</th>
+                    <th>Nama Pelatih</th>
+                    <th>Ekskul Diampu</th>
+                    <th>Jadwal Rutin</th>
+                    <th>Username</th>
+                    <th style="text-align: center; width: 150px;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pelatih_list %}
+                <tr>
+                    <td style="text-align: center; color: #64748B; font-size: 12px;">{{ loop.index }}</td>
+                    <td>
+                        <div style="font-weight: 700; color: #0F172A; font-size: 13px;">{{ p.nama }}</div>
+                        <div style="font-size: 11px; color: #64748B;">ID Pengguna: #{{ p.id }}</div>
+                    </td>
+                    <td>
+                        {% if p.nama_ekskul %}
+                        <span class="badge-tag tag-blue" style="font-size: 11.5px; padding: 3px 8px;">
+                            {{ p.icon_ekskul }} {{ p.nama_ekskul }}
+                        </span>
+                        {% else %}
+                        <span class="badge-tag" style="background: #F1F5F9; color: #64748B; font-size: 11px;">Belum Diatur</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.hari_latihan %}
+                        <div style="font-size: 12px; font-weight: 600; color: #0F172A;">📅 {{ p.hari_latihan }}</div>
+                        <div style="font-size: 11px; color: #64748B;">⏰ {{ p.jam_latihan or '-' }}</div>
+                        {% else %}
+                        <span style="font-size: 11px; color: #94A3B8;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <code style="background: #EFF6FF; color: #1D4ED8; padding: 2px 6px; border-radius: 4px; font-size: 12px;">@{{ p.username }}</code>
+                    </td>
+                    <td style="text-align: center;">
+                        <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                            <button type="button" class="btn-action-pill btn-action-reset" onclick="openModalReset('{{ p.id }}', '{{ p.nama|replace('\'', '\\\'') }}', '{{ p.username|replace('\'', '\\\'') }}', 'pelatih')" title="Reset kata sandi pelatih ini">
+                                🔑 Reset
+                            </button>
+                            <form action="/admin/pelatih/delete/{{ p.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun pelatih {{ p.nama }}? Data login ini akan dihapus dari sistem.');">
+                                <button type="submit" class="btn-action-pill btn-action-delete" title="Hapus akun pelatih">
+                                    🗑️ Hapus
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 28px; color: #64748B;">
+                        Belum ada data pelatih terdaftar. Silakan buat akun baru di formulir atas.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+// Filter / Search Pelatih Table in real-time
+function filterPelatihTable() {
+    const input = document.getElementById('searchPelatihInput');
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById('tablePelatih');
+    const tr = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < tr.length; i++) {
+        const rowText = tr[i].textContent || tr[i].innerText;
+        if (rowText.toLowerCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+        } else {
+            tr[i].style.display = "none";
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="admin-layout-wrapper">
+    <!-- Sidebar Navigation (Desktop & Mobile Drawer) -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <!-- Sidebar Brand Header -->
+        <div class="sidebar-brand-box">
+            <img src="/static/logo-mtsm.png" alt="Logo MTs" class="sidebar-brand-img">
+            <div>
+                <span class="sidebar-badge">👑 Admin Master</span>
+                <div class="sidebar-title">MTs Muhammadiyah</div>
+                <p class="sidebar-sub">Tajurhalang Bogor</p>
+            </div>
+        </div>
+
+        <!-- Sidebar Navigation Menu -->
+        <nav class="sidebar-nav-menu">
+            <a href="/admin" class="sidebar-nav-item {% if active_menu == 'dashboard' %}active{% endif %}">
+                <span>📊 Dashboard</span>
+                {% if reset_requests and reset_requests|length > 0 %}
+                <span class="tab-badge tab-badge-alert" title="{{ reset_requests|length }} Permohonan Reset">{{ reset_requests|length }}</span>
+                {% endif %}
+            </a>
+
+            <a href="/admin/pelatih" class="sidebar-nav-item {% if active_menu == 'pelatih' %}active{% endif %}">
+                <span>🏆 Data Pelatih</span>
+            </a>
+
+            <a href="/admin/siswa" class="sidebar-nav-item {% if active_menu == 'siswa' %}active{% endif %}">
+                <span>🎒 Data Siswa</span>
+            </a>
+
+            <a href="/admin/ekskul-gps" class="sidebar-nav-item {% if active_menu == 'ekskul_gps' %}active{% endif %}">
+                <span>📍 Ekskul & GPS</span>
+            </a>
+
+            <div style="height: 1px; background: #F1F5F9; margin: 6px 0;"></div>
+
+            <a href="/rekap" class="sidebar-nav-item" title="Lihat Rekapitulasi Presensi">
+                <span>📄 Rekap Presensi</span>
+            </a>
+
+            <a href="/logout" class="sidebar-nav-item logout-item" title="Keluar dari akun Admin">
+                <span>🚪 Keluar Akun</span>
+            </a>
+        </nav>
+
+        <!-- Sidebar Profile Info Box -->
+        <div class="sidebar-profile-box">
+            <div style="font-size: 11.5px; color: #64748B;">Login sebagai:</div>
+            <div style="font-size: 12.5px; font-weight: 800; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ current_admin.nama if current_admin else session.get('nama') }}
+            </div>
+            <div style="font-size: 11px; color: #1E40AF; margin-top: 1px;">
+                <code>@{{ current_admin.username if current_admin else session.get('username') }}</code>
+            </div>
+            <button type="button" class="btn-admin-profile" onclick="openModalProfilAdmin()" style="width: 100%; justify-content: center; margin-top: 8px; font-size: 11.5px; padding: 6px 10px; background: #1E3A8A; color: white;">
+                ⚙️ Ubah Profil & Sandi
+            </button>
+        </div>
+    </aside>
+
+    <!-- Backdrop for Mobile Sidebar -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleAdminSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <section class="admin-content-area">
+        <!-- Mobile Toggle Bar -->
+        <div class="admin-mobile-toggle-bar">
+            <button type="button" class="btn-toggle-sidebar" onclick="toggleAdminSidebar()">
+                <span>☰</span>
+                <span>Menu Navigasi</span>
+            </button>
+            <div class="mobile-current-page">
+                {% if active_menu == 'dashboard' %}📊 Dashboard
+                {% elif active_menu == 'pelatih' %}🏆 Data Pelatih
+                {% elif active_menu == 'siswa' %}🎒 Data Siswa
+                {% elif active_menu == 'ekskul_gps' %}📍 Ekskul & GPS
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Page Specific Content -->
+        {% block admin_content %}{% endblock %}
+    </section>
+</div>
+
+<!-- =========================================================
+     MODAL 1: PROFIL ADMIN MASTER (UBAH USERNAME & PASSWORD)
+     ========================================================= -->
+<div id="modalProfilAdmin" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800;">⚙️ Profil & Kata Sandi Admin Master</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalProfilAdmin()">&times;</button>
+        </div>
+        <form action="/admin/profil/update" method="POST">
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Admin <span class="req">*</span></label>
+                <input type="text" name="nama" class="form-control" value="{{ current_admin.nama if current_admin else session.get('nama') }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username Login Admin <span class="req">*</span></label>
+                <input type="text" name="username" class="form-control" value="{{ current_admin.username if current_admin else session.get('username') }}" required>
+                <small style="color: #64748B;">Digunakan untuk masuk ke akun Admin Master.</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Kata Sandi Baru</label>
+                <input type="password" name="password_baru" class="form-control" placeholder="Kosongkan jika tidak ingin mengubah sandi">
+                <small style="color: #64748B;">Hanya diisi jika Anda ingin mengganti kata sandi admin.</small>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalProfilAdmin()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2;">💾 Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: RESET PASSWORD PELATIH / SISWA
+     ========================================================= -->
+<div id="modalResetPassword" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800;">🔑 Reset Kata Sandi Pengguna</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalReset()">&times;</button>
+        </div>
+        <form action="/admin/user/reset-password" method="POST">
+            <input type="hidden" id="resetUserId" name="user_id" value="">
+            <input type="hidden" id="resetRequestId" name="request_id" value="">
+            
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12.5px;">
+                <div>Pengguna: <strong id="resetTargetNama" style="color: #0F172A;">-</strong></div>
+                <div style="margin-top: 2px;">Username: <code id="resetTargetUsername" style="color: #1D4ED8;">-</code> (<span id="resetTargetRole">-</span>)</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Kata Sandi Baru</label>
+                <input type="text" id="resetNewPassword" name="new_password" class="form-control" placeholder="Biarkan kosong untuk memakai sandi default">
+                <small style="color: #64748B;">
+                    Default jika dikosongkan: <b>siswa123</b> (untuk siswa) atau <b>pelatih123</b> (untuk pelatih).
+                </small>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalReset()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2; background: #2563EB;">🚀 Terapkan Reset Sandi</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Toggle Mobile Sidebar
+function toggleAdminSidebar() {
+    const sidebar = document.getElementById('adminSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (backdrop) backdrop.classList.toggle('open');
+}
+
+// Modal Profil Admin Master
+function openModalProfilAdmin() {
+    document.getElementById('modalProfilAdmin').style.display = 'flex';
+}
+function closeModalProfilAdmin() {
+    document.getElementById('modalProfilAdmin').style.display = 'none';
+}
+
+// Modal Reset Password
+function openModalReset(userId, nama, username, role, requestId = '') {
+    document.getElementById('resetUserId').value = userId;
+    document.getElementById('resetRequestId').value = requestId;
+    document.getElementById('resetTargetNama').innerText = nama;
+    document.getElementById('resetTargetUsername').innerText = username;
+    document.getElementById('resetTargetRole').innerText = role === 'pelatih' ? 'Pelatih' : 'Siswa';
+    document.getElementById('resetNewPassword').value = '';
+    document.getElementById('resetNewPassword').placeholder = role === 'pelatih' ? 'Default: pelatih123' : 'Default: siswa123';
+    document.getElementById('modalResetPassword').style.display = 'flex';
+}
+function closeModalReset() {
+    document.getElementById('modalResetPassword').style.display = 'none';
+}
+
+// Tutup modal jika klik di luar box modal
+window.addEventListener('click', function(e) {
+    ['modalProfilAdmin', 'modalResetPassword'].forEach(id => {
+        const modal = document.getElementById(id);
+        if (modal && e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+</script>
+{% block admin_scripts %}{% endblock %}
+{% endblock %}

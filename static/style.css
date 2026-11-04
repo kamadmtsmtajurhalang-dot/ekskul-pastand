@@ -1473,6 +1473,213 @@ code {
     color: #0F172A;
 }
 
+/* =========================================================
+   ADMIN SIDEBAR & MULTI-PAGE LAYOUT
+   ========================================================= */
+.admin-layout-wrapper {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    margin-top: 4px;
+}
+
+/* Sidebar on Desktop */
+.admin-sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 18px 14px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    position: sticky;
+    top: 68px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: all 0.25s ease;
+}
+
+.sidebar-brand-box {
+    padding: 0 6px 12px 6px;
+    border-bottom: 1px solid #F1F5F9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-brand-img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.sidebar-badge {
+    background: #FEF3C7;
+    color: #92400E;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #0F172A;
+    margin-top: 2px;
+}
+
+.sidebar-sub {
+    font-size: 10.5px;
+    color: #64748B;
+    margin: 1px 0 0 0;
+}
+
+.sidebar-nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.sidebar-nav-item:hover {
+    background: #F8FAFC;
+    color: #1E3A8A;
+    transform: translateX(2px);
+}
+
+.sidebar-nav-item.active {
+    background: #1E3A8A;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.25);
+}
+
+.sidebar-nav-item.active:hover {
+    transform: none;
+    color: #FFFFFF;
+}
+
+.sidebar-nav-item.logout-item {
+    color: #DC2626;
+    margin-top: 6px;
+    border-top: 1px solid #F1F5F9;
+    padding-top: 12px;
+}
+
+.sidebar-nav-item.logout-item:hover {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+.sidebar-profile-box {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: auto;
+}
+
+/* Content Area on the right */
+.admin-content-area {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Mobile Toggle Bar */
+.admin-mobile-toggle-bar {
+    display: none;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.btn-toggle-sidebar {
+    background: #1E3A8A;
+    color: white;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mobile-current-page {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+/* Mobile Drawer Responsive Styles */
+@media (max-width: 860px) {
+    .admin-layout-wrapper {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .admin-mobile-toggle-bar {
+        display: flex;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 280px;
+        height: 100vh;
+        z-index: 1050;
+        border-radius: 0 16px 16px 0;
+        background: #FFFFFF;
+        box-shadow: 6px 0 25px rgba(0, 0, 0, 0.25);
+        overflow-y: auto;
+    }
+
+    .admin-sidebar.open {
+        left: 0;
+    }
+
+    .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1040;
+        display: none;
+    }
+
+    .sidebar-backdrop.open {
+        display: block;
+    }
+}
+
 /* Footer */
 .app-footer {
     max-width: 760px;

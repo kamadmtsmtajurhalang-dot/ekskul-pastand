@@ -417,23 +417,59 @@ def siswa_kirim_pengajuan():
     return redirect(url_for('siswa_dashboard'))
 
 # =========================================================
-# 3. AKUN ADMIN MASTER (PENGATURAN EKSKUL, GURU, IMPORT SISWA)
+# 3. AKUN ADMIN MASTER (MULTI-HALAMAN & SIDEBAR NAVIGATION)
 # =========================================================
 
 @app.route('/admin')
+@app.route('/admin/dashboard')
+@app.route('/kelola')
 @role_required('admin')
 def admin_dashboard():
+    """Halaman 1: Ringkasan Dashboard & Notifikasi Permohonan Reset"""
     conn = get_db()
-    
     current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
 
-    ekskul_list = conn.execute("""
-    SELECT e.*, 
-           (SELECT COUNT(*) FROM siswa_ekskul se WHERE se.ekskul_id = e.id AND se.status = 'AKTIF') as total_siswa,
-           (SELECT COUNT(*) FROM sesi_latihan s WHERE s.ekskul_id = e.id) as total_sesi
-    FROM ekskul e
-    ORDER BY e.nama ASC
+    total_ekskul_count = conn.execute("SELECT COUNT(*) FROM ekskul").fetchone()[0]
+    total_pelatih_count = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'pelatih'").fetchone()[0]
+    total_siswa_count = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'siswa'").fetchone()[0]
+    total_sesi_count = conn.execute("SELECT COUNT(*) FROM sesi_latihan").fetchone()[0]
+
+    # Permohonan Reset Password Pending
+    reset_requests = conn.execute("""
+    SELECT r.*, u.nama as nama_user, u.role as role_user
+    FROM reset_password_requests r
+    LEFT JOIN users u ON r.user_id = u.id
+    WHERE r.status = 'PENDING'
+    ORDER BY r.created_at DESC
     """).fetchall()
+
+    # Sesi latihan terbaru
+    recent_sessions = conn.execute("""
+    SELECT s.*, e.nama as nama_ekskul, e.icon as icon_ekskul,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as hadir_count,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_presensi
+    FROM sesi_latihan s
+    JOIN ekskul e ON s.ekskul_id = e.id
+    ORDER BY s.id DESC LIMIT 5
+    """).fetchall()
+
+    conn.close()
+    return render_template('admin_dashboard.html',
+                           current_admin=current_admin,
+                           total_ekskul=total_ekskul_count,
+                           total_pelatih=total_pelatih_count,
+                           total_siswa=total_siswa_count,
+                           total_sesi=total_sesi_count,
+                           reset_requests=reset_requests,
+                           recent_sessions=recent_sessions,
+                           active_menu='dashboard')
+
+@app.route('/admin/pelatih')
+@role_required('admin')
+def admin_pelatih():
+    """Halaman 2: Data Master Pelatih & Tambah Akun Pelatih"""
+    conn = get_db()
+    current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
 
     pelatih_list = conn.execute("""
     SELECT u.*, e.nama as nama_ekskul, e.icon as icon_ekskul, e.hari_latihan, e.jam_latihan 
@@ -442,6 +478,25 @@ def admin_dashboard():
     WHERE u.role = 'pelatih'
     ORDER BY u.nama ASC
     """).fetchall()
+
+    ekskul_list = conn.execute("SELECT * FROM ekskul ORDER BY nama ASC").fetchall()
+    reset_requests = conn.execute("SELECT * FROM reset_password_requests WHERE status = 'PENDING'").fetchall()
+    conn.close()
+
+    return render_template('admin_pelatih.html',
+                           current_admin=current_admin,
+                           pelatih_list=pelatih_list,
+                           ekskul_list=ekskul_list,
+                           reset_requests=reset_requests,
+                           total_pelatih=len(pelatih_list),
+                           active_menu='pelatih')
+
+@app.route('/admin/siswa')
+@role_required('admin')
+def admin_siswa():
+    """Halaman 3: Data Master Siswa, Import CSV & Hapus Akun"""
+    conn = get_db()
+    current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
 
     siswa_list = conn.execute("""
     SELECT u.*, 
@@ -460,33 +515,44 @@ def admin_dashboard():
     ORDER BY u.kelas ASC, u.nama ASC
     """).fetchall()
 
-    lokasi = conn.execute("SELECT * FROM pengaturan_lokasi WHERE is_active = 1 LIMIT 1").fetchone()
+    ekskul_list = conn.execute("SELECT * FROM ekskul ORDER BY nama ASC").fetchall()
+    reset_requests = conn.execute("SELECT * FROM reset_password_requests WHERE status = 'PENDING'").fetchall()
+    conn.close()
 
-    total_siswa_count = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'siswa'").fetchone()[0]
-    total_pelatih_count = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'pelatih'").fetchone()[0]
-    total_sesi_count = conn.execute("SELECT COUNT(*) FROM sesi_latihan").fetchone()[0]
+    return render_template('admin_siswa.html',
+                           current_admin=current_admin,
+                           siswa_list=siswa_list,
+                           ekskul_list=ekskul_list,
+                           reset_requests=reset_requests,
+                           total_siswa=len(siswa_list),
+                           active_menu='siswa')
 
-    # Permohonan Reset Password Pending
-    reset_requests = conn.execute("""
-    SELECT r.*, u.nama as nama_user, u.role as role_user
-    FROM reset_password_requests r
-    LEFT JOIN users u ON r.user_id = u.id
-    WHERE r.status = 'PENDING'
-    ORDER BY r.created_at DESC
+@app.route('/admin/ekskul-gps')
+@role_required('admin')
+def admin_ekskul_gps():
+    """Halaman 4: Kelola Cabang Ekskul & Kalibrasi GPS Lapangan"""
+    conn = get_db()
+    current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
+
+    ekskul_list = conn.execute("""
+    SELECT e.*, 
+           (SELECT COUNT(*) FROM siswa_ekskul se WHERE se.ekskul_id = e.id AND se.status = 'AKTIF') as total_siswa,
+           (SELECT COUNT(*) FROM sesi_latihan s WHERE s.ekskul_id = e.id) as total_sesi
+    FROM ekskul e
+    ORDER BY e.nama ASC
     """).fetchall()
 
+    lokasi = conn.execute("SELECT * FROM pengaturan_lokasi WHERE is_active = 1 LIMIT 1").fetchone()
+    reset_requests = conn.execute("SELECT * FROM reset_password_requests WHERE status = 'PENDING'").fetchall()
     conn.close()
-    return render_template('admin_dashboard.html',
+
+    return render_template('admin_ekskul_gps.html',
                            current_admin=current_admin,
                            ekskul_list=ekskul_list,
-                           pelatih_list=pelatih_list,
-                           siswa_list=siswa_list,
                            lokasi=lokasi,
+                           reset_requests=reset_requests,
                            total_ekskul=len(ekskul_list),
-                           total_siswa=total_siswa_count,
-                           total_pelatih=total_pelatih_count,
-                           total_sesi=total_sesi_count,
-                           reset_requests=reset_requests)
+                           active_menu='ekskul_gps')
 
 @app.route('/admin/profil/update', methods=['POST'])
 @role_required('admin')
@@ -499,14 +565,14 @@ def admin_profil_update():
 
     if not nama or not username:
         flash("Nama dan Username tidak boleh kosong.", "danger")
-        return redirect(url_for('admin_dashboard'))
+        return redirect(request.referrer or url_for('admin_dashboard'))
 
     conn = get_db()
     exist = conn.execute("SELECT id FROM users WHERE username = ? AND id != ?", (username, admin_id)).fetchone()
     if exist:
         conn.close()
         flash(f"Username '{username}' sudah digunakan pengguna lain. Silakan pilih username berbeda.", "danger")
-        return redirect(url_for('admin_dashboard'))
+        return redirect(request.referrer or url_for('admin_dashboard'))
 
     if password_baru:
         conn.execute("UPDATE users SET nama = ?, username = ?, password = ? WHERE id = ?",
@@ -522,7 +588,7 @@ def admin_profil_update():
 
     session['nama'] = nama
     session['username'] = username
-    return redirect(url_for('admin_dashboard'))
+    return redirect(request.referrer or url_for('admin_dashboard'))
 
 @app.route('/admin/user/reset-password', methods=['POST'])
 @role_required('admin')
@@ -534,14 +600,14 @@ def admin_reset_password():
 
     if not user_id:
         flash("ID Pengguna tidak valid.", "danger")
-        return redirect(url_for('admin_dashboard'))
+        return redirect(request.referrer or url_for('admin_dashboard'))
 
     conn = get_db()
     user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
     if not user:
         conn.close()
         flash("Akun pengguna tidak ditemukan.", "danger")
-        return redirect(url_for('admin_dashboard'))
+        return redirect(request.referrer or url_for('admin_dashboard'))
 
     # Default password jika tidak diisi manual
     if not new_password:
@@ -556,7 +622,7 @@ def admin_reset_password():
     conn.close()
 
     flash(f"Kata sandi akun '{user['nama']}' ({user['username']}) berhasil direset menjadi: '{new_password}'", "success")
-    return redirect(url_for('admin_dashboard'))
+    return redirect(request.referrer or url_for('admin_dashboard'))
 
 @app.route('/admin/reset-request/tolak/<int:req_id>', methods=['POST'])
 @role_required('admin')
@@ -567,7 +633,7 @@ def admin_tolak_reset_request(req_id):
     conn.commit()
     conn.close()
     flash("Permohonan reset password telah ditolak.", "info")
-    return redirect(url_for('admin_dashboard'))
+    return redirect(request.referrer or url_for('admin_dashboard'))
 
 @app.route('/admin/siswa/delete/<int:user_id>', methods=['POST'])
 @role_required('admin')
@@ -578,7 +644,7 @@ def admin_delete_siswa(user_id):
     if not user:
         conn.close()
         flash("Akun siswa tidak ditemukan.", "danger")
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('admin_siswa'))
 
     conn.execute("DELETE FROM siswa_ekskul WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM pengajuan_izin WHERE user_id = ?", (user_id,))
@@ -589,7 +655,7 @@ def admin_delete_siswa(user_id):
     conn.commit()
     conn.close()
     flash(f"Akun siswa '{user['nama']}' ({user['username']}) berhasil dihapus dari sistem.", "success")
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_siswa'))
 
 @app.route('/admin/pelatih/delete/<int:user_id>', methods=['POST'])
 @role_required('admin')
@@ -600,7 +666,7 @@ def admin_delete_pelatih(user_id):
     if not user:
         conn.close()
         flash("Akun pelatih tidak ditemukan.", "danger")
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('admin_pelatih'))
 
     if user['ekskul_id']:
         conn.execute("UPDATE ekskul SET pelatih_nama = 'Belum Ada' WHERE id = ?", (user['ekskul_id'],))
@@ -610,7 +676,7 @@ def admin_delete_pelatih(user_id):
     conn.commit()
     conn.close()
     flash(f"Akun pelatih '{user['nama']}' ({user['username']}) berhasil dihapus.", "success")
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_pelatih'))
 
 @app.route('/admin/ekskul/tambah', methods=['POST'])
 @role_required('admin')
@@ -635,7 +701,7 @@ def admin_tambah_ekskul():
         except Exception:
             flash(f"Ekskul '{nama}' sudah ada di database.", "danger")
         conn.close()
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_ekskul_gps'))
 
 @app.route('/admin/pelatih/tambah', methods=['POST'])
 @role_required('admin')
@@ -657,7 +723,7 @@ def admin_tambah_pelatih():
         except Exception:
             flash(f"Username '{username}' sudah digunakan.", "danger")
         conn.close()
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_pelatih'))
 
 @app.route('/admin/siswa/import', methods=['POST'])
 @role_required('admin')
@@ -666,7 +732,7 @@ def admin_import_siswa():
     file = request.files.get('file_siswa')
     if not file or file.filename == '':
         flash("Silakan pilih berkas CSV untuk diimpor.", "danger")
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('admin_siswa'))
 
     try:
         stream = io.StringIO(file.stream.read().decode("utf-8", errors='ignore'), newline=None)
@@ -678,94 +744,91 @@ def admin_import_siswa():
         # Peta nama ekskul ke ID ekskul
         ekskul_rows = conn.execute("SELECT id, LOWER(nama) as nama_lower FROM ekskul").fetchall()
         ekskul_map = {row['nama_lower']: row['id'] for row in ekskul_rows}
-
-        berhasil = 0
-        gagal = 0
         
+        count_inserted = 0
         for i, row in enumerate(csv_reader):
-            if not row or len(row) < 3:
+            if not row or len(row) < 2:
                 continue
-            # Lewati baris header jika ada
-            if i == 0 and any(keyword in row[0].lower() for keyword in ['nama', 'no', 'siswa']):
+            if i == 0 and any(keyword in str(row[0]).lower() for keyword in ['nama', 'name', 'siswa']):
                 continue
-                
-            nama_siswa = row[0].strip()
+            
+            nama = row[0].strip()
             kelas = row[1].strip() if len(row) > 1 else 'Kelas 7'
             jk = row[2].strip().upper() if len(row) > 2 else 'L'
-            nama_ekskul_target = row[3].strip().lower() if len(row) > 3 else ''
+            nama_ekskul_raw = row[3].strip().lower() if len(row) > 3 else ''
+
+            if not nama:
+                continue
+
+            # Buat username acak ramah
+            base_user = "".join(filter(str.isalnum, nama.lower().replace(" ", "")))[:8]
+            username = f"{base_user}{cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0] + 1}"
+            password = 'siswa123'
             
-            # Buat username otomatis unik
-            base_user = "".join(filter(str.isalnum, nama_siswa.lower()))[:10]
-            username = f"{base_user}{i+1}"
-            password = "siswa123" # password default
-            
-            # Cari ekskul ID
-            target_ekskul_id = None
-            for key_ekskul, eid in ekskul_map.items():
-                if key_ekskul in nama_ekskul_target or nama_ekskul_target in key_ekskul:
-                    target_ekskul_id = eid
-                    break
-            if not target_ekskul_id and len(ekskul_map) > 0:
-                target_ekskul_id = list(ekskul_map.values())[0]
+            ekskul_id = ekskul_map.get(nama_ekskul_raw)
 
             try:
                 cursor.execute("""
                 INSERT INTO users (username, password, nama, role, ekskul_id, kelas, jenis_kelamin)
                 VALUES (?, ?, ?, 'siswa', ?, ?, ?)
-                """, (username, password, nama_siswa, target_ekskul_id, kelas, jk))
-                new_uid = cursor.lastrowid
-                
-                cursor.execute("""
-                INSERT INTO siswa_ekskul (user_id, ekskul_id) VALUES (?, ?)
-                """, (new_uid, target_ekskul_id))
-                berhasil += 1
+                """, (username, password, nama, ekskul_id, kelas, jk))
+                new_user_id = cursor.lastrowid
+
+                if ekskul_id:
+                    cursor.execute("""
+                    INSERT OR IGNORE INTO siswa_ekskul (user_id, ekskul_id)
+                    VALUES (?, ?)
+                    """, (new_user_id, ekskul_id))
+
+                count_inserted += 1
             except Exception:
-                gagal += 1
+                continue
 
         conn.commit()
         conn.close()
-        flash(f"Impor Berhasil: {berhasil} siswa ditambahkan ({gagal} dilewati).", "success")
+        flash(f"Berhasil mengimpor {count_inserted} siswa dari berkas CSV!", "success")
     except Exception as e:
-        flash(f"Gagal memproses file CSV: {str(e)}", "danger")
+        flash(f"Gagal memproses berkas CSV: {e}", "danger")
 
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_siswa'))
 
 @app.route('/admin/template-csv')
 @role_required('admin')
-def download_template_csv():
-    """Download template CSV untuk impor data siswa."""
-    output = "Nama Siswa,Kelas,Jenis Kelamin,Ekskul\n"
-    output += "Ahmad Fauzi,Kelas 7,L,Futsal Putra\n"
-    output += "Siti Nurhaliza,Kelas 8,P,Futsal Putri\n"
-    output += "Budi Santoso,Kelas 9,L,Voli\n"
-    output += "Dewi Sartika,Kelas 7,P,Hizbul Wathan\n"
-    output += "Rizky Ramadhan,Kelas 8,L,Tapak Suci\n"
-    output += "Nabila Putri,Kelas 9,P,Badminton\n"
-
+def admin_template_csv():
+    """Mengunduh berkas template CSV contoh untuk pendaftaran siswa."""
+    csv_content = "Nama Siswa,Kelas,Jenis Kelamin (L/P),Nama Ekskul\n" \
+                  "Ahmad Zaki Fauzan,Kelas 7,L,Voli\n" \
+                  "Bunga Citra Lestari,Kelas 8,P,Futsal Putri\n" \
+                  "Dimas Pratama,Kelas 9,L,Futsal Putra\n" \
+                  "Dewi Anggraini,Kelas 7,P,Hizbul Wathan\n" \
+                  "Farhan Maulana,Kelas 8,L,Tapak Suci\n" \
+                  "Gita Nirmala,Kelas 9,P,Badminton\n"
+    
     return Response(
-        output,
+        csv_content,
         mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=Template_Import_Siswa_Ekskul.csv"}
+        headers={"Content-disposition": "attachment; filename=template_import_siswa_ekskul.csv"}
     )
 
 @app.route('/admin/lokasi/update', methods=['POST'])
 @role_required('admin')
 def admin_update_lokasi():
-    nama_lokasi = request.form.get('nama_lokasi')
-    lat = float(request.form.get('latitude', 0))
-    lng = float(request.form.get('longitude', 0))
-    radius = int(request.form.get('radius_meter', 250))
+    nama = request.form.get('nama_lokasi', '').strip()
+    lat = request.form.get('latitude')
+    lng = request.form.get('longitude')
+    radius = request.form.get('radius_meter', 250)
 
-    conn = get_db()
-    conn.execute("""
-    UPDATE pengaturan_lokasi 
-    SET nama_lokasi = ?, latitude = ?, longitude = ?, radius_meter = ?
-    WHERE is_active = 1
-    """, (nama_lokasi, lat, lng, radius))
-    conn.commit()
-    conn.close()
-    flash("Titik koordinat dan radius geofence lapangan berhasil diperbarui!", "success")
-    return redirect(url_for('admin_dashboard'))
+    if nama and lat and lng:
+        conn = get_db()
+        conn.execute("UPDATE pengaturan_lokasi SET is_active = 0")
+        conn.execute("""
+        INSERT INTO pengaturan_lokasi (nama_lokasi, latitude, longitude, radius_meter, is_active)
+        VALUES (?, ?, ?, ?, 1)
+        """, (nama, float(lat), float(lng), int(radius)))
+        conn.commit()
+        conn.close()
+        flash("Titik koordinat GPS lapangan madrasah berhasil diperbarui!", "success")
+    return redirect(url_for('admin_ekskul_gps'))
 
 # =========================================================
 # API & PRESENSI UMUM (GEOFENCE & SUBMISSION)

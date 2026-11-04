@@ -1,0 +1,249 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Kelola Cabang Ekskul & GPS — Presensi MTs Muhammadiyah Tajurhalang TA 2026/2027{% endblock %}
+
+{% block admin_content %}
+<!-- Page Header -->
+<div class="card admin-hero-card" style="padding: 16px 20px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-tag tag-blue" style="font-size: 11px; padding: 2px 8px; border-radius: 6px;">📍 Menu Ekskul & GPS</span>
+                <span style="font-size: 12px; color: #93C5FD; font-weight: 600;">Total: {{ total_ekskul }} Cabang Ekskul</span>
+            </div>
+            <h1 style="color: white; margin: 6px 0 2px 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">
+                Cabang Ekskul & Kalibrasi GPS Lapangan
+            </h1>
+            <p style="font-size: 12px; color: #94A3B8; margin: 0;">
+                Atur koordinat batas lokasi (geofencing) presensi lapangan madrasah dan kelola cabang ekstrakurikuler.
+            </p>
+        </div>
+        <div>
+            <a href="#formTambahEkskul" class="btn-admin-profile" style="background: #2563EB; color: white; text-decoration: none; border-color: #3B82F6;">
+                ➕ Tambah Ekskul Baru
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     BAGIAN 1: KALIBRASI TITIK GPS LAPANGAN (GEOFENCE)
+     ========================================================= -->
+<div class="card form-card" style="margin-bottom: 18px; border-top: 3px solid #F59E0B;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+        <div>
+            <h2 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #0F172A;">
+                📍 Kalibrasi Koordinat Pusat Lapangan (Geofencing)
+            </h2>
+            <p style="font-size: 12px; color: #64748B; margin: 2px 0 0 0;">
+                Presensi hanya dapat dibuka jika pelatih terdeteksi berada dalam radius toleransi ini.
+            </p>
+        </div>
+        <span class="badge-tag tag-green" style="font-size: 11px; padding: 3px 8px;">
+            ✓ Geofence Aktif: {{ lokasi.radius_meter if lokasi else 250 }}m
+        </span>
+    </div>
+
+    <form action="/admin/lokasi/update" method="POST">
+        <div class="form-group">
+            <label class="form-label">Nama Titik Lapangan / Madrasah <span class="req">*</span></label>
+            <input type="text" name="nama_lokasi" class="form-control" value="{{ lokasi.nama_lokasi if lokasi else 'Kampus & Lapangan MTs Muhammadiyah Tajurhalang' }}" required>
+        </div>
+
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label class="form-label">Latitude <span class="req">*</span></label>
+                <input type="number" step="0.000001" id="calibLat" name="latitude" class="form-control" value="{{ lokasi.latitude if lokasi else -6.478920 }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Longitude <span class="req">*</span></label>
+                <input type="number" step="0.000001" id="calibLng" name="longitude" class="form-control" value="{{ lokasi.longitude if lokasi else 106.758050 }}" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Radius Toleransi Presensi (Meter) <span class="req">*</span></label>
+            <input type="number" name="radius_meter" class="form-control" value="{{ lokasi.radius_meter if lokasi else 250 }}" required>
+            <small style="color: #64748B;">
+                Rekomendasi: <b>200 - 300 meter</b> untuk mengcover seluruh lapangan olahraga dan lingkungan madrasah.
+            </small>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center;">
+            <button type="button" class="btn-quick all-hadir" onclick="setCurrentLocationAsCenter()" style="padding: 9px 16px; font-size: 12.5px;">
+                📌 Gunakan Titik GPS Perangkat Saya Saat Ini
+            </button>
+            <button type="submit" class="btn-submit" style="width: auto; padding: 9px 24px; font-size: 12.5px; background: #1E3A8A;">
+                💾 Simpan Pengaturan Koordinat
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- =========================================================
+     BAGIAN 2: TAMBAH CABANG EKSKUL BARU
+     ========================================================= -->
+<div class="card form-card" id="formTambahEkskul" style="margin-bottom: 18px; border-top: 3px solid #2563EB;">
+    <h2 class="card-title" style="margin: 0 0 12px 0; font-size: 15px; font-weight: 800; color: #0F172A;">
+        ➕ Tambah Cabang Ekstrakurikuler Baru
+    </h2>
+
+    <form action="/admin/ekskul/tambah" method="POST">
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label class="form-label">Nama Ekskul <span class="req">*</span></label>
+                <input type="text" name="nama" class="form-control" placeholder="Contoh: Futsal, Hizbul Wathan, Karate" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Kategori Ekskul <span class="req">*</span></label>
+                <select name="kategori" class="form-control" required>
+                    <option value="Olahraga">Olahraga</option>
+                    <option value="Kepanduan">Kepanduan / Organisasi</option>
+                    <option value="Seni & Budaya">Seni & Budaya</option>
+                    <option value="Keagamaan">Keagamaan / Rohis</option>
+                    <option value="Sains & Teknologi">Sains & Teknologi</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top: 6px;">
+            <div class="form-group">
+                <label class="form-label">Icon Emoji Ekskul <span class="req">*</span></label>
+                <input type="text" name="icon" class="form-control" value="🏅" placeholder="Contoh: ⚽, 🥋, 🏕️, 🎨" required>
+                <small style="color: #64748B;">Gunakan emoji keyboard untuk visual identitas ekskul.</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Nama Pelatih / Pembina (Opsional)</label>
+                <input type="text" name="pelatih_nama" class="form-control" placeholder="Contoh: Coach Hendra">
+            </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top: 6px;">
+            <div class="form-group">
+                <label class="form-label">Hari Rutin Latihan</label>
+                <input type="text" name="hari_latihan" class="form-control" placeholder="Contoh: Jumat, Sabtu, atau Ahad">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Jam Rutin Latihan</label>
+                <input type="text" name="jam_latihan" class="form-control" placeholder="Contoh: 15.30 - 17.00 WIB">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 6px;">
+            <label class="form-label">Deskripsi Ekskul</label>
+            <textarea name="deskripsi" class="form-control" rows="2" placeholder="Keterangan singkat mengenai kegiatan ekskul ini..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+            <button type="submit" class="btn-submit" style="width: auto; padding: 9px 22px; font-size: 13px;">
+                ➕ Daftarkan Cabang Ekskul
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- =========================================================
+     BAGIAN 3: TABEL MASTER CABANG EKSKUL
+     ========================================================= -->
+<div class="card table-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+        <div>
+            <h2 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #0F172A;">
+                🏆 Daftar Cabang Ekstrakurikuler MTs ({{ ekskul_list|length }} Cabang)
+            </h2>
+            <p style="font-size: 12px; color: #64748B; margin: 2px 0 0 0;">
+                Seluruh cabang kegiatan ekstrakurikuler terdaftar pada TA 2026/2027.
+            </p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 36px; text-align: center;">No</th>
+                    <th>Nama Cabang Ekskul</th>
+                    <th>Kategori</th>
+                    <th>Jadwal Rutin</th>
+                    <th>Pelatih / Pembina</th>
+                    <th style="text-align: center;">Total Siswa</th>
+                    <th style="text-align: center;">Total Sesi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in ekskul_list %}
+                <tr>
+                    <td style="text-align: center; color: #64748B; font-size: 12px;">{{ loop.index }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 20px;">{{ e.icon }}</span>
+                            <div>
+                                <div style="font-weight: 800; color: #0F172A; font-size: 13px;">{{ e.nama }}</div>
+                                <div style="font-size: 11px; color: #64748B;">ID Ekskul: #{{ e.id }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge-tag tag-blue" style="font-size: 11px; padding: 2px 7px;">
+                            {{ e.kategori or 'Olahraga' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if e.hari_latihan %}
+                        <div style="font-size: 12px; font-weight: 600; color: #0F172A;">📅 {{ e.hari_latihan }}</div>
+                        <div style="font-size: 11px; color: #64748B;">⏰ {{ e.jam_latihan or '-' }}</div>
+                        {% else %}
+                        <span style="font-size: 11.5px; color: #94A3B8;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-size: 12px; font-weight: 600; color: #334155;">
+                            {{ e.pelatih_nama or 'Belum Ditentukan' }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="badge-tag tag-green" style="font-size: 11.5px; font-weight: 700;">
+                            {{ e.total_siswa or 0 }} Siswa
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="badge-tag tag-purple" style="font-size: 11.5px; font-weight: 700;">
+                            {{ e.total_sesi or 0 }} Sesi
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 32px; color: #64748B;">
+                        Belum ada cabang ekskul terdaftar. Silakan tambahkan pada formulir di atas.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+// Fungsi Kalibrasi GPS Menggunakan Geolocation Browser
+function setCurrentLocationAsCenter() {
+    if (!navigator.geolocation) {
+        alert("Browser Anda tidak mendukung Geolocation GPS.");
+        return;
+    }
+    alert("Mengambil koordinat GPS dari perangkat Anda saat ini...");
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        document.getElementById('calibLat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('calibLng').value = pos.coords.longitude.toFixed(6);
+        alert("Titik koordinat berhasil disesuaikan dengan GPS perangkat Anda saat ini!\n\nLatitude: " + pos.coords.latitude.toFixed(6) + "\nLongitude: " + pos.coords.longitude.toFixed(6) + "\n\nSilakan klik 'Simpan Pengaturan Koordinat' untuk menerapkan.");
+    }, function(err) {
+        alert("Gagal membaca GPS: " + err.message + ". Pastikan izin akses lokasi telah aktif pada peramban/HP.");
+    }, { enableHighAccuracy: true });
+}
+</script>
+{% endblock %}
