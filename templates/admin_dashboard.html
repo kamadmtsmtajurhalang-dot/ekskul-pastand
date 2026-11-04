@@ -18,24 +18,57 @@
                 </button>
             </div>
         </div>
+    </div>
 
-        <!-- 3. Dashboard Real-Time Cards -->
-        <div class="admin-stats-grid" style="margin-top: 14px;">
-            <div class="admin-stat-card">
+    <!-- =========================================================
+         BAR NAVIGASI TAB MENU ADMIN (4 TAB UTAMA)
+         ========================================================= -->
+    <nav class="admin-tab-nav" id="adminTabNav">
+        <button type="button" class="admin-tab-btn active" data-tab="tab-dashboard" onclick="switchAdminTab('tab-dashboard')">
+            <span>📊 Dashboard</span>
+            {% if reset_requests and reset_requests|length > 0 %}
+            <span class="tab-badge tab-badge-alert" title="{{ reset_requests|length }} Permohonan Reset">{{ reset_requests|length }}</span>
+            {% endif %}
+        </button>
+
+        <button type="button" class="admin-tab-btn" data-tab="tab-pelatih" onclick="switchAdminTab('tab-pelatih')">
+            <span>🏆 Data Pelatih</span>
+            <span class="tab-badge">{{ total_pelatih }}</span>
+        </button>
+
+        <button type="button" class="admin-tab-btn" data-tab="tab-siswa" onclick="switchAdminTab('tab-siswa')">
+            <span>🎒 Data Siswa</span>
+            <span class="tab-badge">{{ total_siswa }}</span>
+        </button>
+
+        <button type="button" class="admin-tab-btn" data-tab="tab-ekskul" onclick="switchAdminTab('tab-ekskul')">
+            <span>📍 Ekskul & GPS</span>
+            <span class="tab-badge">{{ total_ekskul }}</span>
+        </button>
+    </nav>
+
+    <!-- =========================================================
+         TAB 1: DASHBOARD (STATISTIK METRIK & NOTIFIKASI RESET)
+         ========================================================= -->
+    <div id="tab-dashboard" class="admin-tab-pane active">
+        <!-- Statistik Metrik Real-Time -->
+        <div class="admin-stats-grid">
+            <div class="admin-stat-card clickable" onclick="switchAdminTab('tab-ekskul')" title="Klik untuk kelola cabang ekskul & GPS">
                 <span class="astat-val">{{ total_ekskul }}</span>
                 <span class="astat-label">Cabang Ekskul</span>
+                <span class="admin-stat-hint">👆 Buka Tab Ekskul</span>
             </div>
             
-            <div class="admin-stat-card clickable" onclick="openModalPelatih()" title="Klik untuk melihat jadwal rutin pelatih">
+            <div class="admin-stat-card clickable" onclick="openModalPelatih()" title="Klik untuk melihat ringkasan jadwal pelatih">
                 <span class="astat-val">{{ total_pelatih }}</span>
                 <span class="astat-label">Pelatih Terdaftar</span>
-                <span class="admin-stat-hint">👆 Klik: Jadwal Rutin</span>
+                <span class="admin-stat-hint">👆 Info Jadwal Rutin</span>
             </div>
 
             <div class="admin-stat-card clickable" onclick="openModalSiswa()" title="Klik untuk melihat siswa & ekskul yang diikuti">
                 <span class="astat-val">{{ total_siswa }}</span>
                 <span class="astat-label">Siswa Terdaftar</span>
-                <span class="admin-stat-hint">👆 Klik: Ekskul Siswa</span>
+                <span class="admin-stat-hint">👆 Info Ekskul Siswa</span>
             </div>
 
             <div class="admin-stat-card">
@@ -43,337 +76,376 @@
                 <span class="astat-label">Sesi Latihan</span>
             </div>
         </div>
-    </div>
 
-    <!-- 2. NOTIFIKASI PERMOHONAN LUPA / RESET PASSWORD -->
-    {% if reset_requests and reset_requests|length > 0 %}
-    <div class="card" style="border-left: 4px solid #EF4444; background: #FEF2F2;">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-            <div>
-                <h3 style="font-size: 15px; font-weight: 800; color: #991B1B; margin: 0;">
-                    🔔 Ada {{ reset_requests|length }} Permohonan Lupa / Reset Password!
-                </h3>
-                <p style="font-size: 12px; color: #B91C1C; margin: 4px 0 0 0;">
-                    Siswa atau Pelatih mengajukan bantuan reset akun/kata sandi karena tidak bisa masuk.
-                </p>
+        <!-- Notifikasi Permohonan Lupa / Reset Password -->
+        {% if reset_requests and reset_requests|length > 0 %}
+        <div class="card" style="border-left: 4px solid #EF4444; background: #FEF2F2; margin-top: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: #991B1B; margin: 0;">
+                        🔔 Ada {{ reset_requests|length }} Permohonan Lupa / Reset Password!
+                    </h3>
+                    <p style="font-size: 12px; color: #B91C1C; margin: 4px 0 0 0;">
+                        Siswa atau Pelatih mengajukan bantuan reset akun/kata sandi karena tidak bisa masuk.
+                    </p>
+                </div>
             </div>
-        </div>
 
-        <div class="table-responsive" style="margin-top: 10px;">
-            <table class="data-table">
-                <thead>
-                    <tr style="background: #FEE2E2;">
-                        <th>Nama Pemohon</th>
-                        <th>Peran</th>
-                        <th>Username</th>
-                        <th>Keterangan</th>
-                        <th style="text-align: center;">Aksi Admin</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in reset_requests %}
-                    <tr>
-                        <td><b>{{ req.nama_user if req.nama_user else req.nama }}</b></td>
-                        <td>
-                            <span class="badge-tag {% if req.role == 'pelatih' %}tag-blue{% else %}tag-green{% endif %}">
-                                {{ '🏆 Pelatih' if req.role == 'pelatih' else '🎒 Siswa' }}
-                            </span>
-                        </td>
-                        <td><code>{{ req.username }}</code></td>
-                        <td><small>{{ req.keterangan if req.keterangan else 'Lupa kata sandi' }}</small></td>
-                        <td style="text-align: center;">
-                            <div style="display: inline-flex; gap: 4px;">
-                                <button type="button" class="btn-action-sm btn-action-reset" 
-                                        onclick="openModalReset('{{ req.user_id if req.user_id else '' }}', '{{ req.nama }}', '{{ req.username }}', '{{ req.role }}', '{{ req.id }}')">
-                                    🔑 Reset Sekarang
-                                </button>
-                                <form action="/admin/reset-request/tolak/{{ req.id }}" method="POST" style="display: inline;" onsubmit="return confirm('Tolak permohonan reset password ini?');">
-                                    <button type="submit" class="btn-action-sm btn-action-delete" title="Tolak permohonan">
-                                        ✕
+            <div class="table-responsive" style="margin-top: 10px;">
+                <table class="data-table">
+                    <thead>
+                        <tr style="background: #FEE2E2;">
+                            <th>Nama Pemohon</th>
+                            <th>Peran</th>
+                            <th>Username</th>
+                            <th>Keterangan</th>
+                            <th style="text-align: center;">Aksi Admin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in reset_requests %}
+                        <tr>
+                            <td><b>{{ req.nama_user if req.nama_user else req.nama }}</b></td>
+                            <td>
+                                <span class="badge-tag {% if req.role == 'pelatih' %}tag-blue{% else %}tag-green{% endif %}">
+                                    {{ '🏆 Pelatih' if req.role == 'pelatih' else '🎒 Siswa' }}
+                                </span>
+                            </td>
+                            <td><code>{{ req.username }}</code></td>
+                            <td><small>{{ req.keterangan if req.keterangan else 'Lupa kata sandi' }}</small></td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; gap: 4px;">
+                                    <button type="button" class="btn-action-sm btn-action-reset" 
+                                            onclick="openModalReset('{{ req.user_id if req.user_id else '' }}', '{{ req.nama }}', '{{ req.username }}', '{{ req.role }}', '{{ req.id }}')">
+                                        🔑 Reset Sandi
                                     </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- 1. KELOLA DATA SISWA & FITUR IMPORT CSV/EXCEL -->
-    <div class="card form-card" style="border-left: 4px solid #10B981;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div>
-                <h2 class="card-title">📥 Unggah / Import Data Siswa via Excel / CSV</h2>
-                <p class="card-desc">Unggah data siswa madrasah sekaligus. Siswa akan otomatis terdaftar dan masuk ke ekskul pilihannya.</p>
-            </div>
-            <a href="/admin/template-csv" class="btn-quick all-hadir">
-                📄 Unduh Template CSV Contoh
-            </a>
-        </div>
-
-        <form action="/admin/siswa/import" method="POST" enctype="multipart/form-data" style="margin-top: 14px;">
-            <div class="form-group">
-                <label class="form-label">Pilih Berkas CSV Data Siswa</label>
-                <input type="file" name="file_siswa" class="form-control" accept=".csv, text/csv" required>
-                <small style="color: #64748B;">Format kolom: <b>Nama Siswa, Kelas, L/P, Ekskul</b> (Bisa dibuka & disimpan dari Microsoft Excel sebagai format .CSV).</small>
-            </div>
-            <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); margin-top: 10px;">
-                🚀 Proses & Import Data Siswa Sekarang
-            </button>
-        </form>
-    </div>
-
-    <!-- 5. MENU DATA MASTER PELATIH & OPSI HAPUS AKUN -->
-    <div class="card table-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-            <div>
-                <h2 class="card-title" style="margin: 0;">🏆 Data Master Pelatih Terdaftar ({{ pelatih_list|length }} Akun)</h2>
-                <p class="card-desc" style="margin-top: 2px;">Kelola akun login pelatih pembina ekskul, atur ulang sandi, atau hapus akun.</p>
+                                    <form action="/admin/reset-request/tolak/{{ req.id }}" method="POST" style="display: inline;" onsubmit="return confirm('Tolak permohonan reset password ini?');">
+                                        <button type="submit" class="btn-action-sm btn-action-delete" title="Tolak permohonan">
+                                            ✕
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 30px; text-align: center;">No</th>
-                        <th>Nama Pelatih</th>
-                        <th>Ekskul Diampu</th>
-                        <th>Jadwal Rutin</th>
-                        <th>Username Login</th>
-                        <th style="text-align: center; width: 140px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in pelatih_list %}
-                    <tr>
-                        <td style="text-align: center;">{{ loop.index }}</td>
-                        <td><b>{{ p.nama }}</b></td>
-                        <td><span class="badge-tag tag-blue">{{ p.icon_ekskul }} {{ p.nama_ekskul if p.nama_ekskul else 'Belum ditentukan' }}</span></td>
-                        <td>
-                            <small>{{ p.hari_latihan if p.hari_latihan else '-' }}<br/>{{ p.jam_latihan if p.jam_latihan else '' }}</small>
-                        </td>
-                        <td><code>{{ p.username }}</code></td>
-                        <td style="text-align: center;">
-                            <div style="display: inline-flex; gap: 4px;">
-                                <button type="button" class="btn-action-sm btn-action-reset" 
-                                        onclick="openModalReset('{{ p.id }}', '{{ p.nama }}', '{{ p.username }}', 'pelatih')"
-                                        title="Reset kata sandi pelatih ini">
-                                    🔑 Reset
-                                </button>
-                                <form action="/admin/pelatih/delete/{{ p.id }}" method="POST" style="display: inline;" 
-                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun pelatih {{ p.nama }} ({{ p.username }})?');">
-                                    <button type="submit" class="btn-action-sm btn-action-delete" title="Hapus akun pelatih ini">
-                                        🗑️ Hapus
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" style="text-align: center; color: #64748B;">Belum ada akun pelatih terdaftar.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% else %}
+        <div class="card" style="margin-top: 16px; background: #F8FAFC; border: 1px dashed #CBD5E1; text-align: center; padding: 20px;">
+            <span style="font-size: 28px;">✅</span>
+            <h4 style="margin: 6px 0 2px 0; font-size: 14px; color: #334155;">Tidak Ada Permohonan Reset Password</h4>
+            <p style="margin: 0; font-size: 12px; color: #64748B;">Semua akun siswa dan pelatih saat ini berjalan lancar tanpa kendala login.</p>
         </div>
-    </div>
+        {% endif %}
 
-    <!-- 4. MENU DAFTAR SISWA TERDAFTAR & OPSI HAPUS AKUN -->
-    <div class="card table-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-            <div>
-                <h2 class="card-title" style="margin: 0;">🎒 Data Master Siswa Terdaftar ({{ siswa_list|length }} Siswa)</h2>
-                <p class="card-desc" style="margin-top: 2px;">Daftar seluruh siswa, ekskul yang diikuti, reset sandi, atau hapus akun jika double/bug.</p>
-            </div>
-            <div>
-                <input type="text" id="searchInputSiswa" class="form-control" placeholder="🔍 Cari nama siswa / kelas..." onkeyup="filterSiswaTable()" style="max-width: 260px; font-size: 12px;">
-            </div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="data-table" id="tableSiswaMaster">
-                <thead>
-                    <tr>
-                        <th style="width: 30px; text-align: center;">No</th>
-                        <th>Nama Siswa</th>
-                        <th style="text-align: center;">Kelas</th>
-                        <th style="text-align: center;">L/P</th>
-                        <th>Ekskul yang Diikuti</th>
-                        <th>Username</th>
-                        <th style="text-align: center; width: 140px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for s in siswa_list %}
-                    <tr>
-                        <td style="text-align: center;">{{ loop.index }}</td>
-                        <td><b>{{ s.nama }}</b></td>
-                        <td style="text-align: center;">{{ s.kelas }}</td>
-                        <td style="text-align: center;">{{ s.jenis_kelamin }}</td>
-                        <td>
-                            <span class="badge-tag tag-blue" style="white-space: normal; line-height: 1.4;">
-                                {{ s.daftar_ekskul if s.daftar_ekskul else (s.icon_ekskul ~ ' ' ~ s.nama_ekskul if s.nama_ekskul else 'Belum memilih') }}
-                            </span>
-                        </td>
-                        <td><code>{{ s.username }}</code></td>
-                        <td style="text-align: center;">
-                            <div style="display: inline-flex; gap: 4px;">
-                                <button type="button" class="btn-action-sm btn-action-reset" 
-                                        onclick="openModalReset('{{ s.id }}', '{{ s.nama }}', '{{ s.username }}', 'siswa')"
-                                        title="Reset kata sandi siswa ini">
-                                    🔑 Reset
-                                </button>
-                                <form action="/admin/siswa/delete/{{ s.id }}" method="POST" style="display: inline;" 
-                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun siswa {{ s.nama }} ({{ s.username }})? Data presensi terkait juga akan dibersihkan.');">
-                                    <button type="submit" class="btn-action-sm btn-action-delete" title="Hapus akun siswa yang duplikat/salah">
-                                        🗑️ Hapus
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: #64748B;">Belum ada siswa terdaftar.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- DAFTAR EKSKUL LENGKAP -->
-    <div class="card table-card">
-        <h2 class="card-title" style="margin-bottom: 8px;">🏆 Ringkasan Cabang Ekskul & Jadwal</h2>
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 30px; text-align: center;">No</th>
-                        <th>Cabang Ekskul</th>
-                        <th>Jadwal Latihan</th>
-                        <th>Pelatih Bertugas</th>
-                        <th style="text-align: center;">Siswa</th>
-                        <th style="text-align: center;">Sesi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for e in ekskul_list %}
-                    <tr>
-                        <td style="text-align: center;">{{ loop.index }}</td>
-                        <td><b>{{ e.icon }} {{ e.nama }}</b></td>
-                        <td>{{ e.hari_latihan }}<br/><small style="color:#64748B;">{{ e.jam_latihan }}</small></td>
-                        <td><span class="badge-tag tag-blue">{{ e.pelatih_nama if e.pelatih_nama else 'Belum ada' }}</span></td>
-                        <td style="text-align: center;"><b>{{ e.total_siswa }}</b></td>
-                        <td style="text-align: center;">{{ e.total_sesi }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- TAMBAH EKSKUL & AKUN PELATIH BARU -->
-    <div class="card form-card">
-        <h2 class="card-title">➕ Tambah Cabang Ekskul Baru</h2>
-        <form action="/admin/ekskul/tambah" method="POST" style="margin-top: 10px;">
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label">Nama Cabang Ekskul</label>
-                    <input type="text" name="nama" class="form-control" placeholder="Contoh: Tenis Meja / Robotik" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Ikon Emoji</label>
-                    <input type="text" name="icon" class="form-control" placeholder="Contoh: 🏓 atau 🤖" value="🏅" required>
-                </div>
-            </div>
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label">Hari Latihan</label>
-                    <input type="text" name="hari_latihan" class="form-control" placeholder="Contoh: Senin & Kamis" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Jam Latihan</label>
-                    <input type="text" name="jam_latihan" class="form-control" placeholder="Contoh: 15:30 - 17:00" required>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Nama Pelatih Penanggung Jawab</label>
-                <input type="text" name="pelatih_nama" class="form-control" placeholder="Nama Guru / Pelatih...">
-            </div>
-            <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
-                ➕ Simpan Cabang Ekskul Baru
-            </button>
-        </form>
-    </div>
-
-    <div class="card form-card">
-        <h2 class="card-title">👤 Buat Akun Login Pelatih Baru</h2>
-        <form action="/admin/pelatih/tambah" method="POST" style="margin-top: 10px;">
-            <div class="form-group">
-                <label class="form-label">Pilih Cabang Ekskul yang Diampu</label>
-                <select name="ekskul_id" class="form-control" required>
-                    {% for e in ekskul_list %}
-                    <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Nama Lengkap Pelatih</label>
-                <input type="text" name="nama" class="form-control" placeholder="Contoh: Coach Budi Hartono, S.Pd." required>
-            </div>
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label">Username Login</label>
-                    <input type="text" name="username" class="form-control" placeholder="Contoh: coach_tenismeja" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Kata Sandi</label>
-                    <input type="password" name="password" class="form-control" placeholder="Kata sandi..." required>
-                </div>
-            </div>
-            <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
-                👤 Buat Akun Pelatih
-            </button>
-        </form>
-    </div>
-
-    <!-- PENGATURAN GPS LOKASI LAPANGAN -->
-    <div class="card form-card">
-        <h2 class="card-title">📍 Kalibrasi GPS Titik Lapangan Madrasah</h2>
-        <form action="/admin/lokasi/update" method="POST" style="margin-top: 10px;">
-            <div class="form-group">
-                <label class="form-label">Nama Lokasi</label>
-                <input type="text" name="nama_lokasi" class="form-control" value="{{ lokasi.nama_lokasi if lokasi else 'Kampus & Lapangan MTs Muhammadiyah Tajurhalang' }}" required>
-            </div>
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label">Latitude</label>
-                    <input type="number" step="0.000001" id="adminLat" name="latitude" class="form-control" value="{{ lokasi.latitude if lokasi else -6.47892 }}" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Longitude</label>
-                    <input type="number" step="0.000001" id="adminLng" name="longitude" class="form-control" value="{{ lokasi.longitude if lokasi else 106.75805 }}" required>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Radius Toleransi Presensi (Meter)</label>
-                <input type="number" name="radius_meter" class="form-control" value="{{ lokasi.radius_meter if lokasi else 250 }}" required>
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-                <button type="button" class="btn-quick all-hadir" onclick="getAdminCurrentGps()">
-                    📌 Ambil Koordinat GPS HP Saat Ini
+        <!-- Pintasan Cepat ke Menu Lainnya -->
+        <div class="card" style="margin-top: 16px;">
+            <h3 class="card-title" style="margin-bottom: 10px;">⚡ Akses Cepat Kelola Sistem:</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                <button type="button" class="btn-quick" onclick="switchAdminTab('tab-pelatih')" style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; padding: 12px; font-weight: 700; text-align: left; justify-content: flex-start;">
+                    🏆 Buka Data Master Pelatih
                 </button>
-                <button type="submit" class="btn-card-action btn-detail" style="border: none;">
-                    💾 Simpan Pengaturan Lokasi
+                <button type="button" class="btn-quick" onclick="switchAdminTab('tab-siswa')" style="background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; padding: 12px; font-weight: 700; text-align: left; justify-content: flex-start;">
+                    🎒 Buka Data Master Siswa
+                </button>
+                <button type="button" class="btn-quick" onclick="switchAdminTab('tab-ekskul')" style="background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; padding: 12px; font-weight: 700; text-align: left; justify-content: flex-start;">
+                    📍 Atur Ekskul & Titik GPS
                 </button>
             </div>
-        </form>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         TAB 2: DATA PELATIH (KELOLA AKUN, JADWAL & HAPUS AKUN)
+         ========================================================= -->
+    <div id="tab-pelatih" class="admin-tab-pane">
+        <!-- Tabel Data Master Pelatih -->
+        <div class="card table-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <div>
+                    <h2 class="card-title" style="margin: 0;">🏆 Data Master Pelatih Terdaftar ({{ pelatih_list|length }} Akun)</h2>
+                    <p class="card-desc" style="margin-top: 2px;">Kelola akun login pelatih pembina ekskul, jadwal latihan, atur ulang sandi, atau hapus akun.</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px; text-align: center;">No</th>
+                            <th>Nama Pelatih</th>
+                            <th>Ekskul Diampu</th>
+                            <th>Jadwal Rutin</th>
+                            <th>Username Login</th>
+                            <th style="text-align: center; width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pelatih_list %}
+                        <tr>
+                            <td style="text-align: center;">{{ loop.index }}</td>
+                            <td><b>{{ p.nama }}</b></td>
+                            <td><span class="badge-tag tag-blue">{{ p.icon_ekskul }} {{ p.nama_ekskul if p.nama_ekskul else 'Belum ditentukan' }}</span></td>
+                            <td>
+                                <small><b>{{ p.hari_latihan if p.hari_latihan else '-' }}</b><br/>{{ p.jam_latihan if p.jam_latihan else '' }}</small>
+                            </td>
+                            <td><code>{{ p.username }}</code></td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; gap: 4px;">
+                                    <button type="button" class="btn-action-sm btn-action-reset" 
+                                            onclick="openModalReset('{{ p.id }}', '{{ p.nama }}', '{{ p.username }}', 'pelatih')"
+                                            title="Reset kata sandi pelatih ini">
+                                        🔑 Reset
+                                    </button>
+                                    <form action="/admin/pelatih/delete/{{ p.id }}" method="POST" style="display: inline;" 
+                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun pelatih {{ p.nama }} ({{ p.username }})?');">
+                                        <button type="submit" class="btn-action-sm btn-action-delete" title="Hapus akun pelatih ini">
+                                            🗑️ Hapus
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #64748B;">Belum ada akun pelatih terdaftar.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Form Buat Akun Pelatih Baru -->
+        <div class="card form-card">
+            <h2 class="card-title">👤 Buat Akun Login Pelatih Baru</h2>
+            <form action="/admin/pelatih/tambah" method="POST" style="margin-top: 10px;">
+                <div class="form-group">
+                    <label class="form-label">Pilih Cabang Ekskul yang Diampu</label>
+                    <select name="ekskul_id" class="form-control" required>
+                        {% for e in ekskul_list %}
+                        <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nama Lengkap Pelatih</label>
+                    <input type="text" name="nama" class="form-control" placeholder="Contoh: Coach Budi Hartono, S.Pd." required>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Username Login</label>
+                        <input type="text" name="username" class="form-control" placeholder="Contoh: coach_tenismeja" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Kata Sandi</label>
+                        <input type="password" name="password" class="form-control" placeholder="Kata sandi..." required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
+                    👤 Simpan & Buat Akun Pelatih
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         TAB 3: DATA SISWA (TABEL MASTER, IMPORT CSV & HAPUS AKUN)
+         ========================================================= -->
+    <div id="tab-siswa" class="admin-tab-pane">
+        <!-- Unggah / Import CSV Siswa -->
+        <div class="card form-card" style="border-left: 4px solid #10B981;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <h2 class="card-title">📥 Unggah / Import Data Siswa via Excel / CSV</h2>
+                    <p class="card-desc">Unggah data siswa madrasah sekaligus. Siswa akan otomatis terdaftar dan masuk ke ekskul pilihannya.</p>
+                </div>
+                <a href="/admin/template-csv" class="btn-quick all-hadir">
+                    📄 Unduh Template CSV Contoh
+                </a>
+            </div>
+
+            <form action="/admin/siswa/import" method="POST" enctype="multipart/form-data" style="margin-top: 14px;">
+                <div class="form-group">
+                    <label class="form-label">Pilih Berkas CSV Data Siswa</label>
+                    <input type="file" name="file_siswa" class="form-control" accept=".csv, text/csv" required>
+                    <small style="color: #64748B;">Format kolom: <b>Nama Siswa, Kelas, L/P, Ekskul</b> (Bisa disimpan dari Excel dengan format .CSV).</small>
+                </div>
+                <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); margin-top: 10px;">
+                    🚀 Proses & Import Data Siswa Sekarang
+                </button>
+            </form>
+        </div>
+
+        <!-- Tabel Master Siswa Terdaftar -->
+        <div class="card table-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <div>
+                    <h2 class="card-title" style="margin: 0;">🎒 Data Master Siswa Terdaftar ({{ siswa_list|length }} Siswa)</h2>
+                    <p class="card-desc" style="margin-top: 2px;">Daftar seluruh siswa, ekskul yang diikuti, reset sandi, atau hapus akun jika double/bug.</p>
+                </div>
+                <div>
+                    <input type="text" id="searchInputSiswa" class="form-control" placeholder="🔍 Cari nama siswa / kelas..." onkeyup="filterSiswaTable()" style="max-width: 260px; font-size: 12px;">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table" id="tableSiswaMaster">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px; text-align: center;">No</th>
+                            <th>Nama Siswa</th>
+                            <th style="text-align: center;">Kelas</th>
+                            <th style="text-align: center;">L/P</th>
+                            <th>Ekskul yang Diikuti</th>
+                            <th>Username</th>
+                            <th style="text-align: center; width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in siswa_list %}
+                        <tr>
+                            <td style="text-align: center;">{{ loop.index }}</td>
+                            <td><b>{{ s.nama }}</b></td>
+                            <td style="text-align: center;">{{ s.kelas }}</td>
+                            <td style="text-align: center;">{{ s.jenis_kelamin }}</td>
+                            <td>
+                                <span class="badge-tag tag-blue" style="white-space: normal; line-height: 1.4;">
+                                    {{ s.daftar_ekskul if s.daftar_ekskul else (s.icon_ekskul ~ ' ' ~ s.nama_ekskul if s.nama_ekskul else 'Belum memilih') }}
+                                </span>
+                            </td>
+                            <td><code>{{ s.username }}</code></td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; gap: 4px;">
+                                    <button type="button" class="btn-action-sm btn-action-reset" 
+                                            onclick="openModalReset('{{ s.id }}', '{{ s.nama }}', '{{ s.username }}', 'siswa')"
+                                            title="Reset kata sandi siswa ini">
+                                        🔑 Reset
+                                    </button>
+                                    <form action="/admin/siswa/delete/{{ s.id }}" method="POST" style="display: inline;" 
+                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun siswa {{ s.nama }} ({{ s.username }})? Data presensi terkait juga akan dibersihkan.');">
+                                        <button type="submit" class="btn-action-sm btn-action-delete" title="Hapus akun siswa yang duplikat/salah">
+                                            🗑️ Hapus
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #64748B;">Belum ada siswa terdaftar.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         TAB 4: CABANG EKSKUL & GPS (TAMBAH EKSKUL & KALIBRASI GPS)
+         ========================================================= -->
+    <div id="tab-ekskul" class="admin-tab-pane">
+        <!-- Ringkasan Cabang Ekskul & Jadwal -->
+        <div class="card table-card">
+            <h2 class="card-title" style="margin-bottom: 8px;">🏆 Ringkasan Cabang Ekskul & Jadwal Latihan</h2>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px; text-align: center;">No</th>
+                            <th>Cabang Ekskul</th>
+                            <th>Jadwal Latihan</th>
+                            <th>Pelatih Bertugas</th>
+                            <th style="text-align: center;">Siswa</th>
+                            <th style="text-align: center;">Sesi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in ekskul_list %}
+                        <tr>
+                            <td style="text-align: center;">{{ loop.index }}</td>
+                            <td><b>{{ e.icon }} {{ e.nama }}</b></td>
+                            <td><b>{{ e.hari_latihan }}</b><br/><small style="color:#64748B;">{{ e.jam_latihan }}</small></td>
+                            <td><span class="badge-tag tag-blue">{{ e.pelatih_nama if e.pelatih_nama else 'Belum ada' }}</span></td>
+                            <td style="text-align: center;"><b>{{ e.total_siswa }}</b></td>
+                            <td style="text-align: center;">{{ e.total_sesi }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tambah Cabang Ekskul Baru -->
+        <div class="card form-card">
+            <h2 class="card-title">➕ Tambah Cabang Ekskul Baru</h2>
+            <form action="/admin/ekskul/tambah" method="POST" style="margin-top: 10px;">
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Nama Cabang Ekskul</label>
+                        <input type="text" name="nama" class="form-control" placeholder="Contoh: Tenis Meja / Robotik" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ikon Emoji</label>
+                        <input type="text" name="icon" class="form-control" placeholder="Contoh: 🏓 atau 🤖" value="🏅" required>
+                    </div>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Hari Latihan</label>
+                        <input type="text" name="hari_latihan" class="form-control" placeholder="Contoh: Senin & Kamis" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Jam Latihan</label>
+                        <input type="text" name="jam_latihan" class="form-control" placeholder="Contoh: 15:30 - 17:00" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nama Pelatih Penanggung Jawab</label>
+                    <input type="text" name="pelatih_nama" class="form-control" placeholder="Nama Guru / Pelatih...">
+                </div>
+                <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
+                    ➕ Simpan Cabang Ekskul Baru
+                </button>
+            </form>
+        </div>
+
+        <!-- Pengaturan GPS Lapangan Madrasah -->
+        <div class="card form-card">
+            <h2 class="card-title">📍 Kalibrasi GPS Titik Lapangan Madrasah</h2>
+            <p class="card-desc">Titik koordinat dan radius geofence ini dipakai untuk memvalidasi posisi HP pelatih saat check-in presensi.</p>
+            <form action="/admin/lokasi/update" method="POST" style="margin-top: 10px;">
+                <div class="form-group">
+                    <label class="form-label">Nama Lokasi</label>
+                    <input type="text" name="nama_lokasi" class="form-control" value="{{ lokasi.nama_lokasi if lokasi else 'Kampus & Lapangan MTs Muhammadiyah Tajurhalang' }}" required>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Latitude</label>
+                        <input type="number" step="0.000001" id="adminLat" name="latitude" class="form-control" value="{{ lokasi.latitude if lokasi else -6.47892 }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Longitude</label>
+                        <input type="number" step="0.000001" id="adminLng" name="longitude" class="form-control" value="{{ lokasi.longitude if lokasi else 106.75805 }}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Radius Toleransi Presensi (Meter)</label>
+                    <input type="number" name="radius_meter" class="form-control" value="{{ lokasi.radius_meter if lokasi else 250 }}" required>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                    <button type="button" class="btn-quick all-hadir" onclick="getAdminCurrentGps()">
+                        📌 Ambil Koordinat GPS HP Saat Ini
+                    </button>
+                    <button type="submit" class="btn-card-action btn-detail" style="border: none;">
+                        💾 Simpan Pengaturan Lokasi
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -540,6 +612,49 @@
 
 {% block scripts %}
 <script>
+// Tab Navigation Switching
+function switchAdminTab(tabId) {
+    // Sembunyikan semua tab pane
+    const panes = document.querySelectorAll('.admin-tab-pane');
+    panes.forEach(pane => pane.classList.remove('active'));
+
+    // Hilangkan status active dari semua tombol tab
+    const buttons = document.querySelectorAll('.admin-tab-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+
+    // Aktifkan tab yang dipilih
+    const selectedPane = document.getElementById(tabId);
+    if (selectedPane) {
+        selectedPane.classList.add('active');
+    }
+
+    const selectedBtn = document.querySelector(`.admin-tab-btn[data-tab="${tabId}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+
+    // Simpan status tab di URL Hash & localStorage
+    window.location.hash = tabId;
+    localStorage.setItem('active_admin_tab', tabId);
+}
+
+// Inisialisasi Tab Aktif saat Halaman Dimuat
+document.addEventListener('DOMContentLoaded', function() {
+    let activeTab = 'tab-dashboard';
+    if (window.location.hash) {
+        const hashTab = window.location.hash.substring(1);
+        if (document.getElementById(hashTab)) {
+            activeTab = hashTab;
+        }
+    } else if (localStorage.getItem('active_admin_tab')) {
+        const storedTab = localStorage.getItem('active_admin_tab');
+        if (document.getElementById(storedTab)) {
+            activeTab = storedTab;
+        }
+    }
+    switchAdminTab(activeTab);
+});
+
 // GPS Admin
 function getAdminCurrentGps() {
     if (!navigator.geolocation) {
