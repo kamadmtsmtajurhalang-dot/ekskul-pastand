@@ -3,5 +3,7 @@ __pycache__/
 *.pyo
 *.pyd
 .env
+.env.deploy
+credentials.json
 .venv/
 env/
