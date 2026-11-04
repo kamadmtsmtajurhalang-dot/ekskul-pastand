@@ -62,6 +62,10 @@
                 <span>📋 Riwayat & Cetak</span>
             </a>
 
+            <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'laporan_bulanan' %}active{% endif %}">
+                <span>📑 Laporan Bulanan</span>
+            </a>
+
             <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'pengaturan' %}active{% endif %}">
                 <span>⚙️ Jadwal Ekskul</span>
             </a>
@@ -109,6 +113,7 @@
                 {% elif active_menu == 'siswa' %}🎒 Anggota Siswa
                 {% elif active_menu == 'izin' %}📬 Permohonan Izin
                 {% elif active_menu == 'riwayat' %}📋 Riwayat Sesi
+                {% elif active_menu == 'laporan_bulanan' %}📑 Laporan Bulanan
                 {% elif active_menu == 'pengaturan' %}⚙️ Jadwal Ekskul
                 {% endif %}
             </div>

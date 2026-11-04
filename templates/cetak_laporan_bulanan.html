@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan Bulanan & Acuan Honor — {{ ekskul.nama }} — {{ nama_bulan }} {{ tahun }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm 12mm 12mm 12mm;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 15px 20px;
+            color: #0F172A;
+            font-size: 11px;
+            background: #fff;
+            line-height: 1.35;
+        }
+        .kop {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            text-align: center;
+            border-bottom: 2.5px double #1E3A8A;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+        }
+        .kop img {
+            height: 65px;
+            width: 65px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .kop h2 {
+            margin: 0;
+            font-size: 15.5px;
+            font-weight: 800;
+            color: #1E3A8A;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .kop p {
+            margin: 3px 0 0 0;
+            font-size: 9px;
+            color: #475569;
+            line-height: 1.4;
+        }
+        .kop-tag {
+            font-size: 10px;
+            font-weight: 700;
+            color: #1E3A8A;
+            margin-top: 2px;
+            letter-spacing: 0.5px;
+        }
+        .doc-title {
+            text-align: center;
+            margin: 12px 0 4px 0;
+            font-size: 13.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #0F172A;
+            letter-spacing: 0.3px;
+        }
+        .doc-subtitle {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #1E40AF;
+            margin-bottom: 14px;
+        }
+        .meta-box {
+            background: #F8FAFC;
+            border: 1px solid #CBD5E1;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 14px;
+            font-size: 10.5px;
+        }
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .meta-table td {
+            padding: 2.5px 4px;
+            vertical-align: top;
+        }
+        .meta-table td.label {
+            font-weight: bold;
+            width: 140px;
+            color: #334155;
+        }
+        .section-header {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #1E3A8A;
+            background: #EFF6FF;
+            border-left: 4px solid #1E3A8A;
+            padding: 5px 8px;
+            margin: 14px 0 8px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 10px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #64748B;
+            padding: 4.5px 6px;
+            vertical-align: middle;
+        }
+        .data-table th {
+            background-color: #F1F5F9;
+            color: #0F172A;
+            font-weight: 700;
+            text-align: center;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: bold; }
+        .honor-highlight {
+            background: #FEF3C7;
+            border: 1px solid #F59E0B;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 10px 0 14px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+        .sig-container {
+            width: 100%;
+            margin-top: 24px;
+            page-break-inside: avoid;
+        }
+        .sig-table {
+            width: 100%;
+            text-align: center;
+            font-size: 10.5px;
+            border-collapse: collapse;
+        }
+        .sig-table td {
+            padding: 6px 12px;
+            vertical-align: top;
+            width: 50%;
+        }
+        .sig-space {
+            height: 52px;
+        }
+        .print-btn {
+            background: #1E3A8A;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .print-btn:hover {
+            background: #1D4ED8;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { margin: 0; padding: 0; }
+            .data-table th { background-color: #E2E8F0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .section-header { background-color: #EFF6FF !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .honor-highlight { background-color: #FEF3C7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #E2E8F0;">
+        <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}&bulan={{ bulan }}&tahun={{ tahun }}" style="text-decoration: none; color: #1E3A8A; font-weight: 700; font-size: 12px;">&larr; Kembali ke Laporan Bulanan</a>
+        <button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF (A4)</button>
+    </div>
+
+    <!-- KOP SURAT RESMI -->
+    <div class="kop">
+        <img src="/static/logo-mtsm.png" alt="Logo MTs">
+        <div>
+            <h2>Madrasah Tsanawiyah Muhammadiyah Tajurhalang</h2>
+            <p>Jl. Raya DS Citayam, KP Bulu 001/004 DS Citayam, Tajurhalang - Kab. Bogor, Jawa Barat 16320, Indonesia &bull; 0851 1150 8528 &bull; mtsm.pastand@gmail.com</p>
+            <div class="kop-tag">LAPORAN KINERJA KEPELATIHAN & ACUAN HONORARIUM EKSTRAKURIKULER</div>
+        </div>
+    </div>
+
+    <div class="doc-title">LEMBAR LAPORAN BULANAN & REKAPITULASI HONORARIUM PELATIH</div>
+    <div class="doc-subtitle">Periode: Bulan {{ nama_bulan }} {{ tahun }}</div>
+
+    <!-- METADATA EKSKUL & PELATIH -->
+    <div class="meta-box">
+        <table class="meta-table">
+            <tr>
+                <td class="label">Cabang Ekstrakurikuler</td>
+                <td>: <b>{{ ekskul.icon }} {{ ekskul.nama }}</b> (Kategori: {{ ekskul.kategori }})</td>
+                <td class="label">Nama Pelatih</td>
+                <td>: <b>{{ pelatih.nama }}</b></td>
+            </tr>
+            <tr>
+                <td class="label">Jadwal Reguler</td>
+                <td>: {{ ekskul.hari_latihan }} (Pukul {{ ekskul.jam_latihan }})</td>
+                <td class="label">Total Siswa Aktif</td>
+                <td>: {{ siswa_penilaian|length }} Siswa Terdaftar</td>
+            </tr>
+            <tr>
+                <td class="label">Status Kelengkapan</td>
+                <td>: Silabus: <b>{{ laporan.status_rencana }}</b> &bull; Nilai Siswa: <b>{{ laporan.status_penilaian }}</b></td>
+                <td class="label">Dicetak Pada</td>
+                <td>: {{ print_date }} WIB</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- BAGIAN 1: RENCANA SILABUS MATERI BULANAN -->
+    <div class="section-header">I. Rencana Silabus Materi Kepelatihan (Kondisional Bulanan)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 35px;">Ptm</th>
+                <th style="width: 100px;">Tanggal Rencana</th>
+                <th style="width: 250px;">Pokok Materi Pelatihan</th>
+                <th>Target / Indikator Ketercapaian Kompetensi Siswa</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if materi_list and materi_list|length > 0 %}
+                {% for m in materi_list %}
+                <tr>
+                    <td class="text-center font-bold">Ke-{{ m.pertemuan_ke }}</td>
+                    <td class="text-center">{{ m.tanggal_rencana or '-' }}</td>
+                    <td class="font-bold">{{ m.materi }}</td>
+                    <td>{{ m.indikator_ketercapaian or '-' }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="4" class="text-center" style="color: #64748B;"><i>Silabus materi belum disusun.</i></td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- BAGIAN 2: REKAPITULASI PELAKSANAAN LATIHAN (ACUAN HONOR PELATIH) -->
+    <div class="section-header">II. Rekapitulasi Realisasi Hari Latihan (Dasar Acuan Pembayaran Honor Staf TU)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 30px;">No</th>
+                <th style="width: 85px;">Tanggal</th>
+                <th style="width: 75px;">Waktu</th>
+                <th>Materi Latihan Terlaksana</th>
+                <th style="width: 80px;">Siswa Hadir</th>
+                <th style="width: 90px;">Lokasi GPS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if sesi_list and sesi_list|length > 0 %}
+                {% for s in sesi_list %}
+                <tr>
+                    <td class="text-center">{{ loop.index }}</td>
+                    <td class="text-center font-bold">{{ s.tanggal }}</td>
+                    <td class="text-center">{{ s.jam_mulai }} WIB</td>
+                    <td>{{ s.materi_latihan if s.materi_latihan else 'Latihan Rutin' }}</td>
+                    <td class="text-center font-bold">{{ s.total_hadir }} / {{ s.total_peserta }}</td>
+                    <td class="text-center">{{ s.status_lokasi }} ({{ s.jarak_meter }}m)</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center" style="color: #64748B;"><i>Belum ada sesi latihan tercatat pada bulan ini.</i></td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- HIGHLIGHT SUMMARY HONOR -->
+    <div class="honor-highlight">
+        <div>
+            <strong style="color: #92400E; font-size: 11.5px;">💰 TOTAL REKAP REALISASI PELAKSANAAN LATIHAN:</strong>
+            <span style="color: #78350F; margin-left: 6px;">Berdasarkan absensi GPS riil pada sistem presensi digital.</span>
+        </div>
+        <div>
+            <span style="font-size: 13px; font-weight: 800; color: #1E3A8A; background: white; padding: 4px 10px; border-radius: 4px; border: 1px solid #CBD5E1;">
+                {{ sesi_list|length }} Hari Latihan Terlaksana
+            </span>
+        </div>
+    </div>
+
+    <!-- BAGIAN 3: REKAPITULASI PRESENSI & PENILAIAN KOMPETENSI SISWA -->
+    <div class="section-header" style="page-break-before: auto;">III. Rekapitulasi Presensi & Penilaian Capaian Siswa (Rapor Siswa)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th rowspan="2" style="width: 25px;">No</th>
+                <th rowspan="2">Nama Siswa</th>
+                <th rowspan="2" style="width: 55px;">Kelas</th>
+                <th colspan="4" style="width: 120px;">Kehadiran Bulan Ini</th>
+                <th rowspan="2" style="width: 45px;">% Hdr</th>
+                <th rowspan="2" style="width: 45px;">Skor</th>
+                <th rowspan="2" style="width: 75px;">Predikat</th>
+                <th rowspan="2">Evaluasi Kecakapan & Target Skill Pelatih</th>
+            </tr>
+            <tr>
+                <th style="width: 28px;">H</th>
+                <th style="width: 28px;">I</th>
+                <th style="width: 28px;">S</th>
+                <th style="width: 28px;">A</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if siswa_penilaian and siswa_penilaian|length > 0 %}
+                {% for sp in siswa_penilaian %}
+                <tr>
+                    <td class="text-center">{{ loop.index }}</td>
+                    <td class="font-bold">{{ sp.nama }}</td>
+                    <td class="text-center">{{ sp.kelas }}</td>
+                    <td class="text-center">{{ sp.total_hadir }}</td>
+                    <td class="text-center">{{ sp.total_izin }}</td>
+                    <td class="text-center">{{ sp.total_sakit }}</td>
+                    <td class="text-center">{{ sp.total_alpa }}</td>
+                    <td class="text-center font-bold">{{ "%.0f"|format(sp.persentase_kehadiran) }}%</td>
+                    <td class="text-center font-bold" style="color: #1E3A8A; font-size: 11px;">{{ sp.nilai_skor }}</td>
+                    <td class="text-center"><b>{{ sp.predikat or '-' }}</b></td>
+                    <td style="font-size: 9.5px;">{{ sp.catatan_evaluasi if sp.catatan_evaluasi else '-' }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="11" class="text-center" style="color: #64748B;"><i>Data penilaian siswa belum diisi.</i></td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if laporan.catatan_umum %}
+    <div style="font-size: 10px; margin-bottom: 12px; background: #F8FAFC; border: 1px dashed #CBD5E1; padding: 6px 10px; border-radius: 4px;">
+        <b>Catatan Umum Pelatih untuk Evaluasi Tim/Madrasah:</b> "{{ laporan.catatan_umum }}"
+    </div>
+    {% endif %}
+
+    <!-- BAGIAN 4: TANDA TANGAN BERJENJANG RESMI (4 PIHAK) -->
+    <div class="sig-container">
+        <table class="sig-table">
+            <tr>
+                <td>
+                    Tajurhalang, {{ tgl_laporan }}<br/>
+                    <b>Pelatih Ekstrakurikuler</b><br/>
+                    <i>(Pembuat Laporan Kegiatan)</i>
+                    <div class="sig-space"></div>
+                    <b><u>{{ pelatih.nama }}</u></b><br/>
+                    Pelatih {{ ekskul.nama }}
+                </td>
+                <td>
+                    Mengetahui / Memverifikasi,<br/>
+                    <b>Waka Kesiswaan MTs Muhammadiyah</b><br/>
+                    <i>(Pemeriksa Kegiatan & Silabus)</i>
+                    <div class="sig-space"></div>
+                    <b><u>Mulyadi, S.Pd.</u></b><br/>
+                    NBM. -
+                </td>
+            </tr>
+            <tr>
+                <td style="padding-top: 24px;">
+                    Verifikasi Administrasi & Keuangan,<br/>
+                    <b>Staf Tata Usaha & Bendahara</b><br/>
+                    <i>(Acuan Dasar Pencairan Honorarium)</i>
+                    <div class="sig-space"></div>
+                    <b><u>Staf Tata Usaha / Bendahara</u></b><br/>
+                    NBM. -
+                </td>
+                <td style="padding-top: 24px;">
+                    Menyetujui,<br/>
+                    <b>Kepala Madrasah (Kamad)</b><br/>
+                    <i>MTs Muhammadiyah Tajurhalang</i>
+                    <div class="sig-space"></div>
+                    <b><u>H. E. Samsul Rizal, S.Ag., M.Pd.</u></b><br/>
+                    NBM. -
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

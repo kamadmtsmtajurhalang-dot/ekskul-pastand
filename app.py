@@ -21,6 +21,12 @@ def get_wib_today_str():
 def get_wib_time_str():
     return datetime.now(WIB).strftime('%H:%M')
 
+NAMA_BULAN = {
+    1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
+    5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
+    9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
+}
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'presensi-ekskul-tajurhalang-multi-role-2026'
 
@@ -647,6 +653,342 @@ def pelatih_update_profil():
     return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
 
 # =========================================================
+# 1b. LAPORAN BULANAN PELATIH (SILABUS, REKAP NILAI, HONOR TU)
+# =========================================================
+
+@app.route('/pelatih/laporan-bulanan')
+@role_required('pelatih')
+def pelatih_laporan_bulanan():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
+    
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
+
+    now_wib = get_wib_datetime()
+    current_year = now_wib.year
+    selected_bulan = request.args.get('bulan', type=int) or now_wib.month
+    selected_tahun = request.args.get('tahun', type=int) or current_year
+
+    if selected_bulan < 1 or selected_bulan > 12:
+        selected_bulan = now_wib.month
+
+    # Ambil data laporan_bulanan jika sudah pernah dibuat
+    laporan = conn.execute("""
+    SELECT * FROM laporan_bulanan 
+    WHERE ekskul_id = ? AND bulan = ? AND tahun = ?
+    """, (ekskul['id'], selected_bulan, selected_tahun)).fetchone()
+
+    materi_list = []
+    is_rencana_lengkap = False
+    is_penilaian_selesai = False
+
+    if laporan:
+        is_rencana_lengkap = (laporan['status_rencana'] == 'LENGKAP')
+        is_penilaian_selesai = (laporan['status_penilaian'] == 'SELESAI')
+        materi_rows = conn.execute("""
+        SELECT * FROM laporan_materi_mingguan 
+        WHERE laporan_id = ? 
+        ORDER BY pertemuan_ke ASC
+        """, (laporan['id'],)).fetchall()
+        materi_list = [dict(m) for m in materi_rows]
+
+    # Ambil sesi latihan riil yang telah terlaksana pada bulan & tahun tersebut
+    month_prefix = f"{selected_tahun:04d}-{selected_bulan:02d}"
+    sesi_rows = conn.execute("""
+    SELECT s.*,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
+    FROM sesi_latihan s
+    WHERE s.ekskul_id = ? AND s.tanggal LIKE ?
+    ORDER BY s.tanggal ASC, s.jam_mulai ASC
+    """, (ekskul['id'], f"{month_prefix}%")).fetchall()
+    sesi_list = [dict(s) for s in sesi_rows]
+    total_sesi_terlaksana = len(sesi_list)
+
+    # Ambil daftar siswa aktif untuk penilaian
+    siswa_penilaian = []
+    if is_rencana_lengkap and laporan:
+        active_students = conn.execute("""
+        SELECT u.id, u.nama, u.kelas, u.jenis_kelamin
+        FROM users u
+        JOIN siswa_ekskul se ON u.id = se.user_id
+        WHERE se.ekskul_id = ? AND se.status = 'AKTIF' AND u.role = 'siswa'
+        ORDER BY u.kelas ASC, u.nama ASC
+        """, (ekskul['id'],)).fetchall()
+
+        # Ambil penilaian yang sudah tersimpan jika ada
+        saved_penilaian = conn.execute("""
+        SELECT * FROM laporan_penilaian_siswa WHERE laporan_id = ?
+        """, (laporan['id'],)).fetchall()
+        penilaian_map = {p['siswa_id']: dict(p) for p in saved_penilaian}
+
+        for st in active_students:
+            s_id = st['id']
+            # Hitung kehadiran riil siswa ini di sesi latihan bulan tersebut
+            att_stat = conn.execute("""
+            SELECT 
+                SUM(CASE WHEN ps.status_kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN ps.status_kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN ps.status_kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN ps.status_kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa
+            FROM presensi_siswa ps
+            JOIN sesi_latihan sl ON ps.sesi_id = sl.id
+            WHERE ps.user_id = ? AND sl.ekskul_id = ? AND sl.tanggal LIKE ?
+            """, (s_id, ekskul['id'], f"{month_prefix}%")).fetchone()
+
+            tot_hadir = att_stat['hadir'] or 0
+            tot_izin = att_stat['izin'] or 0
+            tot_sakit = att_stat['sakit'] or 0
+            tot_alpa = att_stat['alpa'] or 0
+            persen = (tot_hadir / total_sesi_terlaksana * 100.0) if total_sesi_terlaksana > 0 else 0.0
+
+            sp_item = {
+                'siswa_id': s_id,
+                'nama': st['nama'],
+                'kelas': st['kelas'],
+                'jenis_kelamin': st['jenis_kelamin'],
+                'total_hadir': tot_hadir,
+                'total_izin': tot_izin,
+                'total_sakit': tot_sakit,
+                'total_alpa': tot_alpa,
+                'persentase_kehadiran': persen
+            }
+
+            if s_id in penilaian_map:
+                sp_item['nilai_skor'] = penilaian_map[s_id]['nilai_skor']
+                sp_item['predikat'] = penilaian_map[s_id]['predikat']
+                sp_item['catatan_evaluasi'] = penilaian_map[s_id]['catatan_evaluasi']
+            else:
+                sp_item['nilai_skor'] = 85
+                sp_item['predikat'] = 'Baik (B)'
+                sp_item['catatan_evaluasi'] = ''
+
+            siswa_penilaian.append(sp_item)
+
+    conn.close()
+    return render_template('pelatih_laporan_bulanan.html',
+                           active_menu='laporan_bulanan',
+                           user=user,
+                           ekskul=ekskul,
+                           assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
+                           laporan=laporan,
+                           materi_list=materi_list,
+                           is_rencana_lengkap=is_rencana_lengkap,
+                           is_penilaian_selesai=is_penilaian_selesai,
+                           sesi_list=sesi_list,
+                           total_sesi_terlaksana=total_sesi_terlaksana,
+                           siswa_penilaian=siswa_penilaian,
+                           list_bulan=NAMA_BULAN,
+                           nama_bulan=NAMA_BULAN.get(selected_bulan, ''),
+                           selected_bulan=selected_bulan,
+                           selected_tahun=selected_tahun,
+                           current_year=current_year)
+
+@app.route('/pelatih/laporan-bulanan/materi/simpan', methods=['POST'])
+@role_required('pelatih')
+def pelatih_simpan_materi_bulanan():
+    pelatih_id = session['user_id']
+    ekskul_id = request.form.get('ekskul_id', type=int)
+    bulan = request.form.get('bulan', type=int)
+    tahun = request.form.get('tahun', type=int)
+    laporan_id = request.form.get('laporan_id', type=int)
+
+    pertemuan_ke_list = request.form.getlist('pertemuan_ke[]')
+    tanggal_rencana_list = request.form.getlist('tanggal_rencana[]')
+    materi_list = request.form.getlist('materi[]')
+    indikator_list = request.form.getlist('indikator_ketercapaian[]')
+
+    # Validasi bahwa ada materi yang terisi
+    clean_items = []
+    for i in range(len(materi_list)):
+        mat = materi_list[i].strip() if i < len(materi_list) else ''
+        if mat:
+            ptm = int(pertemuan_ke_list[i]) if i < len(pertemuan_ke_list) and pertemuan_ke_list[i].isdigit() else (len(clean_items) + 1)
+            tgl = tanggal_rencana_list[i].strip() if i < len(tanggal_rencana_list) else ''
+            ind = indikator_list[i].strip() if i < len(indikator_list) else ''
+            clean_items.append((ptm, tgl, mat, ind))
+
+    if not clean_items:
+        flash("Minimal harus mengisi 1 materi pertemuan dalam rencana silabus.", "danger")
+        return redirect(url_for('pelatih_laporan_bulanan', ekskul_id=ekskul_id, bulan=bulan, tahun=tahun))
+
+    now_str = get_wib_datetime().strftime('%Y-%m-%d %H:%M:%S')
+    conn = get_db()
+
+    # Dapatkan atau buat laporan_bulanan
+    if not laporan_id:
+        existing = conn.execute("""
+        SELECT id FROM laporan_bulanan WHERE ekskul_id = ? AND bulan = ? AND tahun = ?
+        """, (ekskul_id, bulan, tahun)).fetchone()
+        if existing:
+            laporan_id = existing['id']
+
+    if laporan_id:
+        conn.execute("""
+        UPDATE laporan_bulanan 
+        SET pelatih_id = ?, status_rencana = 'LENGKAP', updated_at = ?
+        WHERE id = ?
+        """, (pelatih_id, now_str, laporan_id))
+    else:
+        cur = conn.execute("""
+        INSERT INTO laporan_bulanan (ekskul_id, pelatih_id, bulan, tahun, status_rencana, updated_at)
+        VALUES (?, ?, ?, ?, 'LENGKAP', ?)
+        """, (ekskul_id, pelatih_id, bulan, tahun, now_str))
+        laporan_id = cur.lastrowid
+
+    # Refresh tabel laporan_materi_mingguan
+    conn.execute("DELETE FROM laporan_materi_mingguan WHERE laporan_id = ?", (laporan_id,))
+    for ptm, tgl, mat, ind in clean_items:
+        conn.execute("""
+        INSERT INTO laporan_materi_mingguan (laporan_id, pertemuan_ke, tanggal_rencana, materi, indikator_ketercapaian)
+        VALUES (?, ?, ?, ?, ?)
+        """, (laporan_id, ptm, tgl, mat, ind))
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Rencana Silabus Materi Bulanan ({len(clean_items)} Pertemuan) berhasil disimpan! Fitur 2 (Rekap Presensi & Nilai Siswa) dan Fitur 3 (Lembar Honor TU) kini telah terbuka.", "success")
+    return redirect(url_for('pelatih_laporan_bulanan', ekskul_id=ekskul_id, bulan=bulan, tahun=tahun))
+
+@app.route('/pelatih/laporan-bulanan/penilaian/simpan', methods=['POST'])
+@role_required('pelatih')
+def pelatih_simpan_penilaian_bulanan():
+    pelatih_id = session['user_id']
+    ekskul_id = request.form.get('ekskul_id', type=int)
+    bulan = request.form.get('bulan', type=int)
+    tahun = request.form.get('tahun', type=int)
+    laporan_id = request.form.get('laporan_id', type=int)
+    catatan_umum = request.form.get('catatan_umum', '').strip()
+
+    siswa_id_list = request.form.getlist('siswa_id[]')
+    total_hadir_list = request.form.getlist('total_hadir[]')
+    total_izin_list = request.form.getlist('total_izin[]')
+    total_sakit_list = request.form.getlist('total_sakit[]')
+    total_alpa_list = request.form.getlist('total_alpa[]')
+    persentase_list = request.form.getlist('persentase[]')
+    nilai_skor_list = request.form.getlist('nilai_skor[]')
+    predikat_list = request.form.getlist('predikat[]')
+    catatan_evaluasi_list = request.form.getlist('catatan_evaluasi[]')
+
+    if not laporan_id:
+        flash("Silakan simpan Rencana Silabus Materi (Fitur 1) terlebih dahulu.", "danger")
+        return redirect(url_for('pelatih_laporan_bulanan', ekskul_id=ekskul_id, bulan=bulan, tahun=tahun))
+
+    now_str = get_wib_datetime().strftime('%Y-%m-%d %H:%M:%S')
+    conn = get_db()
+
+    conn.execute("""
+    UPDATE laporan_bulanan 
+    SET catatan_umum = ?, status_penilaian = 'SELESAI', updated_at = ?
+    WHERE id = ?
+    """, (catatan_umum, now_str, laporan_id))
+
+    count_saved = 0
+    for i in range(len(siswa_id_list)):
+        s_id = int(siswa_id_list[i])
+        skor = int(nilai_skor_list[i]) if i < len(nilai_skor_list) and nilai_skor_list[i].isdigit() else 80
+        pred = predikat_list[i] if i < len(predikat_list) else 'Baik (B)'
+        eval_note = catatan_evaluasi_list[i].strip() if i < len(catatan_evaluasi_list) else ''
+        th = int(total_hadir_list[i]) if i < len(total_hadir_list) and total_hadir_list[i].isdigit() else 0
+        ti = int(total_izin_list[i]) if i < len(total_izin_list) and total_izin_list[i].isdigit() else 0
+        ts = int(total_sakit_list[i]) if i < len(total_sakit_list) and total_sakit_list[i].isdigit() else 0
+        ta = int(total_alpa_list[i]) if i < len(total_alpa_list) and total_alpa_list[i].isdigit() else 0
+        pr = float(persentase_list[i]) if i < len(persentase_list) and persentase_list[i] else 0.0
+
+        conn.execute("""
+        INSERT INTO laporan_penilaian_siswa (
+            laporan_id, siswa_id, nilai_skor, predikat, catatan_evaluasi,
+            total_hadir, total_izin, total_sakit, total_alpa, persentase_kehadiran
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(laporan_id, siswa_id) DO UPDATE SET
+            nilai_skor = excluded.nilai_skor,
+            predikat = excluded.predikat,
+            catatan_evaluasi = excluded.catatan_evaluasi,
+            total_hadir = excluded.total_hadir,
+            total_izin = excluded.total_izin,
+            total_sakit = excluded.total_sakit,
+            total_alpa = excluded.total_alpa,
+            persentase_kehadiran = excluded.persentase_kehadiran
+        """, (laporan_id, s_id, skor, pred, eval_note, th, ti, ts, ta, pr))
+        count_saved += 1
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Penilaian ketercapaian materi untuk {count_saved} siswa berhasil disimpan dan telah dikirimkan ke akun masing-masing siswa!", "success")
+    return redirect(url_for('pelatih_laporan_bulanan', ekskul_id=ekskul_id, bulan=bulan, tahun=tahun))
+
+@app.route('/pelatih/laporan-bulanan/cetak/<int:laporan_id>')
+@login_required
+def cetak_laporan_bulanan(laporan_id):
+    conn = get_db()
+    laporan = conn.execute("SELECT * FROM laporan_bulanan WHERE id = ?", (laporan_id,)).fetchone()
+    if not laporan:
+        conn.close()
+        return "Laporan bulanan tidak ditemukan.", 404
+
+    ekskul = conn.execute("SELECT * FROM ekskul WHERE id = ?", (laporan['ekskul_id'],)).fetchone()
+    pelatih = conn.execute("SELECT * FROM users WHERE id = ?", (laporan['pelatih_id'],)).fetchone()
+    
+    # Hak akses: pelatih pemilik / admin
+    if session.get('role') == 'pelatih':
+        user_id = session.get('user_id')
+        pe = conn.execute("SELECT * FROM pelatih_ekskul WHERE user_id = ? AND ekskul_id = ?", (user_id, laporan['ekskul_id'])).fetchone()
+        u = conn.execute("SELECT * FROM users WHERE id = ? AND ekskul_id = ?", (user_id, laporan['ekskul_id'])).fetchone()
+        if not pe and not u:
+            conn.close()
+            return "Anda tidak memiliki akses ke laporan ekskul ini.", 403
+
+    materi_rows = conn.execute("""
+    SELECT * FROM laporan_materi_mingguan WHERE laporan_id = ? ORDER BY pertemuan_ke ASC
+    """, (laporan_id,)).fetchall()
+    materi_list = [dict(m) for m in materi_rows]
+
+    month_prefix = f"{laporan['tahun']:04d}-{laporan['bulan']:02d}"
+    sesi_rows = conn.execute("""
+    SELECT s.*,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
+    FROM sesi_latihan s
+    WHERE s.ekskul_id = ? AND s.tanggal LIKE ?
+    ORDER BY s.tanggal ASC, s.jam_mulai ASC
+    """, (laporan['ekskul_id'], f"{month_prefix}%")).fetchall()
+    sesi_list = [dict(s) for s in sesi_rows]
+
+    siswa_penilaian = conn.execute("""
+    SELECT lp.*, u.nama, u.kelas, u.jenis_kelamin
+    FROM laporan_penilaian_siswa lp
+    JOIN users u ON lp.siswa_id = u.id
+    WHERE lp.laporan_id = ?
+    ORDER BY u.kelas ASC, u.nama ASC
+    """, (laporan_id,)).fetchall()
+    siswa_penilaian = [dict(sp) for sp in siswa_penilaian]
+
+    now_wib = get_wib_datetime()
+    print_date = now_wib.strftime('%d-%m-%Y %H:%M')
+    nama_bulan = NAMA_BULAN.get(laporan['bulan'], f"Bulan {laporan['bulan']}")
+    tgl_laporan = f"{now_wib.day} {NAMA_BULAN.get(now_wib.month)} {now_wib.year}"
+
+    conn.close()
+    return render_template('cetak_laporan_bulanan.html',
+                           laporan=laporan,
+                           ekskul=ekskul,
+                           pelatih=pelatih,
+                           bulan=laporan['bulan'],
+                           tahun=laporan['tahun'],
+                           nama_bulan=nama_bulan,
+                           materi_list=materi_list,
+                           sesi_list=sesi_list,
+                           siswa_penilaian=siswa_penilaian,
+                           print_date=print_date,
+                           tgl_laporan=tgl_laporan)
+
+# =========================================================
 # 2. AKUN SISWA (PILIH EKSKUL & INFO PRA-PRESENSI)
 # =========================================================
 
@@ -703,6 +1045,23 @@ def siswa_dashboard():
     WHERE ps.user_id = ?
     """, (siswa_id,)).fetchone()
 
+    # Rapor perkembangan bulanan siswa dari pelatih
+    rapor_rows = conn.execute("""
+    SELECT lp.*, lb.bulan, lb.tahun, e.nama as nama_ekskul, e.icon as icon_ekskul, u.nama as nama_pelatih
+    FROM laporan_penilaian_siswa lp
+    JOIN laporan_bulanan lb ON lp.laporan_id = lb.id
+    JOIN ekskul e ON lb.ekskul_id = e.id
+    JOIN users u ON lb.pelatih_id = u.id
+    WHERE lp.siswa_id = ?
+    ORDER BY lb.tahun DESC, lb.bulan DESC
+    """, (siswa_id,)).fetchall()
+    
+    rapor_bulanan = []
+    for r in rapor_rows:
+        rd = dict(r)
+        rd['nama_bulan'] = NAMA_BULAN.get(r['bulan'], f"Bulan {r['bulan']}")
+        rapor_bulanan.append(rd)
+
     today_str = get_wib_today_str()
     conn.close()
     
@@ -714,6 +1073,7 @@ def siswa_dashboard():
                            all_ekskul=all_ekskul,
                            riwayat_pengajuan=riwayat_pengajuan,
                            statistik=statistik_kehadiran,
+                           rapor_bulanan=rapor_bulanan,
                            today_str=today_str)
 
 @app.route('/siswa/ekskul/pilih', methods=['POST'])

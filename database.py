@@ -150,6 +150,59 @@ def init_db():
     )
     """)
 
+    # 9. Tabel Laporan Bulanan Pelatih (Silabus, Rekap Honor, Nilai Siswa)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS laporan_bulanan (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ekskul_id INTEGER NOT NULL,
+        pelatih_id INTEGER NOT NULL,
+        bulan INTEGER NOT NULL,
+        tahun INTEGER NOT NULL,
+        status_rencana TEXT DEFAULT 'DRAFT', -- 'DRAFT', 'LENGKAP'
+        status_penilaian TEXT DEFAULT 'DRAFT', -- 'DRAFT', 'SELESAI'
+        catatan_umum TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(ekskul_id, bulan, tahun),
+        FOREIGN KEY (ekskul_id) REFERENCES ekskul(id),
+        FOREIGN KEY (pelatih_id) REFERENCES users(id)
+    )
+    """)
+
+    # 10. Tabel Materi Rencana Silabus Mingguan / Pertemuan Bulanan (Kondisional)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS laporan_materi_mingguan (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        laporan_id INTEGER NOT NULL,
+        pertemuan_ke INTEGER NOT NULL,
+        tanggal_rencana TEXT,
+        materi TEXT NOT NULL,
+        indikator_ketercapaian TEXT,
+        FOREIGN KEY (laporan_id) REFERENCES laporan_bulanan(id)
+    )
+    """)
+
+    # 11. Tabel Penilaian & Evaluasi Siswa Bulanan (Terkirim ke Akun Siswa)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS laporan_penilaian_siswa (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        laporan_id INTEGER NOT NULL,
+        siswa_id INTEGER NOT NULL,
+        nilai_skor INTEGER DEFAULT 0,
+        predikat TEXT,
+        catatan_evaluasi TEXT,
+        total_hadir INTEGER DEFAULT 0,
+        total_izin INTEGER DEFAULT 0,
+        total_sakit INTEGER DEFAULT 0,
+        total_alpa INTEGER DEFAULT 0,
+        persentase_kehadiran REAL DEFAULT 0.0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(laporan_id, siswa_id),
+        FOREIGN KEY (laporan_id) REFERENCES laporan_bulanan(id),
+        FOREIGN KEY (siswa_id) REFERENCES users(id)
+    )
+    """)
+
     conn.commit()
 
     # Migrasi data relasi pelatih ke tabel pelatih_ekskul
