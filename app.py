@@ -2,12 +2,24 @@ import os
 import math
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 from flask import (
     Flask, render_template, request, jsonify, redirect, url_for, session, Response, flash, send_from_directory
 )
 from database import get_db, init_db
+
+# Zona Waktu Indonesia Barat (WIB = UTC+7) untuk Tajurhalang Bogor
+WIB = timezone(timedelta(hours=7))
+
+def get_wib_datetime():
+    return datetime.now(WIB)
+
+def get_wib_today_str():
+    return datetime.now(WIB).strftime('%Y-%m-%d')
+
+def get_wib_time_str():
+    return datetime.now(WIB).strftime('%H:%M')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'presensi-ekskul-tajurhalang-multi-role-2026'
@@ -238,12 +250,13 @@ def get_pelatih_context(pelatih_id, active_ekskul_id=None):
     """, assigned_ids).fetchone()
     total_pending = pending_row['cnt'] if pending_row else 0
 
-    # Total permohonan izin pra-presensi hari ini yang menunggu persetujuan
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    # Total permohonan izin / sakit siswa yang menunggu persetujuan pelatih (di seluruh ekskul yang diampu)
     izin_row = conn.execute(f"""
     SELECT COUNT(*) as cnt FROM pengajuan_izin
-    WHERE ekskul_id IN ({placeholders}) AND tanggal_latihan = ? AND status_approval = 'MENUNGGU'
-    """, assigned_ids + [today_str]).fetchone()
+    WHERE ekskul_id IN ({placeholders}) 
+      AND status_approval = 'MENUNGGU'
+      AND status_pengajuan IN ('Izin', 'Sakit')
+    """, assigned_ids).fetchone()
     total_izin = izin_row['cnt'] if izin_row else 0
 
     # Total anggota siswa aktif di ekskul yang sedang aktif dibuka
@@ -276,7 +289,7 @@ def pelatih_dashboard():
     ORDER BY u.kelas ASC, u.nama ASC
     """, (ekskul['id'],)).fetchall()
 
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_str = get_wib_today_str()
     pengajuan_izin = conn.execute("""
     SELECT p.*, u.nama as nama_siswa, u.kelas 
     FROM pengajuan_izin p
@@ -466,21 +479,24 @@ def pelatih_izin():
         conn.close()
         return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
 
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    pengajuan_hari_ini = conn.execute("""
-    SELECT p.*, u.nama as nama_siswa, u.kelas 
+    today_str = get_wib_today_str()
+
+    # 1. Seluruh pengajuan izin / sakit yang MENUNGGU persetujuan pelatih (diutamakan agar bisa langsung di-approve/reject)
+    pengajuan_menunggu = conn.execute("""
+    SELECT p.*, u.nama as nama_siswa, u.kelas, u.jenis_kelamin, u.username 
     FROM pengajuan_izin p
     JOIN users u ON p.user_id = u.id
-    WHERE p.ekskul_id = ? AND p.tanggal_latihan = ?
-    ORDER BY p.created_at DESC
-    """, (ekskul['id'], today_str)).fetchall()
+    WHERE p.ekskul_id = ? AND p.status_approval = 'MENUNGGU'
+    ORDER BY p.tanggal_latihan ASC, p.created_at DESC
+    """, (ekskul['id'],)).fetchall()
 
+    # 2. Riwayat seluruh permohonan izin (termasuk yang disetujui & ditolak)
     riwayat_semua_izin = conn.execute("""
-    SELECT p.*, u.nama as nama_siswa, u.kelas 
+    SELECT p.*, u.nama as nama_siswa, u.kelas, u.jenis_kelamin, u.username 
     FROM pengajuan_izin p
     JOIN users u ON p.user_id = u.id
     WHERE p.ekskul_id = ?
-    ORDER BY p.tanggal_latihan DESC, p.created_at DESC LIMIT 30
+    ORDER BY p.tanggal_latihan DESC, p.created_at DESC LIMIT 50
     """, (ekskul['id'],)).fetchall()
 
     conn.close()
@@ -493,7 +509,7 @@ def pelatih_izin():
                            total_izin=total_izin,
                            total_siswa_aktif=total_siswa_aktif,
                            today_str=today_str,
-                           pengajuan_hari_ini=pengajuan_hari_ini,
+                           pengajuan_menunggu=pengajuan_menunggu,
                            riwayat_semua_izin=riwayat_semua_izin)
 
 @app.route('/pelatih/riwayat')
@@ -580,6 +596,7 @@ def approval_pengajuan(pengajuan_id):
     action = request.form.get('action') # 'DISETUJUI' atau 'DITOLAK'
     catatan = request.form.get('catatan_pelatih', '').strip()
     ekskul_id = request.form.get('ekskul_id')
+    ref = request.form.get('ref', 'izin')
     
     conn = get_db()
     conn.execute("""
@@ -589,7 +606,11 @@ def approval_pengajuan(pengajuan_id):
     """, (action, catatan, pengajuan_id))
     conn.commit()
     conn.close()
-    flash(f"Pengajuan siswa telah {action.lower()}.", "success")
+    
+    label_status = "disetujui" if action == 'DISETUJUI' else "ditolak"
+    flash(f"Permohonan izin siswa berhasil {label_status}!", "success" if action == 'DISETUJUI' else "info")
+    if ref == 'dashboard':
+        return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
     return redirect(url_for('pelatih_izin', ekskul_id=ekskul_id) if ekskul_id else url_for('pelatih_dashboard'))
 
 @app.route('/pelatih/profil/update', methods=['POST'])
@@ -682,7 +703,7 @@ def siswa_dashboard():
     WHERE ps.user_id = ?
     """, (siswa_id,)).fetchone()
 
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_str = get_wib_today_str()
     conn.close()
     
     return render_template('siswa_dashboard.html', 
@@ -736,7 +757,7 @@ def siswa_pilih_ekskul():
 def siswa_kirim_pengajuan():
     siswa_id = session['user_id']
     ekskul_id = request.form.get('ekskul_id')
-    tanggal = request.form.get('tanggal_latihan') or datetime.now().strftime('%Y-%m-%d')
+    tanggal = request.form.get('tanggal_latihan') or get_wib_today_str()
     status_pengajuan = request.form.get('status_pengajuan') # 'Akan Hadir', 'Izin', 'Sakit'
     alasan = request.form.get('alasan', '').strip()
 
@@ -1378,8 +1399,8 @@ def simpan_presensi():
     ekskul_id = data.get('ekskul_id')
     pelatih_id = session.get('user_id')
     nama_pelatih = session.get('nama')
-    tanggal = data.get('tanggal') or datetime.now().strftime('%Y-%m-%d')
-    jam_mulai = data.get('jam_mulai') or datetime.now().strftime('%H:%M')
+    tanggal = data.get('tanggal') or get_wib_today_str()
+    jam_mulai = data.get('jam_mulai') or get_wib_time_str()
     materi_latihan = data.get('materi_latihan', '').strip()
     catatan = data.get('catatan', '').strip()
 

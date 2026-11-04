@@ -20,6 +20,22 @@
     </div>
     {% endif %}
 
+    <!-- Alert Permohonan Izin / Sakit Menunggu Respon jika ada -->
+    {% if total_izin and total_izin > 0 %}
+    <div class="card" style="padding: 12px 16px; margin-bottom: 14px; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 26px;">📬</span>
+            <div>
+                <strong style="color: #92400E; font-size: 13.5px;">Ada {{ total_izin }} Permohonan Izin/Sakit Siswa Menunggu Persetujuan!</strong>
+                <p style="margin: 2px 0 0 0; font-size: 12px; color: #78350F;">Siswa mengajukan izin tidak latihan. Berikan persetujuan agar otomatis tercatat di presensi.</p>
+            </div>
+        </div>
+        <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" class="btn-approve" style="text-decoration: none; padding: 7px 16px; font-size: 12.5px; font-weight: 800; border-radius: 8px; background: #D97706; color: white;">
+            Tinjau Permohonan Izin →
+        </a>
+    </div>
+    {% endif %}
+
     <!-- 1. Header Card Khusus Ekskul Pelatih (Clean UI) -->
     <div class="card coach-hero-card" style="margin-bottom: 14px;">
         <div class="coach-hero-header">
@@ -51,6 +67,62 @@
             </div>
         </div>
     </div>
+
+    <!-- Kotak Konfirmasi Izin/Sakit Siswa Hari Ini (Pra-Presensi) -->
+    {% if pengajuan_izin and pengajuan_izin|length > 0 %}
+    <div class="card" style="margin-bottom: 14px; border-left: 4px solid #F59E0B;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+            <div>
+                <h3 style="font-size: 14px; font-weight: 800; color: #0F172A; margin: 0;">📬 Konfirmasi Izin Siswa Hari Ini ({{ today_str }})</h3>
+                <p style="font-size: 11.5px; color: #64748B; margin: 2px 0 0 0;">Izin yang disetujui otomatis mencentang status Izin/Sakit pada form presensi di bawah.</p>
+            </div>
+            <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" style="font-size: 12px; font-weight: 700; color: #1E40AF; text-decoration: none;">
+                Buka Menu Izin Lengkap →
+            </a>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            {% for p in pengajuan_izin %}
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
+                <div>
+                    <span style="font-weight: 800; font-size: 13.5px; color: #0F172A;">{{ p.nama_siswa }}</span>
+                    <span class="badge-tag tag-blue" style="font-size: 11px;">{{ p.kelas }}</span>
+                    <span class="pre-status-tag status-{{ p.status_pengajuan|lower }}" style="font-size: 11.5px; font-weight: 700;">
+                        {{ '🟡' if p.status_pengajuan == 'Izin' else ('🔵' if p.status_pengajuan == 'Sakit' else '🟢') }}
+                        {{ p.status_pengajuan }}
+                    </span>
+                    {% if p.alasan %}
+                    <span style="font-size: 12px; color: #475569; font-style: italic; margin-left: 6px;">"{{ p.alasan }}"</span>
+                    {% endif %}
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    {% if p.status_approval == 'MENUNGGU' %}
+                    <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="action" value="DISETUJUI">
+                        <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+                        <input type="hidden" name="ref" value="dashboard">
+                        <button type="submit" class="btn-approve" style="padding: 5px 12px; font-size: 11.5px; border-radius: 6px;" title="Setujui Izin">
+                            ✅ Setujui
+                        </button>
+                    </form>
+                    <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;" onsubmit="return confirm('Tolak permohonan izin?');">
+                        <input type="hidden" name="action" value="DITOLAK">
+                        <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+                        <input type="hidden" name="ref" value="dashboard">
+                        <button type="submit" class="btn-reject" style="padding: 5px 10px; font-size: 11.5px; border-radius: 6px;" title="Tolak Izin">
+                            ❌ Tolak
+                        </button>
+                    </form>
+                    {% elif p.status_approval == 'DISETUJUI' %}
+                    <span class="badge-tag tag-green" style="font-size: 11.5px; font-weight: 700;">✅ Disetujui</span>
+                    {% else %}
+                    <span class="badge-tag tag-red" style="font-size: 11.5px; font-weight: 700;">❌ Ditolak</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- 2. Kotak Verifikasi GPS Lokasi Lapangan -->
     <div class="card location-card" style="margin-bottom: 14px;">
