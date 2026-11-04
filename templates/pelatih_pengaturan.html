@@ -1,0 +1,54 @@
+{% extends 'pelatih_base.html' %}
+
+{% block title %}Jadwal & Pengaturan {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block pelatih_content %}
+<div class="screen-wrapper" style="max-width: 100%;">
+    <!-- Page Header Box -->
+    <div class="page-title-box">
+        <h1 class="page-heading">⚙️ Jadwal & Pengaturan {{ ekskul.nama }}</h1>
+        <p class="page-subheading">Kelola jadwal rutin latihan mingguan dan informasi cabang ekstrakurikuler.</p>
+    </div>
+
+    <!-- Informasi Cabang Ekskul Saat Ini -->
+    <div class="card" style="margin-bottom: 20px; border-left: 4px solid #2563EB;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="font-size: 40px; line-height: 1;">{{ ekskul.icon }}</div>
+            <div>
+                <span class="badge-tag tag-blue">{{ ekskul.kategori }}</span>
+                <h2 style="font-size: 18px; font-weight: 800; color: #0F172A; margin: 4px 0 2px 0;">{{ ekskul.nama }}</h2>
+                <p style="font-size: 12.5px; color: #64748B; margin: 0;">Pelatih Pengampu: <b>{{ user.nama }}</b> (<code>@{{ user.username }}</code>)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Atur Jadwal Latihan -->
+    <div class="card">
+        <h2 class="card-title" style="margin-bottom: 6px;">⏰ Atur Jadwal Rutin Latihan</h2>
+        <p class="card-desc" style="margin-bottom: 16px;">Jadwal ini akan menjadi acuan siswa dalam mengajukan konfirmasi kehadiran pra-presensi.</p>
+
+        <form action="/pelatih/jadwal/update" method="POST">
+            <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Hari Latihan Rutin <span class="req">*</span></label>
+                    <input type="text" name="hari_latihan" class="form-control" value="{{ ekskul.hari_latihan or '' }}" placeholder="Contoh: Selasa & Jumat" required>
+                    <small style="color: #64748B;">Hari pelaksanaan latihan (misal: Senin & Kamis, atau Sabtu pagi).</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Jam Latihan Rutin <span class="req">*</span></label>
+                    <input type="text" name="jam_latihan" class="form-control" value="{{ ekskul.jam_latihan or '' }}" placeholder="Contoh: 15:30 - 17:00" required>
+                    <small style="color: #64748B;">Rentang waktu pelaksanaan latihan dalam format WIB.</small>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+                <button type="submit" class="btn-submit" style="width: auto; padding: 10px 24px; font-size: 13px;">
+                    💾 Simpan Perubahan Jadwal
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -179,14 +179,14 @@ def register_siswa():
                 """, (username, password, nama, ekskul_id, kelas, jk))
                 new_user_id = cursor.lastrowid
                 
-                # Masukkan ke relasi siswa_ekskul
+                # Masukkan ke relasi siswa_ekskul dengan status MENUNGGU persetujuan pelatih
                 cursor.execute("""
-                INSERT INTO siswa_ekskul (user_id, ekskul_id) VALUES (?, ?)
+                INSERT INTO siswa_ekskul (user_id, ekskul_id, status) VALUES (?, ?, 'MENUNGGU')
                 """, (new_user_id, ekskul_id))
                 
                 conn.commit()
                 conn.close()
-                flash("Pendaftaran berhasil! Silakan login dengan username dan kata sandi Anda.", "success")
+                flash("Pendaftaran akun berhasil! Pendaftaran ekskul Anda sedang menunggu persetujuan Pelatih. Silakan masuk.", "success")
                 return redirect(url_for('login'))
             except Exception as e:
                 flash(f"Pendaftaran gagal: Username '{username}' mungkin sudah digunakan.", "danger")
@@ -198,16 +198,10 @@ def register_siswa():
 # 1. AKUN PELATIH (CLEAN UI & KHUSUS EKSKULNYA SAJA)
 # =========================================================
 
-@app.route('/pelatih')
-@role_required('pelatih')
-def pelatih_dashboard():
-    pelatih_id = session['user_id']
+def get_pelatih_context(pelatih_id, active_ekskul_id=None):
     conn = get_db()
-    
-    # Ambil data pelatih
     user = conn.execute("SELECT * FROM users WHERE id = ?", (pelatih_id,)).fetchone()
     
-    # Ambil seluruh cabang ekskul yang diampu oleh pelatih ini
     assigned_ekskuls = conn.execute("""
     SELECT e.* FROM ekskul e
     JOIN pelatih_ekskul pe ON e.id = pe.ekskul_id
@@ -215,16 +209,15 @@ def pelatih_dashboard():
     ORDER BY e.nama ASC
     """, (pelatih_id,)).fetchall()
 
-    # Fallback jika belum di pelatih_ekskul tapi ada ekskul_id di users
     if not assigned_ekskuls and user['ekskul_id']:
         assigned_ekskuls = conn.execute("SELECT * FROM ekskul WHERE id = ?", (user['ekskul_id'],)).fetchall()
 
     if not assigned_ekskuls:
-        conn.close()
-        return "Ekskul belum dihubungkan ke akun pelatih ini. Silakan hubungi Admin Master.", 400
+        return conn, user, [], None, 0, 0, 0
 
-    # Tentukan cabang ekskul yang sedang aktif dibuka
-    active_ekskul_id = request.args.get('ekskul_id', type=int)
+    if not active_ekskul_id:
+        active_ekskul_id = request.args.get('ekskul_id', type=int)
+
     ekskul = None
     if active_ekskul_id:
         for e in assigned_ekskuls:
@@ -234,9 +227,48 @@ def pelatih_dashboard():
     if not ekskul:
         ekskul = assigned_ekskuls[0]
 
+    assigned_ids = [e['id'] for e in assigned_ekskuls]
+    placeholders = ','.join(['?'] * len(assigned_ids))
+
+    # Total calon siswa menunggu persetujuan pelatih (di seluruh ekskul yang diampu)
+    pending_row = conn.execute(f"""
+    SELECT COUNT(*) as cnt FROM siswa_ekskul se
+    JOIN users u ON se.user_id = u.id
+    WHERE se.ekskul_id IN ({placeholders}) AND se.status = 'MENUNGGU'
+    """, assigned_ids).fetchone()
+    total_pending = pending_row['cnt'] if pending_row else 0
+
+    # Total permohonan izin pra-presensi hari ini yang menunggu persetujuan
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    izin_row = conn.execute(f"""
+    SELECT COUNT(*) as cnt FROM pengajuan_izin
+    WHERE ekskul_id IN ({placeholders}) AND tanggal_latihan = ? AND status_approval = 'MENUNGGU'
+    """, assigned_ids + [today_str]).fetchone()
+    total_izin = izin_row['cnt'] if izin_row else 0
+
+    # Total anggota siswa aktif di ekskul yang sedang aktif dibuka
+    aktif_row = conn.execute("""
+    SELECT COUNT(*) as cnt FROM siswa_ekskul se
+    JOIN users u ON se.user_id = u.id
+    WHERE se.ekskul_id = ? AND u.role = 'siswa' AND se.status = 'AKTIF'
+    """, (ekskul['id'],)).fetchone()
+    total_siswa_aktif = aktif_row['cnt'] if aktif_row else 0
+
+    return conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif
+
+@app.route('/pelatih')
+@role_required('pelatih')
+def pelatih_dashboard():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
+    
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini. Silakan hubungi Admin Master.", 400
+
     lokasi = conn.execute("SELECT * FROM pengaturan_lokasi WHERE is_active = 1 LIMIT 1").fetchone()
 
-    # Ambil daftar siswa yang memilih ekskul ini
+    # Ambil daftar siswa resmi aktif yang mengikuti ekskul ini
     siswa_list = conn.execute("""
     SELECT u.* FROM users u
     JOIN siswa_ekskul se ON u.id = se.user_id
@@ -244,7 +276,6 @@ def pelatih_dashboard():
     ORDER BY u.kelas ASC, u.nama ASC
     """, (ekskul['id'],)).fetchall()
 
-    # Ambil permohonan izin pra-presensi siswa hari ini
     today_str = datetime.now().strftime('%Y-%m-%d')
     pengajuan_izin = conn.execute("""
     SELECT p.*, u.nama as nama_siswa, u.kelas 
@@ -254,7 +285,6 @@ def pelatih_dashboard():
     ORDER BY p.created_at DESC
     """, (ekskul['id'], today_str)).fetchall()
 
-    # Riwayat sesi latihan pelatih untuk ekskul ini
     sesi_terakhir = conn.execute("""
     SELECT s.*, 
            (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
@@ -266,73 +296,215 @@ def pelatih_dashboard():
 
     conn.close()
     return render_template('pelatih_dashboard.html', 
+                           active_menu='presensi',
                            user=user, 
                            ekskul=ekskul, 
                            assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
                            lokasi=lokasi, 
                            siswa_list=siswa_list,
                            pengajuan_izin=pengajuan_izin,
                            sesi_terakhir=sesi_terakhir,
                            today_str=today_str)
 
-@app.route('/pelatih/jadwal/update', methods=['POST'])
+@app.route('/pelatih/persetujuan')
 @role_required('pelatih')
-def update_jadwal_pelatih():
-    ekskul_id = request.form.get('ekskul_id')
-    hari = request.form.get('hari_latihan', '').strip()
-    jam = request.form.get('jam_latihan', '').strip()
+def pelatih_persetujuan():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
     
-    conn = get_db()
-    conn.execute("UPDATE ekskul SET hari_latihan = ?, jam_latihan = ? WHERE id = ?", (hari, jam, ekskul_id))
-    conn.commit()
-    conn.close()
-    flash("Jadwal latihan berhasil diperbarui!", "success")
-    return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
 
-@app.route('/pelatih/pengajuan/approval/<int:pengajuan_id>', methods=['POST'])
+    pending_siswa = conn.execute("""
+    SELECT se.id as se_id, se.tanggal_daftar, se.status,
+           u.id as user_id, u.nama, u.username, u.kelas, u.jenis_kelamin,
+           e.nama as nama_ekskul, e.icon as icon_ekskul
+    FROM siswa_ekskul se
+    JOIN users u ON se.user_id = u.id
+    JOIN ekskul e ON se.ekskul_id = e.id
+    WHERE se.ekskul_id = ? AND se.status = 'MENUNGGU'
+    ORDER BY se.tanggal_daftar DESC
+    """, (ekskul['id'],)).fetchall()
+
+    riwayat_persetujuan = conn.execute("""
+    SELECT se.id as se_id, se.tanggal_daftar, se.status,
+           u.id as user_id, u.nama, u.username, u.kelas, u.jenis_kelamin,
+           e.nama as nama_ekskul, e.icon as icon_ekskul
+    FROM siswa_ekskul se
+    JOIN users u ON se.user_id = u.id
+    JOIN ekskul e ON se.ekskul_id = e.id
+    WHERE se.ekskul_id = ? AND se.status != 'MENUNGGU'
+    ORDER BY se.tanggal_daftar DESC LIMIT 15
+    """, (ekskul['id'],)).fetchall()
+
+    conn.close()
+    return render_template('pelatih_persetujuan.html',
+                           active_menu='persetujuan',
+                           user=user,
+                           ekskul=ekskul,
+                           assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
+                           pending_siswa=pending_siswa,
+                           riwayat_persetujuan=riwayat_persetujuan)
+
+@app.route('/pelatih/persetujuan/<int:se_id>/approve', methods=['POST'])
 @role_required('pelatih')
-def approval_pengajuan(pengajuan_id):
-    action = request.form.get('action') # 'DISETUJUI' atau 'DITOLAK'
-    catatan = request.form.get('catatan_pelatih', '').strip()
-    ekskul_id = request.form.get('ekskul_id')
-    
+def pelatih_approve_siswa(se_id):
+    ekskul_id = request.form.get('ekskul_id', type=int)
     conn = get_db()
-    conn.execute("""
-    UPDATE pengajuan_izin 
-    SET status_approval = ?, catatan_pelatih = ?
-    WHERE id = ?
-    """, (action, catatan, pengajuan_id))
+    
+    se = conn.execute("""
+    SELECT se.*, u.nama as nama_siswa 
+    FROM siswa_ekskul se
+    JOIN users u ON se.user_id = u.id
+    WHERE se.id = ?
+    """, (se_id,)).fetchone()
+    
+    if not se:
+        conn.close()
+        flash("Data pendaftaran tidak ditemukan.", "danger")
+        return redirect(url_for('pelatih_persetujuan', ekskul_id=ekskul_id))
+
+    conn.execute("UPDATE siswa_ekskul SET status = 'AKTIF' WHERE id = ?", (se_id,))
+    conn.execute("UPDATE users SET ekskul_id = ? WHERE id = ? AND ekskul_id IS NULL", (se['ekskul_id'], se['user_id']))
     conn.commit()
     conn.close()
-    flash(f"Pengajuan siswa telah {action.lower()}.", "success")
-    return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id) if ekskul_id else url_for('pelatih_dashboard'))
+
+    flash(f"Berhasil! Siswa '{se['nama_siswa']}' telah disetujui dan resmi menjadi anggota ekskul. Siswa kini masuk database dan siap mengikuti presensi latihan.", "success")
+    return redirect(url_for('pelatih_persetujuan', ekskul_id=ekskul_id or se['ekskul_id']))
+
+@app.route('/pelatih/persetujuan/<int:se_id>/reject', methods=['POST'])
+@role_required('pelatih')
+def pelatih_reject_siswa(se_id):
+    ekskul_id = request.form.get('ekskul_id', type=int)
+    conn = get_db()
+    
+    se = conn.execute("""
+    SELECT se.*, u.nama as nama_siswa 
+    FROM siswa_ekskul se
+    JOIN users u ON se.user_id = u.id
+    WHERE se.id = ?
+    """, (se_id,)).fetchone()
+    
+    if not se:
+        conn.close()
+        flash("Data pendaftaran tidak ditemukan.", "danger")
+        return redirect(url_for('pelatih_persetujuan', ekskul_id=ekskul_id))
+
+    conn.execute("UPDATE siswa_ekskul SET status = 'DITOLAK' WHERE id = ?", (se_id,))
+    conn.commit()
+    conn.close()
+
+    flash(f"Pendaftaran siswa '{se['nama_siswa']}' telah ditolak.", "info")
+    return redirect(url_for('pelatih_persetujuan', ekskul_id=ekskul_id or se['ekskul_id']))
+
+@app.route('/pelatih/siswa')
+@role_required('pelatih')
+def pelatih_siswa():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
+    
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
+
+    siswa_list = conn.execute("""
+    SELECT u.*, se.id as se_id, se.tanggal_daftar,
+           (SELECT COUNT(*) FROM presensi_siswa ps 
+            JOIN sesi_latihan sl ON ps.sesi_id = sl.id 
+            WHERE ps.user_id = u.id AND sl.ekskul_id = ? AND ps.status_kehadiran = 'Hadir') as total_hadir,
+           (SELECT COUNT(*) FROM presensi_siswa ps 
+            JOIN sesi_latihan sl ON ps.sesi_id = sl.id 
+            WHERE ps.user_id = u.id AND sl.ekskul_id = ?) as total_sesi
+    FROM users u
+    JOIN siswa_ekskul se ON u.id = se.user_id
+    WHERE se.ekskul_id = ? AND u.role = 'siswa' AND se.status = 'AKTIF'
+    ORDER BY u.kelas ASC, u.nama ASC
+    """, (ekskul['id'], ekskul['id'], ekskul['id'])).fetchall()
+
+    total_laki = sum(1 for s in siswa_list if s['jenis_kelamin'] == 'L')
+    total_perempuan = sum(1 for s in siswa_list if s['jenis_kelamin'] == 'P')
+
+    conn.close()
+    return render_template('pelatih_siswa.html',
+                           active_menu='siswa',
+                           user=user,
+                           ekskul=ekskul,
+                           assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
+                           siswa_list=siswa_list,
+                           total_laki=total_laki,
+                           total_perempuan=total_perempuan)
+
+@app.route('/pelatih/siswa/remove/<int:user_id>', methods=['POST'])
+@role_required('pelatih')
+def pelatih_remove_siswa(user_id):
+    ekskul_id = request.form.get('ekskul_id', type=int)
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    conn.execute("DELETE FROM siswa_ekskul WHERE user_id = ? AND ekskul_id = ?", (user_id, ekskul_id))
+    conn.commit()
+    conn.close()
+    flash(f"Siswa '{user['nama'] if user else user_id}' telah dikeluarkan dari cabang ekskul.", "info")
+    return redirect(url_for('pelatih_siswa', ekskul_id=ekskul_id))
+
+@app.route('/pelatih/izin')
+@role_required('pelatih')
+def pelatih_izin():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
+    
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
+
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    pengajuan_hari_ini = conn.execute("""
+    SELECT p.*, u.nama as nama_siswa, u.kelas 
+    FROM pengajuan_izin p
+    JOIN users u ON p.user_id = u.id
+    WHERE p.ekskul_id = ? AND p.tanggal_latihan = ?
+    ORDER BY p.created_at DESC
+    """, (ekskul['id'], today_str)).fetchall()
+
+    riwayat_semua_izin = conn.execute("""
+    SELECT p.*, u.nama as nama_siswa, u.kelas 
+    FROM pengajuan_izin p
+    JOIN users u ON p.user_id = u.id
+    WHERE p.ekskul_id = ?
+    ORDER BY p.tanggal_latihan DESC, p.created_at DESC LIMIT 30
+    """, (ekskul['id'],)).fetchall()
+
+    conn.close()
+    return render_template('pelatih_izin.html',
+                           active_menu='izin',
+                           user=user,
+                           ekskul=ekskul,
+                           assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
+                           today_str=today_str,
+                           pengajuan_hari_ini=pengajuan_hari_ini,
+                           riwayat_semua_izin=riwayat_semua_izin)
 
 @app.route('/pelatih/riwayat')
 @role_required('pelatih')
 def pelatih_riwayat():
-    conn = get_db()
     pelatih_id = session['user_id']
-    user = conn.execute("SELECT * FROM users WHERE id = ?", (pelatih_id,)).fetchone()
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
     
-    assigned_ekskuls = conn.execute("""
-    SELECT e.* FROM ekskul e
-    JOIN pelatih_ekskul pe ON e.id = pe.ekskul_id
-    WHERE pe.user_id = ?
-    ORDER BY e.nama ASC
-    """, (pelatih_id,)).fetchall()
-
-    if not assigned_ekskuls and user['ekskul_id']:
-        assigned_ekskuls = conn.execute("SELECT * FROM ekskul WHERE id = ?", (user['ekskul_id'],)).fetchall()
-
-    active_ekskul_id = request.args.get('ekskul_id', type=int)
-    ekskul = None
-    if active_ekskul_id:
-        for e in assigned_ekskuls:
-            if e['id'] == active_ekskul_id:
-                ekskul = e
-                break
-    if not ekskul and assigned_ekskuls:
-        ekskul = assigned_ekskuls[0]
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
 
     sesi_list = []
     if ekskul:
@@ -350,9 +522,108 @@ def pelatih_riwayat():
     
     conn.close()
     return render_template('pelatih_riwayat.html', 
+                           active_menu='riwayat',
+                           user=user,
                            ekskul=ekskul, 
                            assigned_ekskuls=assigned_ekskuls, 
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
                            sesi_list=sesi_list)
+
+@app.route('/pelatih/pengaturan', methods=['GET', 'POST'])
+@role_required('pelatih')
+def pelatih_pengaturan():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
+    
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
+
+    if request.method == 'POST':
+        hari = request.form.get('hari_latihan', '').strip()
+        jam = request.form.get('jam_latihan', '').strip()
+        conn.execute("UPDATE ekskul SET hari_latihan = ?, jam_latihan = ? WHERE id = ?", (hari, jam, ekskul['id']))
+        conn.commit()
+        conn.close()
+        flash("Jadwal rutin latihan berhasil diperbarui!", "success")
+        return redirect(url_for('pelatih_pengaturan', ekskul_id=ekskul['id']))
+
+    conn.close()
+    return render_template('pelatih_pengaturan.html',
+                           active_menu='pengaturan',
+                           user=user,
+                           ekskul=ekskul,
+                           assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif)
+
+@app.route('/pelatih/jadwal/update', methods=['POST'])
+@role_required('pelatih')
+def update_jadwal_pelatih():
+    ekskul_id = request.form.get('ekskul_id')
+    hari = request.form.get('hari_latihan', '').strip()
+    jam = request.form.get('jam_latihan', '').strip()
+    
+    conn = get_db()
+    conn.execute("UPDATE ekskul SET hari_latihan = ?, jam_latihan = ? WHERE id = ?", (hari, jam, ekskul_id))
+    conn.commit()
+    conn.close()
+    flash("Jadwal latihan berhasil diperbarui!", "success")
+    return redirect(url_for('pelatih_pengaturan', ekskul_id=ekskul_id))
+
+@app.route('/pelatih/pengajuan/approval/<int:pengajuan_id>', methods=['POST'])
+@role_required('pelatih')
+def approval_pengajuan(pengajuan_id):
+    action = request.form.get('action') # 'DISETUJUI' atau 'DITOLAK'
+    catatan = request.form.get('catatan_pelatih', '').strip()
+    ekskul_id = request.form.get('ekskul_id')
+    
+    conn = get_db()
+    conn.execute("""
+    UPDATE pengajuan_izin 
+    SET status_approval = ?, catatan_pelatih = ?
+    WHERE id = ?
+    """, (action, catatan, pengajuan_id))
+    conn.commit()
+    conn.close()
+    flash(f"Pengajuan siswa telah {action.lower()}.", "success")
+    return redirect(url_for('pelatih_izin', ekskul_id=ekskul_id) if ekskul_id else url_for('pelatih_dashboard'))
+
+@app.route('/pelatih/profil/update', methods=['POST'])
+@role_required('pelatih')
+def pelatih_update_profil():
+    pelatih_id = session['user_id']
+    nama = request.form.get('nama', '').strip()
+    username = request.form.get('username', '').strip()
+    password_baru = request.form.get('password_baru', '').strip()
+    ekskul_id = request.form.get('ekskul_id')
+
+    if not nama or not username:
+        flash("Nama dan username tidak boleh kosong.", "danger")
+        return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
+
+    conn = get_db()
+    conflict = conn.execute("SELECT id FROM users WHERE username = ? AND id != ?", (username, pelatih_id)).fetchone()
+    if conflict:
+        conn.close()
+        flash(f"Username '{username}' sudah digunakan pengguna lain.", "danger")
+        return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
+
+    if password_baru:
+        conn.execute("UPDATE users SET nama = ?, username = ?, password = ? WHERE id = ?", (nama, username, password_baru, pelatih_id))
+    else:
+        conn.execute("UPDATE users SET nama = ?, username = ? WHERE id = ?", (nama, username, pelatih_id))
+
+    conn.commit()
+    conn.close()
+
+    session['nama'] = nama
+    session['username'] = username
+    flash("Profil dan informasi akun pelatih berhasil diperbarui!", "success")
+    return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
 
 # =========================================================
 # 2. AKUN SISWA (PILIH EKSKUL & INFO PRA-PRESENSI)
@@ -366,11 +637,25 @@ def siswa_dashboard():
     
     user = conn.execute("SELECT * FROM users WHERE id = ?", (siswa_id,)).fetchone()
     
-    # Ambil ekskul yang diikuti siswa
+    # Ambil ekskul resmi aktif yang diikuti siswa
     ekskul_diikuti = conn.execute("""
     SELECT e.* FROM ekskul e
     JOIN siswa_ekskul se ON e.id = se.ekskul_id
     WHERE se.user_id = ? AND se.status = 'AKTIF'
+    """, (siswa_id,)).fetchall()
+
+    # Ambil ekskul yang masih menunggu persetujuan pelatih
+    ekskul_menunggu = conn.execute("""
+    SELECT e.* FROM ekskul e
+    JOIN siswa_ekskul se ON e.id = se.ekskul_id
+    WHERE se.user_id = ? AND se.status = 'MENUNGGU'
+    """, (siswa_id,)).fetchall()
+
+    # Ambil ekskul yang ditolak
+    ekskul_ditolak = conn.execute("""
+    SELECT e.* FROM ekskul e
+    JOIN siswa_ekskul se ON e.id = se.ekskul_id
+    WHERE se.user_id = ? AND se.status = 'DITOLAK'
     """, (siswa_id,)).fetchall()
     
     # Seluruh pilihan ekskul untuk opsi tambah/ganti
@@ -403,6 +688,8 @@ def siswa_dashboard():
     return render_template('siswa_dashboard.html', 
                            user=user, 
                            ekskul_diikuti=ekskul_diikuti, 
+                           ekskul_menunggu=ekskul_menunggu,
+                           ekskul_ditolak=ekskul_ditolak,
                            all_ekskul=all_ekskul,
                            riwayat_pengajuan=riwayat_pengajuan,
                            statistik=statistik_kehadiran,
@@ -413,19 +700,35 @@ def siswa_dashboard():
 def siswa_pilih_ekskul():
     siswa_id = session['user_id']
     ekskul_id = request.form.get('ekskul_id')
+    if not ekskul_id:
+        flash("Silakan pilih cabang ekstrakurikuler terlebih dahulu.", "danger")
+        return redirect(url_for('siswa_dashboard'))
     
     conn = get_db()
-    # Update ekskul utama di users
-    conn.execute("UPDATE users SET ekskul_id = ? WHERE id = ?", (ekskul_id, siswa_id))
-    # Insert or ignore di siswa_ekskul
-    try:
-        conn.execute("INSERT INTO siswa_ekskul (user_id, ekskul_id) VALUES (?, ?)", (siswa_id, ekskul_id))
-    except Exception:
-        pass
-    conn.commit()
-    conn.close()
+    existing = conn.execute("""
+    SELECT * FROM siswa_ekskul WHERE user_id = ? AND ekskul_id = ?
+    """, (siswa_id, ekskul_id)).fetchone()
     
-    flash("Pilihan cabang ekstrakurikuler berhasil diperbarui!", "success")
+    if existing:
+        if existing['status'] == 'AKTIF':
+            flash("Anda sudah menjadi anggota resmi di cabang ekstrakurikuler ini.", "info")
+        elif existing['status'] == 'MENUNGGU':
+            flash("Pendaftaran Anda di cabang ini sedang menunggu persetujuan pelatih.", "warning")
+        else:
+            conn.execute("""
+            UPDATE siswa_ekskul SET status = 'MENUNGGU', tanggal_daftar = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """, (existing['id'],))
+            conn.commit()
+            flash("Permohonan Anda berhasil diajukan kembali ke pelatih! Menunggu persetujuan.", "success")
+    else:
+        conn.execute("""
+        INSERT INTO siswa_ekskul (user_id, ekskul_id, status) VALUES (?, ?, 'MENUNGGU')
+        """, (siswa_id, ekskul_id))
+        conn.commit()
+        flash("Permohonan memilih ekskul berhasil dikirim! Menunggu persetujuan dari Pelatih.", "success")
+        
+    conn.close()
     return redirect(url_for('siswa_dashboard'))
 
 @app.route('/siswa/pengajuan/kirim', methods=['POST'])

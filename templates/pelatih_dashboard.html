@@ -1,137 +1,59 @@
-{% extends 'base.html' %}
+{% extends 'pelatih_base.html' %}
 
-{% block title %}Dashboard Pelatih {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+{% block title %}Presensi {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
 
-{% block content %}
-<div class="screen-wrapper">
-    <!-- Switcher Cabang Ekskul (Jika Pelatih Mengampu > 1 Ekskul) -->
-    {% if assigned_ekskuls and assigned_ekskuls|length > 1 %}
-    <div class="card" style="padding: 12px 16px; margin-bottom: 12px; background: #EFF6FF; border: 1px solid #BFDBFE;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div style="font-size: 12.5px; font-weight: 800; color: #1E40AF;">
-                🎯 Anda mengampu {{ assigned_ekskuls|length }} Ekskul. Pilih cabang untuk input presensi:
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                {% for ae in assigned_ekskuls %}
-                <a href="/pelatih?ekskul_id={{ ae.id }}" class="pill-filter {% if ekskul.id == ae.id %}active{% endif %}" style="text-decoration: none; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 20px;">
-                    {{ ae.icon }} {{ ae.nama }}
-                </a>
-                {% endfor %}
+{% block pelatih_content %}
+<div class="screen-wrapper" style="max-width: 100%;">
+    <!-- Alert Pendaftaran Siswa Menunggu Persetujuan jika ada -->
+    {% if total_pending and total_pending > 0 %}
+    <div class="card" style="padding: 12px 16px; margin-bottom: 14px; background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 26px;">👥</span>
+            <div>
+                <strong style="color: #92400E; font-size: 13.5px;">Ada {{ total_pending }} Calon Siswa Menunggu Persetujuan!</strong>
+                <p style="margin: 2px 0 0 0; font-size: 12px; color: #78350F;">Siswa harus disetujui terlebih dahulu agar resmi masuk ke presensi latihan.</p>
             </div>
         </div>
+        <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="btn-approve" style="text-decoration: none; padding: 7px 16px; font-size: 12.5px; font-weight: 800; border-radius: 8px;">
+            Tinjau Pendaftaran Siswa →
+        </a>
     </div>
     {% endif %}
 
     <!-- 1. Header Card Khusus Ekskul Pelatih (Clean UI) -->
-    <div class="card coach-hero-card">
+    <div class="card coach-hero-card" style="margin-bottom: 14px;">
         <div class="coach-hero-header">
             <div class="coach-hero-title">
                 <span class="coach-hero-icon">{{ ekskul.icon }}</span>
                 <div>
                     <span class="badge-tag tag-blue">{{ ekskul.kategori }}</span>
-                    <h1 class="coach-hero-name">{{ ekskul.nama }}</h1>
+                    <h1 class="coach-hero-name" style="font-size: 20px;">{{ ekskul.nama }}</h1>
                     <p class="coach-hero-sub">Pelatih: <b>{{ user.nama }}</b></p>
                 </div>
             </div>
-            <button type="button" class="btn-edit-schedule" onclick="toggleScheduleModal()">
+            <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" class="btn-edit-schedule" style="text-decoration: none;">
                 ✏️ Ubah Jadwal
-            </button>
+            </a>
         </div>
 
         <div class="schedule-badge-row">
             <div class="schedule-item">
                 <span class="sch-label">📅 Hari Latihan:</span>
-                <span class="sch-val">{{ ekskul.hari_latihan }}</span>
+                <span class="sch-val">{{ ekskul.hari_latihan or 'Belum disetel' }}</span>
             </div>
             <div class="schedule-item">
                 <span class="sch-label">⏰ Jam Latihan:</span>
-                <span class="sch-val">{{ ekskul.jam_latihan }} WIB</span>
+                <span class="sch-val">{{ ekskul.jam_latihan or 'Belum disetel' }} WIB</span>
             </div>
             <div class="schedule-item">
-                <span class="sch-label">👥 Total Anggota:</span>
+                <span class="sch-label">👥 Total Anggota Resmi:</span>
                 <span class="sch-val"><b>{{ siswa_list|length }}</b> Siswa</span>
             </div>
         </div>
     </div>
 
-    <!-- 2. Kotak Modal Ubah Jadwal (Toggleable) -->
-    <div class="card form-card" id="scheduleModal" style="display: none; border-left: 4px solid var(--accent);">
-        <h3 class="card-title">⏰ Perbarui Jadwal Latihan {{ ekskul.nama }}</h3>
-        <form action="/pelatih/jadwal/update" method="POST" style="margin-top: 8px;">
-            <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label">Hari Latihan</label>
-                    <input type="text" name="hari_latihan" class="form-control" value="{{ ekskul.hari_latihan }}" placeholder="Contoh: Selasa & Jumat" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Jam Latihan</label>
-                    <input type="text" name="jam_latihan" class="form-control" value="{{ ekskul.jam_latihan }}" placeholder="Contoh: 15:30 - 17:00" required>
-                </div>
-            </div>
-            <div style="display: flex; gap: 8px; margin-top: 10px;">
-                <button type="submit" class="btn-card-action btn-detail" style="border: none;">Simpan Jadwal</button>
-                <button type="button" class="btn-card-action btn-print" onclick="toggleScheduleModal()">Batal</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- 3. Kotak Inbox Pengajuan Pra-Presensi Siswa Hari Ini (Izin / Sakit) -->
-    <div class="card pre-attendance-card">
-        <div class="pre-attendance-header">
-            <div>
-                <h2 class="card-title">📬 Konfirmasi Izin/Sakit Siswa Sebelum Latihan</h2>
-                <p class="card-desc">Pengajuan yang diajukan siswa untuk latihan hari ini ({{ today_str }})</p>
-            </div>
-            <span class="badge-tag tag-amber">{{ pengajuan_izin|length }} Pengajuan</span>
-        </div>
-
-        {% if pengajuan_izin %}
-        <div class="pre-att-list" style="margin-top: 10px;">
-            {% for p in pengajuan_izin %}
-            <div class="pre-att-item">
-                <div class="pre-att-info">
-                    <span class="pre-student-name">{{ p.nama_siswa }} ({{ p.kelas }})</span>
-                    <span class="pre-status-tag status-{{ p.status_pengajuan|lower }}">
-                        {{ '🟢' if p.status_pengajuan == 'Akan Hadir' else ('🟡' if p.status_pengajuan == 'Izin' else '🔵') }}
-                        {{ p.status_pengajuan }}
-                    </span>
-                    {% if p.alasan %}
-                    <p class="pre-reason"><i>"{{ p.alasan }}"</i></p>
-                    {% endif %}
-                </div>
-                <div class="pre-att-actions">
-                    {% if p.status_approval == 'MENUNGGU' %}
-                        {% if p.status_pengajuan != 'Akan Hadir' %}
-                        <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="DISETUJUI">
-                            <button type="submit" class="btn-approve" title="Setujui Izin">✅ Setujui</button>
-                        </form>
-                        <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="DITOLAK">
-                            <button type="submit" class="btn-reject" title="Tolak">❌ Tolak</button>
-                        </form>
-                        {% else %}
-                        <span class="badge-tag tag-green">Tercatat Hadir</span>
-                        {% endif %}
-                    {% elif p.status_approval == 'DISETUJUI' %}
-                        <span class="badge-tag tag-green">✅ Disetujui Pelatih</span>
-                    {% else %}
-                        <span class="badge-tag tag-red">❌ Ditolak</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p style="font-size: 11.5px; color: #64748B; margin-top: 8px;">
-            Belum ada siswa yang mengirimkan konfirmasi izin/sakit untuk sesi hari ini. Siswa yang tidak hadir tanpa izin akan terhitung Alpa.
-        </p>
-        {% endif %}
-    </div>
-
-    <!-- 4. Verifikasi GPS Lokasi Lapangan -->
-    <div class="card location-card">
+    <!-- 2. Kotak Verifikasi GPS Lokasi Lapangan -->
+    <div class="card location-card" style="margin-bottom: 14px;">
         <div class="location-header">
             <div class="location-title-box">
                 <span class="pulse-icon">📍</span>
@@ -164,7 +86,7 @@
         </div>
     </div>
 
-    <!-- 5. Form Presensi Latihan & Checklist Siswa Anggota -->
+    <!-- 3. Form Presensi Latihan & Checklist Siswa Anggota Resmi -->
     <form id="formPresensiPelatih" onsubmit="event.preventDefault(); submitPresensiPelatih();">
         <input type="hidden" id="userLat" value="0">
         <input type="hidden" id="userLng" value="0">
@@ -172,7 +94,7 @@
         <input type="hidden" id="userLocStatus" value="BELUM_CEK">
         <input type="hidden" id="ekskulId" value="{{ ekskul.id }}">
 
-        <div class="card form-card">
+        <div class="card form-card" style="margin-bottom: 14px;">
             <h2 class="card-title">📝 Jurnal & Materi Latihan Hari Ini</h2>
             
             <div class="form-grid-2">
@@ -201,16 +123,19 @@
         <div class="card roster-card">
             <div class="roster-header">
                 <div>
-                    <h2 class="card-title">👥 Presensi Siswa Anggota {{ ekskul.nama }} ({{ siswa_list|length }} Siswa)</h2>
+                    <h2 class="card-title">👥 Presensi Siswa Anggota Resmi ({{ siswa_list|length }} Siswa)</h2>
                     <p class="card-desc">Siswa yang izinnya telah disetujui otomatis terisi</p>
                 </div>
+                {% if siswa_list and siswa_list|length > 0 %}
                 <div class="quick-actions">
                     <button type="button" class="btn-quick all-hadir" onclick="setAllAttendance('Hadir')">
                         ✅ Semua Hadir
                     </button>
                 </div>
+                {% endif %}
             </div>
 
+            {% if siswa_list and siswa_list|length > 0 %}
             <!-- Counter Ringkasan Realtime -->
             <div class="summary-pill-box">
                 <div class="summary-pill pill-hadir">Hadir: <b id="countHadir">0</b></div>
@@ -248,21 +173,25 @@
                 </div>
                 {% endfor %}
             </div>
+            {% else %}
+            <div style="text-align: center; padding: 30px 16px; background: #F8FAFC; border-radius: 10px; margin-top: 10px;">
+                <p style="font-size: 13px; color: #64748B; margin: 0 0 10px 0;">Belum ada anggota siswa yang disetujui untuk cabang {{ ekskul.nama }}.</p>
+                <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="btn-card-action btn-detail" style="text-decoration: none; display: inline-block;">
+                    Lihat Pendaftaran Siswa Menunggu Persetujuan →
+                </a>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Tombol Simpan Presensi -->
+        {% if siswa_list and siswa_list|length > 0 %}
         <div class="submit-bar">
             <button type="submit" class="btn-submit" id="btnSubmit">
                 💾 Simpan & Rekap Presensi Latihan {{ ekskul.nama }}
             </button>
         </div>
+        {% endif %}
     </form>
-
-    <!-- Navigasi Bawah Pelatih -->
-    <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <a href="/pelatih/riwayat" class="btn-card-action btn-detail">📋 Riwayat Sesi & Cetak Rapor Latihan</a>
-        <a href="/export-csv/{{ ekskul.id }}" class="btn-card-action btn-print">📥 Unduh Rekap Excel/CSV</a>
-    </div>
 </div>
 
 <!-- Modal Dialog Sukses -->
@@ -270,16 +199,16 @@
     <div class="modal-card">
         <div class="modal-icon">🎉</div>
         <h3 class="modal-title">Presensi Berhasil Disimpan!</h3>
-        <p class="modal-body" id="modalSuccessMsg">Presensi sesi latihan telah berhasil disimpan ke database.</p>
+        <p class="modal-body" id="modalSuccessMsg">Presensi sesi latihan telah berhasil disimpan ke database resmi.</p>
         <div class="modal-actions">
-            <a href="/pelatih" class="btn-modal-primary" onclick="closeModal()">Kembali ke Dashboard</a>
-            <a href="/pelatih/riwayat" class="btn-modal-secondary">Lihat Lembar Cetak</a>
+            <a href="/pelatih?ekskul_id={{ ekskul.id }}" class="btn-modal-primary" onclick="closeModal()">Kembali ke Presensi</a>
+            <a href="/pelatih/riwayat?ekskul_id={{ ekskul.id }}" class="btn-modal-secondary">Lihat Lembar Cetak</a>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block pelatih_scripts %}
 <script>
 let attendanceState = {};
 
@@ -305,11 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCounters();
     checkUserLocation(false);
 });
-
-function toggleScheduleModal() {
-    const el = document.getElementById('scheduleModal');
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
 
 function setSingleAttendance(sid, status, btn) {
     attendanceState[sid] = status;
@@ -345,10 +269,14 @@ function updateCounters() {
         else if (st === 'Sakit') s++;
         else if (st === 'Alpa') a++;
     });
-    document.getElementById('countHadir').innerText = h;
-    document.getElementById('countIzin').innerText = i;
-    document.getElementById('countSakit').innerText = s;
-    document.getElementById('countAlpa').innerText = a;
+    const cH = document.getElementById('countHadir');
+    const cI = document.getElementById('countIzin');
+    const cS = document.getElementById('countSakit');
+    const cA = document.getElementById('countAlpa');
+    if (cH) cH.innerText = h;
+    if (cI) cI.innerText = i;
+    if (cS) cS.innerText = s;
+    if (cA) cA.innerText = a;
 }
 
 function filterSiswa() {
@@ -373,22 +301,28 @@ function checkUserLocation(isManual) {
     const noteEl = document.getElementById('gpsNote');
 
     if (!navigator.geolocation) {
-        badge.className = 'gps-badge invalid';
-        badgeIcon.innerText = '⚠️';
-        badgeText.innerText = 'Browser HP tidak mendukung GPS';
+        if (badge) {
+            badge.className = 'gps-badge invalid';
+            badgeIcon.innerText = '⚠️';
+            badgeText.innerText = 'Browser HP tidak mendukung GPS';
+        }
         return;
     }
 
-    badge.className = 'gps-badge';
-    badgeIcon.innerText = '⏳';
-    badgeText.innerText = 'Mengunci koordinat GPS HP...';
+    if (badge) {
+        badge.className = 'gps-badge';
+        badgeIcon.innerText = '⏳';
+        badgeText.innerText = 'Mengunci koordinat GPS HP...';
+    }
 
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            document.getElementById('userLat').value = lat;
-            document.getElementById('userLng').value = lng;
+            const latIn = document.getElementById('userLat');
+            const lngIn = document.getElementById('userLng');
+            if (latIn) latIn.value = lat;
+            if (lngIn) lngIn.value = lng;
 
             try {
                 const res = await fetch('/api/lokasi/cek', {
@@ -397,30 +331,35 @@ function checkUserLocation(isManual) {
                     body: JSON.stringify({latitude: lat, longitude: lng})
                 });
                 const data = await res.json();
-                details.style.display = 'flex';
-                distEl.innerText = `${data.jarak_meter} meter`;
-                document.getElementById('userDistance').value = data.jarak_meter;
+                if (details) details.style.display = 'flex';
+                if (distEl) distEl.innerText = `${data.jarak_meter} meter`;
+                const distIn = document.getElementById('userDistance');
+                if (distIn) distIn.value = data.jarak_meter;
 
-                if (data.is_valid) {
-                    badge.className = 'gps-badge valid';
-                    badgeIcon.innerText = '🟢';
-                    badgeText.innerText = `Lokasi Valid! Berada di area lapangan (${data.jarak_meter}m).`;
-                    document.getElementById('userLocStatus').value = 'VALID';
-                } else {
-                    badge.className = 'gps-badge invalid';
-                    badgeIcon.innerText = '🔴';
-                    badgeText.innerText = `Di Luar Radius Lapangan (${data.jarak_meter}m dari titik pusat).`;
-                    document.getElementById('userLocStatus').value = 'DILUAR_AREA';
+                if (badge) {
+                    if (data.is_valid) {
+                        badge.className = 'gps-badge valid';
+                        badgeIcon.innerText = '🟢';
+                        badgeText.innerText = `Lokasi Valid! Berada di area lapangan (${data.jarak_meter}m).`;
+                        document.getElementById('userLocStatus').value = 'VALID';
+                    } else {
+                        badge.className = 'gps-badge invalid';
+                        badgeIcon.innerText = '🔴';
+                        badgeText.innerText = `Di Luar Radius Lapangan (${data.jarak_meter}m dari titik pusat).`;
+                        document.getElementById('userLocStatus').value = 'DILUAR_AREA';
+                    }
                 }
             } catch(e) {
-                badgeText.innerText = 'Gagal verifikasi jarak ke server.';
+                if (badgeText) badgeText.innerText = 'Gagal verifikasi jarak ke server.';
             }
         },
         (err) => {
-            badge.className = 'gps-badge invalid';
-            badgeIcon.innerText = '⚠️';
-            badgeText.innerText = 'Izin lokasi belum diberikan di HP.';
-            noteEl.innerText = 'Izinkan akses lokasi di browser agar kehadiran diverifikasi.';
+            if (badge) {
+                badge.className = 'gps-badge invalid';
+                badgeIcon.innerText = '⚠️';
+                badgeText.innerText = 'Izin lokasi belum diberikan di HP.';
+            }
+            if (noteEl) noteEl.innerText = 'Izinkan akses lokasi di browser agar kehadiran diverifikasi.';
         },
         { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -445,7 +384,7 @@ async function submitPresensiPelatih() {
     }
 
     if (presensiArray.length === 0) {
-        alert("Belum ada siswa di ekskul ini.");
+        alert("Belum ada anggota siswa aktif di ekskul ini.");
         return;
     }
 

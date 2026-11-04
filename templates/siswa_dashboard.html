@@ -5,7 +5,7 @@
 {% block content %}
 <div class="screen-wrapper">
     <!-- Profil Siswa Card -->
-    <div class="card student-hero-card">
+    <div class="card student-hero-card" style="margin-bottom: 14px;">
         <div class="student-hero-content">
             <div class="student-avatar">🎒</div>
             <div>
@@ -14,9 +14,20 @@
                 <div class="student-tags-row">
                     {% if ekskul_diikuti %}
                         {% for e in ekskul_diikuti %}
-                        <span class="badge-tag tag-blue">{{ e.icon }} {{ e.nama }} ({{ e.hari_latihan }})</span>
+                        <span class="badge-tag tag-green">✅ {{ e.icon }} {{ e.nama }} (Resmi Aktif)</span>
                         {% endfor %}
-                    {% else %}
+                    {% endif %}
+                    {% if ekskul_menunggu %}
+                        {% for m in ekskul_menunggu %}
+                        <span class="badge-tag tag-yellow">⏳ {{ m.icon }} {{ m.nama }} (Menunggu Persetujuan Pelatih)</span>
+                        {% endfor %}
+                    {% endif %}
+                    {% if ekskul_ditolak %}
+                        {% for d in ekskul_ditolak %}
+                        <span class="badge-tag tag-red">❌ {{ d.icon }} {{ d.nama }} (Ditolak Pelatih)</span>
+                        {% endfor %}
+                    {% endif %}
+                    {% if not ekskul_diikuti and not ekskul_menunggu and not ekskul_ditolak %}
                         <span class="badge-tag tag-yellow">⚠️ Belum Memilih Ekskul</span>
                     {% endif %}
                 </div>
@@ -24,8 +35,23 @@
         </div>
     </div>
 
+    <!-- Alert jika Siswa Sedang Menunggu Persetujuan Pelatih -->
+    {% if ekskul_menunggu and ekskul_menunggu|length > 0 %}
+    <div class="card" style="background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <span style="font-size: 26px; line-height: 1;">⏳</span>
+            <div>
+                <strong style="color: #92400E; font-size: 13.5px;">Pendaftaran Ekskul Sedang Menunggu Persetujuan Pelatih</strong>
+                <p style="font-size: 12px; color: #78350F; margin: 4px 0 0 0; line-height: 1.5;">
+                    Permohonan Anda untuk cabang <b>{% for m in ekskul_menunggu %}{{ m.icon }} {{ m.nama }}{% if not loop.last %}, {% endif %}{% endfor %}</b> telah terkirim dan sedang ditinjau oleh Pelatih terkait. Setelah disetujui, Anda resmi masuk daftar anggota dan dapat mengikuti presensi latihan.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 1. Statistik Kehadiran Pribadi -->
-    <div class="card stat-card">
+    <div class="card stat-card" style="margin-bottom: 14px;">
         <h2 class="card-title">📊 Statistik Kehadiran Pribadi Anda</h2>
         <div class="summary-pill-box" style="margin-top: 10px;">
             <div class="summary-pill pill-hadir">Hadir: <b>{{ statistik.hadir or 0 }}</b></div>
@@ -36,21 +62,26 @@
     </div>
 
     <!-- 2. Form Pra-Presensi Sebelum Latihan (Akan Hadir / Izin / Sakit) -->
-    <div class="card form-card" style="border-left: 4px solid var(--primary);">
+    <div class="card form-card" style="border-left: 4px solid var(--primary); margin-bottom: 14px;">
         <h2 class="card-title">📣 Konfirmasi Sebelum Latihan Dimulai</h2>
         <p class="card-desc">Beritahukan kepada Pelatih apakah kamu akan hadir, izin, atau sakit sebelum jam latihan.</p>
 
+        {% if not ekskul_diikuti or ekskul_diikuti|length == 0 %}
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; text-align: center; color: #64748B; font-size: 12.5px; margin-top: 12px;">
+            {% if ekskul_menunggu %}
+            ⏳ <b>Pendaftaran Anda sedang menunggu persetujuan Pelatih.</b> Fitur konfirmasi kehadiran ini akan aktif otomatis setelah Pelatih menyetujui keanggotaan Anda.
+            {% else %}
+            ⚠️ Anda belum memilih cabang ekskul. Silakan pilih cabang ekstrakurikuler pada form di bawah ini.
+            {% endif %}
+        </div>
+        {% else %}
         <form action="/siswa/pengajuan/kirim" method="POST" style="margin-top: 12px;">
             <div class="form-group">
-                <label class="form-label">Pilih Cabang Ekskul</label>
+                <label class="form-label">Pilih Cabang Ekskul Resmi</label>
                 <select name="ekskul_id" class="form-control" required>
-                    {% if ekskul_diikuti %}
-                        {% for e in ekskul_diikuti %}
-                        <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }} — Jadwal: {{ e.hari_latihan }}</option>
-                        {% endfor %}
-                    {% else %}
-                        <option value="" disabled selected>Pilih ekskul terlebih dahulu di bawah</option>
-                    {% endif %}
+                    {% for e in ekskul_diikuti %}
+                    <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }} — Jadwal: {{ e.hari_latihan or 'Sesuai info pelatih' }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -100,10 +131,11 @@
                 📨 Kirim Konfirmasi ke Pelatih
             </button>
         </form>
+        {% endif %}
     </div>
 
     <!-- 3. Riwayat Status Pengajuan Siswa -->
-    <div class="card table-card">
+    <div class="card table-card" style="margin-bottom: 14px;">
         <h2 class="card-title">📋 Riwayat Konfirmasi & Status Persetujuan Pelatih</h2>
         {% if riwayat_pengajuan %}
         <div class="pre-history-list" style="margin-top: 10px;">
@@ -143,19 +175,21 @@
     <!-- 4. Ubah / Pilih Cabang Ekskul -->
     <div class="card form-card">
         <h2 class="card-title">⚙️ Ganti / Pilih Cabang Ekstrakurikuler</h2>
+        <p class="card-desc">Pilihan cabang ekstrakurikuler baru akan dikirimkan ke Pelatih untuk disetujui terlebih dahulu.</p>
+
         <form action="/siswa/ekskul/pilih" method="POST" style="margin-top: 8px;">
             <div class="form-group">
-                <label class="form-label">Pilih Cabang Ekskul Anda</label>
+                <label class="form-label">Pilih Cabang Ekskul</label>
                 <select name="ekskul_id" class="form-control" required>
                     {% for e in all_ekskul %}
                     <option value="{{ e.id }}" {% if user.ekskul_id == e.id %}selected{% endif %}>
-                        {{ e.icon }} {{ e.nama }} ({{ e.hari_latihan }})
+                        {{ e.icon }} {{ e.nama }} ({{ e.hari_latihan or 'Jadwal diatur pelatih' }})
                     </option>
                     {% endfor %}
                 </select>
             </div>
             <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
-                🔄 Simpan Perubahan Ekskul
+                🔄 Kirim Permohonan Pilihan Ekskul ke Pelatih
             </button>
         </form>
     </div>

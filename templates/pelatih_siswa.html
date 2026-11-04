@@ -1,0 +1,140 @@
+{% extends 'pelatih_base.html' %}
+
+{% block title %}Data Anggota Siswa {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block pelatih_content %}
+<div class="screen-wrapper" style="max-width: 100%;">
+    <!-- Page Header Box -->
+    <div class="page-title-box">
+        <h1 class="page-heading">🎒 Data Anggota Resmi {{ ekskul.nama }}</h1>
+        <p class="page-subheading">Database seluruh siswa yang telah disetujui dan aktif mengikuti kegiatan latihan {{ ekskul.nama }}.</p>
+    </div>
+
+    <!-- Ringkasan Statistik Siswa -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+        <div class="card" style="padding: 14px 16px; border-left: 4px solid #2563EB;">
+            <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Anggota Aktif</div>
+            <div style="font-size: 24px; font-weight: 800; color: #0F172A; margin-top: 4px;">{{ siswa_list|length }} <span style="font-size: 13px; font-weight: 600; color: #64748B;">Siswa</span></div>
+        </div>
+        <div class="card" style="padding: 14px 16px; border-left: 4px solid #1D4ED8;">
+            <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;">Laki-laki (L)</div>
+            <div style="font-size: 24px; font-weight: 800; color: #1D4ED8; margin-top: 4px;">{{ total_laki }} <span style="font-size: 13px; font-weight: 600; color: #64748B;">Siswa</span></div>
+        </div>
+        <div class="card" style="padding: 14px 16px; border-left: 4px solid #DB2777;">
+            <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;">Perempuan (P)</div>
+            <div style="font-size: 24px; font-weight: 800; color: #DB2777; margin-top: 4px;">{{ total_perempuan }} <span style="font-size: 13px; font-weight: 600; color: #64748B;">Siswa</span></div>
+        </div>
+    </div>
+
+    <!-- Card Tabel Siswa -->
+    <div class="card">
+        <!-- Toolbar & Filter -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <select id="filterKelas" onchange="filterPelatihSiswaTable()" class="form-control" style="width: auto; padding: 7px 12px; font-size: 12px;">
+                    <option value="">Semua Tingkat Kelas</option>
+                    <option value="Kelas 7">Kelas 7</option>
+                    <option value="Kelas 8">Kelas 8</option>
+                    <option value="Kelas 9">Kelas 9</option>
+                </select>
+                <div style="position: relative;">
+                    <input type="text" id="searchPelatihSiswa" onkeyup="filterPelatihSiswaTable()" class="form-control" placeholder="🔍 Cari nama siswa..." style="padding: 7px 12px; font-size: 12px; width: 220px; max-width: 100%;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <a href="/export-csv/{{ ekskul.id }}" class="btn-card-action btn-print" style="text-decoration: none; font-size: 12px; padding: 7px 14px;">
+                    📥 Unduh Roster Siswa (CSV)
+                </a>
+            </div>
+        </div>
+
+        {% if siswa_list and siswa_list|length > 0 %}
+        <div class="table-responsive">
+            <table class="data-table" id="pelatihSiswaTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;">No</th>
+                        <th>Nama Siswa</th>
+                        <th>Kelas</th>
+                        <th style="text-align: center;">L/P</th>
+                        <th>Username</th>
+                        <th>Tanggal Gabung</th>
+                        <th style="text-align: center;">Kehadiran</th>
+                        <th style="text-align: center; width: 110px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in siswa_list %}
+                    <tr data-name="{{ s.nama|lower }}" data-kelas="{{ s.kelas }}">
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td style="font-weight: 700; color: #0F172A;">
+                            {{ s.nama }}
+                        </td>
+                        <td><span class="badge-tag tag-blue">{{ s.kelas }}</span></td>
+                        <td style="text-align: center; font-weight: 700; color: {% if s.jenis_kelamin == 'L' %}#1D4ED8{% else %}#DB2777{% endif %};">
+                            {{ s.jenis_kelamin or '-' }}
+                        </td>
+                        <td><code style="background: #F1F5F9; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11.5px;">@{{ s.username }}</code></td>
+                        <td style="font-size: 11.5px; color: #64748B;">{{ s.tanggal_daftar or '-' }}</td>
+                        <td style="text-align: center;">
+                            <span style="font-size: 12px; font-weight: 700; color: #16A34A;">
+                                {{ s.total_hadir or 0 }} Hadir
+                            </span>
+                            <small style="color: #64748B;">/ {{ s.total_sesi or 0 }} Sesi</small>
+                        </td>
+                        <td style="text-align: center;">
+                            <form action="/pelatih/siswa/remove/{{ s.id }}" method="POST" onsubmit="return confirm('Keluarkan {{ s.nama }} dari ekskul {{ ekskul.nama }}? Siswa tidak akan muncul di daftar presensi.');" style="display:inline;">
+                                <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+                                <button type="submit" class="btn-reject" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; cursor: pointer;" title="Keluarkan dari Ekskul">
+                                    Hapus
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 36px 16px; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">
+            <div style="font-size: 36px; margin-bottom: 8px;">🎒</div>
+            <h3 style="font-size: 15px; font-weight: 800; color: #0F172A; margin: 0;">Belum Ada Anggota Siswa Aktif</h3>
+            <p style="font-size: 12px; color: #64748B; margin: 6px 0 14px 0;">
+                Siswa yang mendaftar dan menunggu persetujuan dapat disetujui melalui menu <b>Persetujuan Siswa</b>.
+            </p>
+            <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="btn-card-action btn-detail" style="display: inline-block; text-decoration: none;">
+                Lihat Siswa Menunggu Persetujuan →
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block pelatih_scripts %}
+<script>
+function filterPelatihSiswaTable() {
+    const searchVal = document.getElementById('searchPelatihSiswa').value.toLowerCase();
+    const kelasVal = document.getElementById('filterKelas').value;
+    const table = document.getElementById('pelatihSiswaTable');
+    if (!table) return;
+
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const name = row.getAttribute('data-name') || '';
+        const kelas = row.getAttribute('data-kelas') || '';
+
+        const matchSearch = name.includes(searchVal);
+        const matchKelas = !kelasVal || kelas === kelasVal;
+
+        if (matchSearch && matchKelas) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+</script>
+{% endblock %}

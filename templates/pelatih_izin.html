@@ -1,0 +1,132 @@
+{% extends 'pelatih_base.html' %}
+
+{% block title %}Permohonan Izin Siswa {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block pelatih_content %}
+<div class="screen-wrapper" style="max-width: 100%;">
+    <!-- Page Header Box -->
+    <div class="page-title-box">
+        <h1 class="page-heading">📬 Permohonan Izin & Sakit {{ ekskul.nama }}</h1>
+        <p class="page-subheading">Konfirmasi pra-presensi yang diajukan oleh siswa sebelum latihan dimulai. Izin yang disetujui otomatis terisi di jurnal presensi.</p>
+    </div>
+
+    <!-- 1. Pengajuan Latihan Hari Ini (Prioritas) -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
+            <div>
+                <h2 class="card-title" style="margin: 0;">📅 Konfirmasi Latihan Hari Ini ({{ today_str }})</h2>
+                <p class="card-desc" style="margin: 2px 0 0 0;">Pengajuan izin atau sakit dari siswa untuk jadwal hari ini.</p>
+            </div>
+            <span class="badge-tag tag-blue" style="font-weight: 700;">{{ pengajuan_hari_ini|length }} Pengajuan</span>
+        </div>
+
+        {% if pengajuan_hari_ini and pengajuan_hari_ini|length > 0 %}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for p in pengajuan_hari_ini %}
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 16px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 14px; font-weight: 800; color: #0F172A;">{{ p.nama_siswa }}</span>
+                        <span class="badge-tag tag-blue">{{ p.kelas }}</span>
+                        <span class="pre-status-tag status-{{ p.status_pengajuan|lower }}" style="font-weight: 700;">
+                            {{ '🟢' if p.status_pengajuan == 'Akan Hadir' else ('🟡' if p.status_pengajuan == 'Izin' else '🔵') }}
+                            {{ p.status_pengajuan }}
+                        </span>
+                    </div>
+                    {% if p.alasan %}
+                    <p style="font-size: 12px; color: #475569; margin: 4px 0 0 0; font-style: italic;">
+                        "{{ p.alasan }}"
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    {% if p.status_approval == 'MENUNGGU' %}
+                        {% if p.status_pengajuan != 'Akan Hadir' %}
+                        <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="DISETUJUI">
+                            <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+                            <button type="submit" class="btn-approve" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                                ✅ Setujui
+                            </button>
+                        </form>
+                        <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="DITOLAK">
+                            <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+                            <button type="submit" class="btn-reject" style="padding: 6px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                                ❌ Tolak
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="badge-tag tag-green">Tercatat Hadir</span>
+                        {% endif %}
+                    {% elif p.status_approval == 'DISETUJUI' %}
+                        <span class="badge-tag tag-green">✅ Disetujui</span>
+                    {% else %}
+                        <span class="badge-tag tag-red">❌ Ditolak</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="font-size: 12.5px; color: #64748B; margin: 8px 0;">
+            Belum ada siswa yang mengirim konfirmasi pra-presensi untuk hari ini. Siswa yang tidak hadir tanpa konfirmasi akan otomatis terdata Alpa.
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- 2. Riwayat Seluruh Pengajuan Izin -->
+    <div class="card">
+        <h2 class="card-title" style="margin-bottom: 6px;">📋 Riwayat Seluruh Pengajuan Izin</h2>
+        <p class="card-desc" style="margin-bottom: 12px;">Arsip seluruh permohonan izin atau sakit siswa untuk cabang {{ ekskul.nama }}.</p>
+
+        {% if riwayat_semua_izin and riwayat_semua_izin|length > 0 %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;">No</th>
+                        <th>Tanggal Latihan</th>
+                        <th>Nama Siswa</th>
+                        <th>Kelas</th>
+                        <th style="text-align: center;">Jenis Pengajuan</th>
+                        <th>Alasan Siswa</th>
+                        <th style="text-align: center;">Status Persetujuan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in riwayat_semua_izin %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td style="font-weight: 600; color: #0F172A;">{{ r.tanggal_latihan }}</td>
+                        <td style="font-weight: 700;">{{ r.nama_siswa }}</td>
+                        <td><span class="badge-tag tag-blue">{{ r.kelas }}</span></td>
+                        <td style="text-align: center;">
+                            <span class="pre-status-tag status-{{ r.status_pengajuan|lower }}" style="font-size: 11px;">
+                                {{ r.status_pengajuan }}
+                            </span>
+                        </td>
+                        <td style="font-size: 12px; color: #475569; max-width: 250px;">
+                            {{ r.alasan or '-' }}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if r.status_approval == 'DISETUJUI' %}
+                            <span class="badge-tag tag-green">✅ Disetujui</span>
+                            {% elif r.status_approval == 'DITOLAK' %}
+                            <span class="badge-tag tag-red">❌ Ditolak</span>
+                            {% else %}
+                            <span class="badge-tag tag-yellow">⏳ Menunggu</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="font-size: 12px; color: #64748B; margin: 4px 0;">Belum ada arsip riwayat permohonan izin.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

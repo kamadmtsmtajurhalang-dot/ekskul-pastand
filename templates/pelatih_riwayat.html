@@ -1,30 +1,15 @@
-{% extends 'base.html' %}
+{% extends 'pelatih_base.html' %}
 
 {% block title %}Riwayat Sesi {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
 
-{% block content %}
-<div class="screen-wrapper">
+{% block pelatih_content %}
+<div class="screen-wrapper" style="max-width: 100%;">
     <div class="page-title-box">
-        <a href="/pelatih" class="back-link">← Kembali ke Dashboard Pelatih</a>
-        <h1 class="page-heading">{{ ekskul.icon }} Riwayat Latihan {{ ekskul.nama }}</h1>
-        <p class="page-subheading">Daftar arsip sesi pelatihan dan lembar presensi resmi</p>
+        <h1 class="page-heading">📋 Riwayat Sesi Latihan {{ ekskul.nama }}</h1>
+        <p class="page-subheading">Daftar arsip sesi pelatihan dan cetak lembar presensi resmi kegiatan ekstrakurikuler.</p>
     </div>
 
-    <!-- Switcher Cabang Ekskul (Jika Pelatih Mengampu > 1 Ekskul) -->
-    {% if assigned_ekskuls and assigned_ekskuls|length > 1 %}
-    <div class="card" style="padding: 10px 14px; margin-bottom: 12px; background: #EFF6FF; border: 1px solid #BFDBFE;">
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <span style="font-size: 12px; font-weight: 700; color: #1E40AF;">Pilih Cabang Ekskul:</span>
-            {% for ae in assigned_ekskuls %}
-            <a href="/pelatih/riwayat?ekskul_id={{ ae.id }}" class="pill-filter {% if ekskul.id == ae.id %}active{% endif %}" style="text-decoration: none; font-size: 12.5px; font-weight: 700; padding: 5px 12px; border-radius: 20px;">
-                {{ ae.icon }} {{ ae.nama }}
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if sesi_list %}
+    {% if sesi_list and sesi_list|length > 0 %}
     <div class="session-cards-grid">
         {% for s in sesi_list %}
         <div class="card session-card">
@@ -75,11 +60,13 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="card empty-state">
-        <span class="empty-icon">📭</span>
-        <h3>Belum Ada Riwayat Sesi</h3>
-        <p>Anda belum merekam sesi latihan untuk cabang {{ ekskul.nama }}.</p>
-        <a href="/pelatih" class="btn-submit" style="display:inline-block; max-width:220px; margin-top:12px;">Input Sesi Baru</a>
+    <div class="card empty-state" style="text-align: center; padding: 40px 16px;">
+        <span class="empty-icon" style="font-size: 38px;">📭</span>
+        <h3 style="font-size: 16px; font-weight: 800; margin: 8px 0 4px 0;">Belum Ada Riwayat Sesi</h3>
+        <p style="font-size: 12.5px; color: #64748B;">Anda belum merekam sesi latihan untuk cabang {{ ekskul.nama }}.</p>
+        <a href="/pelatih?ekskul_id={{ ekskul.id }}" class="btn-submit" style="display:inline-block; max-width:240px; margin: 12px auto 0 auto; text-decoration: none;">
+            Input Presensi Sekarang
+        </a>
     </div>
     {% endif %}
 </div>

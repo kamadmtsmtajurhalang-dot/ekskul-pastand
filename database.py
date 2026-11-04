@@ -266,6 +266,13 @@ def init_db():
         conn.commit()
     except Exception:
         pass
+    # Pastikan kolom status di siswa_ekskul tersedia
+    try:
+        cursor.execute("ALTER TABLE siswa_ekskul ADD COLUMN status TEXT DEFAULT 'AKTIF'")
+        conn.commit()
+    except Exception:
+        pass
+
     conn.close()
 
 if __name__ == "__main__":

@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="admin-layout-wrapper">
+    <!-- Sidebar Pelatih (Desktop Sticky & Mobile Drawer) -->
+    <aside class="admin-sidebar" id="pelatihSidebar">
+        <!-- Sidebar Brand Header -->
+        <div class="sidebar-brand-box">
+            <img src="/static/logo-mtsm.png" alt="Logo MTs" class="sidebar-brand-img" width="34" height="34" style="width: 34px !important; height: 34px !important; max-width: 34px !important; max-height: 34px !important; object-fit: contain; border-radius: 6px; flex-shrink: 0; background: #ffffff; padding: 2px;">
+            <div style="min-width: 0;">
+                <span class="sidebar-badge" style="background: #DBEAFE; color: #1E40AF;">🏆 Pelatih Ekskul</span>
+                <div class="sidebar-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ ekskul.nama }}">{{ ekskul.icon }} {{ ekskul.nama }}</div>
+                <p class="sidebar-sub">MTs Muhammadiyah Tajurhalang</p>
+            </div>
+        </div>
+
+        <!-- Switcher Cabang Ekskul jika Pelatih mengampu > 1 Ekskul -->
+        {% if assigned_ekskuls and assigned_ekskuls|length > 1 %}
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 8px 10px;">
+            <div style="font-size: 11px; font-weight: 700; color: #64748B; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;">
+                🎯 Ganti Cabang ({{ assigned_ekskuls|length }} Ekskul):
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                {% for ae in assigned_ekskuls %}
+                <a href="?ekskul_id={{ ae.id }}" style="display: flex; align-items: center; justify-content: space-between; text-decoration: none; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; {% if ekskul.id == ae.id %}background: #1E3A8A; color: white;{% else %}background: white; border: 1px solid #E2E8F0; color: #334155;{% endif %}">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ ae.icon }} {{ ae.nama }}</span>
+                    {% if ekskul.id == ae.id %}
+                    <span style="font-size: 10px; background: rgba(255,255,255,0.25); padding: 1px 6px; border-radius: 10px; flex-shrink: 0;">Aktif</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sidebar Navigation Menu -->
+        <nav class="sidebar-nav-menu">
+            <a href="/pelatih?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'presensi' %}active{% endif %}">
+                <span>📝 Presensi Hari Ini</span>
+            </a>
+
+            <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'persetujuan' %}active{% endif %}">
+                <span>👥 Persetujuan Siswa</span>
+                {% if total_pending and total_pending > 0 %}
+                <span class="tab-badge tab-badge-alert" title="{{ total_pending }} Siswa Menunggu Persetujuan">{{ total_pending }}</span>
+                {% endif %}
+            </a>
+
+            <a href="/pelatih/siswa?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'siswa' %}active{% endif %}">
+                <span>🎒 Anggota Siswa</span>
+                <span class="tab-badge" style="background: #F1F5F9; color: #475569;">{{ total_siswa_aktif }}</span>
+            </a>
+
+            <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'izin' %}active{% endif %}">
+                <span>📬 Permohonan Izin</span>
+                {% if total_izin and total_izin > 0 %}
+                <span class="tab-badge tab-badge-alert" style="background: #F59E0B;" title="{{ total_izin }} Izin Menunggu">{{ total_izin }}</span>
+                {% endif %}
+            </a>
+
+            <a href="/pelatih/riwayat?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'riwayat' %}active{% endif %}">
+                <span>📋 Riwayat & Cetak</span>
+            </a>
+
+            <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'pengaturan' %}active{% endif %}">
+                <span>⚙️ Jadwal Ekskul</span>
+            </a>
+
+            <div style="height: 1px; background: #F1F5F9; margin: 6px 0;"></div>
+
+            <a href="/export-csv/{{ ekskul.id }}" class="sidebar-nav-item" title="Unduh data siswa format Excel/CSV">
+                <span>📥 Unduh CSV</span>
+            </a>
+
+            <a href="/logout" class="sidebar-nav-item logout-item" title="Keluar dari akun Pelatih">
+                <span>🚪 Keluar Akun</span>
+            </a>
+        </nav>
+
+        <!-- Sidebar Profile Box -->
+        <div class="sidebar-profile-box">
+            <div style="font-size: 11.5px; color: #64748B;">Login sebagai Pelatih:</div>
+            <div style="font-size: 12.5px; font-weight: 800; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ user.nama }}
+            </div>
+            <div style="font-size: 11px; color: #1E40AF; margin-top: 1px;">
+                <code>@{{ user.username }}</code>
+            </div>
+            <button type="button" class="btn-admin-profile" onclick="openModalProfilPelatih()" style="width: 100%; justify-content: center; margin-top: 8px; font-size: 11.5px; padding: 6px 10px; background: #1E3A8A; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 700;">
+                ⚙️ Ubah Profil & Sandi
+            </button>
+        </div>
+    </aside>
+
+    <!-- Backdrop for Mobile Sidebar -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="togglePelatihSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <section class="admin-content-area">
+        <!-- Mobile Toggle Bar -->
+        <div class="admin-mobile-toggle-bar">
+            <button type="button" class="btn-toggle-sidebar" onclick="togglePelatihSidebar()">
+                <span>☰</span>
+                <span>Menu Pelatih</span>
+            </button>
+            <div class="mobile-current-page">
+                {% if active_menu == 'presensi' %}📝 Presensi Hari Ini
+                {% elif active_menu == 'persetujuan' %}👥 Persetujuan Siswa
+                {% elif active_menu == 'siswa' %}🎒 Anggota Siswa
+                {% elif active_menu == 'izin' %}📬 Permohonan Izin
+                {% elif active_menu == 'riwayat' %}📋 Riwayat Sesi
+                {% elif active_menu == 'pengaturan' %}⚙️ Jadwal Ekskul
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Page Specific Content -->
+        {% block pelatih_content %}{% endblock %}
+    </section>
+</div>
+
+<!-- MODAL PROFIL & SANDI PELATIH -->
+<div id="modalProfilPelatih" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800;">⚙️ Ubah Profil & Kata Sandi Pelatih</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalProfilPelatih()">&times;</button>
+        </div>
+        <form action="/pelatih/profil/update" method="POST">
+            <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Pelatih <span class="req">*</span></label>
+                <input type="text" name="nama" class="form-control" value="{{ user.nama }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username Login <span class="req">*</span></label>
+                <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Kata Sandi Baru</label>
+                <input type="password" name="password_baru" class="form-control" placeholder="Kosongkan jika tidak ingin mengubah sandi">
+                <small style="color: #64748B;">Hanya diisi jika ingin mengganti kata sandi login Anda.</small>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalProfilPelatih()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2;">💾 Simpan Profil</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePelatihSidebar() {
+    const sidebar = document.getElementById('pelatihSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (backdrop) backdrop.classList.toggle('open');
+}
+
+function openModalProfilPelatih() {
+    document.getElementById('modalProfilPelatih').style.display = 'flex';
+}
+function closeModalProfilPelatih() {
+    document.getElementById('modalProfilPelatih').style.display = 'none';
+}
+
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('modalProfilPelatih');
+    if (modal && e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+</script>
+{% block pelatih_scripts %}{% endblock %}
+{% endblock %}
