@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Lembar Presensi Latihan — {{ sesi.nama_ekskul }}</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 20px;
+            color: #111;
+            font-size: 12px;
+            background: #fff;
+        }
+        .kop {
+            text-align: center;
+            border-bottom: 2px solid #1E3A8A;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        .kop h2 {
+            margin: 0;
+            font-size: 15px;
+            color: #1E3A8A;
+            text-transform: uppercase;
+        }
+        .kop h3 {
+            margin: 3px 0;
+            font-size: 13px;
+        }
+        .kop p {
+            margin: 0;
+            font-size: 10px;
+            color: #555;
+        }
+        .doc-title {
+            text-align: center;
+            margin: 15px 0 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .meta-table {
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        .meta-table td {
+            padding: 3px 6px;
+        }
+        .meta-table td.label {
+            font-weight: bold;
+            width: 140px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #333;
+            padding: 5px 8px;
+            font-size: 11px;
+        }
+        .data-table th {
+            background-color: #f1f5f9;
+            text-align: center;
+        }
+        .text-center { text-align: center; }
+        .sig-container {
+            width: 100%;
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+        .sig-table {
+            width: 100%;
+            text-align: center;
+            font-size: 11px;
+        }
+        .sig-space {
+            height: 60px;
+        }
+        .print-btn {
+            background: #1E3A8A;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align: right;">
+        <button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+    </div>
+
+    <div class="kop">
+        <h2>PIMPINAN CABANG MUHAMMADIYAH TAJURHALANG</h2>
+        <h3>MADRASAH TSANAWIYAH MUHAMMADIYAH TAJURHALANG</h3>
+        <p>Jl. Raya Tajurhalang, Kec. Tajurhalang, Kab. Bogor, Jawa Barat</p>
+    </div>
+
+    <div class="doc-title">LEMBAR PRESENSI & JURNAL PELATIHAN EKSTRAKURIKULER</div>
+
+    <table class="meta-table">
+        <tr>
+            <td class="label">Cabang Ekskul</td>
+            <td>: {{ sesi.nama_ekskul }} ({{ sesi.kategori }})</td>
+            <td class="label">Hari / Tanggal</td>
+            <td>: {{ sesi.tanggal }}</td>
+        </tr>
+        <tr>
+            <td class="label">Nama Pelatih</td>
+            <td>: {{ sesi.nama_pelatih }}</td>
+            <td class="label">Waktu Presensi</td>
+            <td>: {{ sesi.jam_mulai }} WIB</td>
+        </tr>
+        <tr>
+            <td class="label">Materi Latihan</td>
+            <td>: {{ sesi.materi_latihan if sesi.materi_latihan else 'Latihan Reguler' }}</td>
+            <td class="label">Verifikasi Lokasi</td>
+            <td>: {{ sesi.status_lokasi }} ({{ sesi.jarak_meter }} m dari Lapangan)</td>
+        </tr>
+        {% if sesi.catatan %}
+        <tr>
+            <td class="label">Catatan Lapangan</td>
+            <td colspan="3">: {{ sesi.catatan }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 30px;">No</th>
+                <th>Nama Siswa</th>
+                <th style="width: 80px;">Kelas</th>
+                <th style="width: 50px;">L/P</th>
+                <th style="width: 90px;">Kehadiran</th>
+                <th>Keterangan</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in presensi %}
+            <tr>
+                <td class="text-center">{{ loop.index }}</td>
+                <td>{{ p.nama }}</td>
+                <td class="text-center">{{ p.kelas }}</td>
+                <td class="text-center">{{ p.jenis_kelamin }}</td>
+                <td class="text-center"><b>{{ p.status_kehadiran }}</b></td>
+                <td>{{ p.keterangan if p.keterangan else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="sig-container">
+        <table class="sig-table">
+            <tr>
+                <td style="width: 50%;">
+                    Mengetahui,<br/>
+                    <b>Waka Kesiswaan MTs Muhammadiyah Tajurhalang</b>
+                    <div class="sig-space"></div>
+                    <b><u>Mulyadi, S.Pd.</u></b><br/>
+                    NBM. -
+                </td>
+                <td style="width: 50%;">
+                    Tajurhalang, {{ sesi.tanggal }}<br/>
+                    <b>Pelatih / Pembina Ekskul</b>
+                    <div class="sig-space"></div>
+                    <b><u>{{ sesi.nama_pelatih }}</u></b><br/>
+                    Pelatih {{ sesi.nama_ekskul }}
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

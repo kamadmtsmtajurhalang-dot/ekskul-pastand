@@ -1,0 +1,826 @@
+/* CSS Presensi Ekskul MTs Muhammadiyah Tajurhalang */
+:root {
+    --primary: #1E3A8A;       /* Deep Navy */
+    --primary-light: #3B82F6; /* Sky Blue */
+    --secondary: #0D9488;     /* Teal */
+    --accent: #F59E0B;        /* Amber */
+    --success: #10B981;       /* Emerald */
+    --danger: #EF4444;        /* Rose/Red */
+    --dark: #0F172A;          /* Slate 900 */
+    --text: #334155;          /* Slate 700 */
+    --muted: #64748B;         /* Slate 500 */
+    --bg-app: #F8FAFC;        /* Slate 50 */
+    --card-bg: #FFFFFF;
+    --border: #E2E8F0;
+    --radius: 12px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text);
+    line-height: 1.5;
+    padding-bottom: 40px;
+}
+
+/* Header & Navigation */
+.app-header {
+    background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+}
+
+.header-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: white;
+}
+
+.brand-badge {
+    background: #F59E0B;
+    color: #0F172A;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    letter-spacing: 0.5px;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.brand-subtitle {
+    font-size: 10.5px;
+    color: #BFDBFE;
+}
+
+.header-clock {
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Nav Tabs */
+.nav-tabs {
+    display: flex;
+    max-width: 720px;
+    margin: 0 auto;
+    background: rgba(15, 23, 42, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    text-decoration: none;
+    color: #CBD5E1;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+.nav-item.active {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.12);
+    border-bottom: 3px solid #F59E0B;
+}
+
+.nav-icon {
+    font-size: 16px;
+    margin-bottom: 2px;
+}
+
+/* Main Container */
+.main-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
+.screen-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Page Titles */
+.page-title-box {
+    margin-bottom: 4px;
+}
+
+.page-heading {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--dark);
+}
+
+.page-subheading {
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.back-link {
+    display: inline-block;
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+/* Cards */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.card-desc {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* GPS Location Card */
+.location-card {
+    background: #FFFFFF;
+    border-left: 5px solid var(--primary);
+}
+
+.location-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.location-title-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pulse-icon {
+    font-size: 22px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+.btn-refresh-gps {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: var(--primary);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gps-status-box {
+    margin-top: 12px;
+    padding: 12px;
+    background: #F8FAFC;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.gps-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gps-badge.valid {
+    color: #15803D;
+}
+
+.gps-badge.invalid {
+    color: #DC2626;
+}
+
+.gps-details {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+}
+
+.gps-metric {
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-label {
+    font-size: 10.5px;
+    color: var(--muted);
+}
+
+.metric-value {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--dark);
+}
+
+.gps-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+}
+
+/* Forms */
+.form-group {
+    margin-top: 12px;
+}
+
+.form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 5px;
+}
+
+.req {
+    color: var(--danger);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+    background: #FFFFFF;
+    color: var(--dark);
+}
+
+.form-control:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.textarea-compact {
+    resize: vertical;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Roster / Student Attendance */
+.roster-card {
+    background: #FFFFFF;
+}
+
+.roster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-quick {
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-quick.all-hadir {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+/* Summary Pills */
+.summary-pill-box {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    overflow-x: auto;
+}
+
+.summary-pill {
+    flex: 1;
+    min-width: 65px;
+    padding: 6px 4px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.pill-hadir { background: #DCFCE7; color: #166534; }
+.pill-izin  { background: #FEF3C7; color: #92400E; }
+.pill-sakit { background: #DBEAFE; color: #1E40AF; }
+.pill-alpa  { background: #FEE2E2; color: #991B1B; }
+
+/* Search Box */
+.search-box {
+    margin-top: 10px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    outline: none;
+    font-family: inherit;
+}
+
+/* Student Row Card */
+.student-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.student-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #F8FAFC;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    gap: 8px;
+}
+
+.student-info {
+    flex: 1;
+    min-width: 120px;
+}
+
+.student-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dark);
+    display: block;
+}
+
+.student-meta {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* Toggle Attendance 4 Buttons */
+.att-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-att {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #FFFFFF;
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.btn-att.active-H {
+    background: #10B981;
+    color: white;
+    border-color: #059669;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.btn-att.active-I {
+    background: #F59E0B;
+    color: white;
+    border-color: #D97706;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+.btn-att.active-S {
+    background: #3B82F6;
+    color: white;
+    border-color: #2563EB;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-att.active-A {
+    background: #EF4444;
+    color: white;
+    border-color: #DC2626;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+/* Submit Bar */
+.submit-bar {
+    position: sticky;
+    bottom: 12px;
+    z-index: 90;
+    margin-top: 14px;
+}
+
+.btn-submit {
+    width: 100%;
+    background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(30, 58, 138, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+}
+
+.btn-submit:active {
+    transform: scale(0.98);
+}
+
+/* Filter Pills Scroll */
+.filter-pills-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+}
+
+.pill-filter {
+    white-space: nowrap;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    background: #FFFFFF;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+}
+
+.pill-filter.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Session Cards in Riwayat */
+.session-cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.session-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.session-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.session-badge-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.session-icon {
+    font-size: 24px;
+}
+
+.session-ekskul-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--dark);
+}
+
+.session-coach {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.session-date-box {
+    text-align: right;
+}
+
+.session-date {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.session-time {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.session-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    background: #F8FAFC;
+    padding: 8px 10px;
+    border-radius: 6px;
+}
+
+.info-item {
+    font-size: 11px;
+}
+
+.info-label {
+    color: var(--muted);
+}
+
+.info-value {
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.attendance-summary-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.att-stat {
+    font-size: 10.5px;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.stat-hadir { background: #DCFCE7; color: #166534; }
+.stat-izin  { background: #FEF3C7; color: #92400E; }
+.stat-sakit { background: #DBEAFE; color: #1E40AF; }
+.stat-alpa  { background: #FEE2E2; color: #991B1B; }
+.stat-total { background: #F1F5F9; color: #334155; }
+
+.session-note {
+    font-size: 11px;
+    color: var(--muted);
+    background: #FFFBEB;
+    padding: 6px 8px;
+    border-radius: 4px;
+}
+
+.session-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.btn-card-action {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.btn-detail { background: #EFF6FF; color: var(--primary); }
+.btn-print  { background: #F8FAFC; color: var(--dark); border: 1px solid var(--border); }
+
+/* Badges & Tags */
+.badge-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.tag-green  { background: #DCFCE7; color: #166534; }
+.tag-yellow { background: #FEF3C7; color: #92400E; }
+.tag-red    { background: #FEE2E2; color: #991B1B; }
+
+/* Tables */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.data-table th, .data-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+    background: #F1F5F9;
+    color: var(--dark);
+    font-weight: 700;
+    text-align: left;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.badge-hadir { background: #DCFCE7; color: #166534; }
+.badge-izin  { background: #FEF3C7; color: #92400E; }
+.badge-sakit { background: #DBEAFE; color: #1E40AF; }
+.badge-alpa  { background: #FEE2E2; color: #991B1B; }
+
+.num-hadir { font-weight: 800; color: #166534; }
+.num-izin  { font-weight: 800; color: #92400E; }
+.num-sakit { font-weight: 800; color: #1E40AF; }
+.num-alpa  { font-weight: 800; color: #991B1B; }
+
+/* Rekap Header Row */
+.rekap-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.btn-export-csv {
+    background: #10B981;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 999;
+}
+
+.modal-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
+
+.modal-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--dark);
+}
+
+.modal-body {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 8px 0 16px 0;
+}
+
+.modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btn-modal-primary {
+    background: var(--primary);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.btn-modal-secondary {
+    background: #F1F5F9;
+    color: var(--dark);
+    padding: 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Footer */
+.app-footer {
+    max-width: 720px;
+    margin: 20px auto 0 auto;
+    text-align: center;
+    font-size: 10.5px;
+    color: var(--muted);
+    padding: 0 16px;
+}

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Kelola Anggota & Titik GPS — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block content %}
+<div class="screen-wrapper">
+    <div class="page-title-box">
+        <h1 class="page-heading">⚙️ Pengaturan & Kelola Data</h1>
+        <p class="page-subheading">Kelola titik koordinat geofencing lapangan & master anggota ekskul</p>
+    </div>
+
+    <!-- 1. Kalibrasi Titik GPS Lapangan -->
+    <div class="card form-card">
+        <h2 class="card-title">📍 Kalibrasi Titik Pusat Lapangan (Geofence)</h2>
+        <p class="card-desc">Titik ini digunakan untuk mengukur jarak saat pelatih membuka web app di lapangan.</p>
+
+        <form action="/api/lokasi/update" method="POST" style="margin-top: 12px;">
+            <div class="form-group">
+                <label class="form-label">Nama Titik Lapangan / Madrasah</label>
+                <input type="text" name="nama_lokasi" class="form-control" value="{{ lokasi.nama_lokasi if lokasi else 'Kampus & Lapangan MTs Muhammadiyah Tajurhalang' }}" required>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Latitude</label>
+                    <input type="number" step="0.000001" id="calibLat" name="latitude" class="form-control" value="{{ lokasi.latitude if lokasi else -6.47892 }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Longitude</label>
+                    <input type="number" step="0.000001" id="calibLng" name="longitude" class="form-control" value="{{ lokasi.longitude if lokasi else 106.75805 }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Radius Toleransi Presensi (Meter)</label>
+                <input type="number" name="radius_meter" class="form-control" value="{{ lokasi.radius_meter if lokasi else 250 }}" required>
+                <small style="color: #64748B;">Rekomendasi: 200 - 300 meter untuk mencakup seluruh area lapangan & gedung madrasah.</small>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                <button type="button" class="btn-quick all-hadir" onclick="setCurrentLocationAsCenter()">
+                    📌 Gunakan Lokasi HP Saya Saat Ini Sebagai Titik Pusat
+                </button>
+                <button type="submit" class="btn-card-action btn-detail" style="border: none;">
+                    💾 Simpan Koordinat
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 2. Tambah Anggota Siswa Baru -->
+    <div class="card form-card">
+        <h2 class="card-title">➕ Tambah Anggota Siswa Ekskul</h2>
+        <form action="/api/siswa/tambah" method="POST" style="margin-top: 12px;">
+            <div class="form-group">
+                <label class="form-label">Pilih Cabang Ekskul</label>
+                <select name="ekskul_id" class="form-control" required>
+                    {% for e in ekskul_list %}
+                    <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Siswa</label>
+                <input type="text" name="nama" class="form-control" placeholder="Nama siswa..." required>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Tingkat Kelas</label>
+                    <select name="kelas" class="form-control">
+                        <option value="Kelas 7">Kelas 7</option>
+                        <option value="Kelas 8">Kelas 8</option>
+                        <option value="Kelas 9">Kelas 9</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Jenis Kelamin</label>
+                    <select name="jenis_kelamin" class="form-control">
+                        <option value="L">Laki-laki (L)</option>
+                        <option value="P">Perempuan (P)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit" style="margin-top: 8px;">
+                ➕ Daftarkan Siswa ke Ekskul
+            </button>
+        </form>
+    </div>
+
+    <!-- 3. Daftar Master Anggota Ekskul Aktif -->
+    <div class="card table-card">
+        <h2 class="card-title" style="margin-bottom: 8px;">👥 Daftar Master Anggota Siswa ({{ siswa_list|length }} Siswa)</h2>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">No</th>
+                        <th>Ekskul</th>
+                        <th>Nama Siswa</th>
+                        <th style="text-align: center;">Kelas</th>
+                        <th style="text-align: center;">L/P</th>
+                        <th style="text-align: center; width: 60px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in siswa_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td>{{ s.icon_ekskul }} {{ s.nama_ekskul }}</td>
+                        <td><b>{{ s.nama }}</b></td>
+                        <td style="text-align: center;">{{ s.kelas }}</td>
+                        <td style="text-align: center;">{{ s.jenis_kelamin }}</td>
+                        <td style="text-align: center;">
+                            <form action="/api/siswa/hapus/{{ s.id }}" method="POST" onsubmit="return confirm('Hapus siswa {{ s.nama }} dari ekskul?');">
+                                <button type="submit" style="background: none; border: none; cursor: pointer; color: #dc2626; font-size: 14px;" title="Hapus">❌</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setCurrentLocationAsCenter() {
+    if (!navigator.geolocation) {
+        alert("Browser Anda tidak mendukung Geolocation GPS.");
+        return;
+    }
+    alert("Mengambil koordinat GPS saat ini...");
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        document.getElementById('calibLat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('calibLng').value = pos.coords.longitude.toFixed(6);
+        alert("Titik koordinat berhasil diperbarui sesuai lokasi HP Anda saat ini! Klik 'Simpan Koordinat' untuk menerapkan.");
+    }, function(err) {
+        alert("Gagal membaca GPS: " + err.message + ". Pastikan izin lokasi aktif.");
+    }, { enableHighAccuracy: true });
+}
+</script>
+{% endblock %}

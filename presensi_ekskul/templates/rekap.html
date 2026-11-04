@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Rekap Kehadiran Siswa — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block content %}
+<div class="screen-wrapper">
+    <div class="page-title-box">
+        <h1 class="page-heading">📊 Rekapitulasi Kehadiran Siswa</h1>
+        <p class="page-subheading">Statistik akumulasi kehadiran seluruh siswa anggota per cabang ekstrakurikuler</p>
+    </div>
+
+    <!-- Filter Ekskul Bar -->
+    <div class="filter-pills-scroll">
+        {% for e in ekskul_list %}
+        <a href="/rekap?ekskul_id={{ e.id }}" class="pill-filter {% if ekskul.id == e.id %}active{% endif %}">
+            {{ e.icon }} {{ e.nama }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Card Rekap Summary -->
+    <div class="card rekap-summary-card">
+        <div class="rekap-header-row">
+            <div>
+                <h2 class="card-title">{{ ekskul.icon }} Rekap Ekskul: {{ ekskul.nama }}</h2>
+                <p class="card-desc">Jadwal: {{ ekskul.hari_latihan }} ({{ ekskul.jam_latihan }}) | Total Sesi Latihan Terekam: <b>{{ total_latihan }} Sesi</b></p>
+            </div>
+            <a href="/export-csv/{{ ekskul.id }}" class="btn-export-csv">
+                📥 Unduh Format Excel / CSV
+            </a>
+        </div>
+
+        <div class="table-responsive" style="margin-top: 15px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35px; text-align: center;">No</th>
+                        <th>Nama Siswa</th>
+                        <th style="text-align: center; width: 80px;">Kelas</th>
+                        <th style="text-align: center; width: 50px;">L/P</th>
+                        <th style="text-align: center; width: 60px;">Hadir</th>
+                        <th style="text-align: center; width: 60px;">Izin</th>
+                        <th style="text-align: center; width: 60px;">Sakit</th>
+                        <th style="text-align: center; width: 60px;">Alpa</th>
+                        <th style="text-align: center; width: 90px;">% Hadir</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rekap_siswa %}
+                    {% set total_sesi_siswa = (r.hadir or 0) + (r.izin or 0) + (r.sakit or 0) + (r.alpa or 0) %}
+                    {% set pct = ((r.hadir or 0) / (total_sesi_siswa if total_sesi_siswa > 0 else 1) * 100)|round(1) if total_sesi_siswa > 0 else 0 %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td><b>{{ r.nama }}</b></td>
+                        <td style="text-align: center;">{{ r.kelas }}</td>
+                        <td style="text-align: center;">{{ r.jenis_kelamin }}</td>
+                        <td style="text-align: center;"><span class="num-hadir">{{ r.hadir or 0 }}</span></td>
+                        <td style="text-align: center;"><span class="num-izin">{{ r.izin or 0 }}</span></td>
+                        <td style="text-align: center;"><span class="num-sakit">{{ r.sakit or 0 }}</span></td>
+                        <td style="text-align: center;"><span class="num-alpa">{{ r.alpa or 0 }}</span></td>
+                        <td style="text-align: center;">
+                            <span class="badge-tag {% if pct >= 75 %}tag-green{% elif pct >= 50 %}tag-yellow{% else %}tag-red{% endif %}">
+                                {{ pct }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

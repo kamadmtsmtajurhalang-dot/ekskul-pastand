@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Detail Sesi {{ sesi.nama_ekskul }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block content %}
+<div class="screen-wrapper">
+    <div class="page-title-box">
+        <a href="/riwayat" class="back-link">← Kembali ke Riwayat</a>
+        <h1 class="page-heading">{{ sesi.icon_ekskul }} Detail Sesi {{ sesi.nama_ekskul }}</h1>
+        <p class="page-subheading">{{ sesi.tanggal }} | Jam: {{ sesi.jam_mulai }} WIB | Pelatih: <b>{{ sesi.nama_pelatih }}</b></p>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="card session-meta-banner">
+        <div class="meta-cols">
+            <div>
+                <span class="meta-title">Materi Pelatihan:</span>
+                <p class="meta-desc">{{ sesi.materi_latihan if sesi.materi_latihan else '-' }}</p>
+            </div>
+            <div>
+                <span class="meta-title">Verifikasi GPS Lapangan:</span>
+                <p class="meta-desc">
+                    {% if sesi.status_lokasi == 'VALID' %}
+                    <span class="badge-tag tag-green">🟢 Valid (Jarak {{ sesi.jarak_meter }} m dari Lapangan)</span>
+                    {% else %}
+                    <span class="badge-tag tag-yellow">🟡 Di Luar Toleransi (Jarak {{ sesi.jarak_meter }} m)</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% if sesi.catatan %}
+        <div style="margin-top: 8px;">
+            <span class="meta-title">Catatan Sesi:</span>
+            <p class="meta-desc"><i>"{{ sesi.catatan }}"</i></p>
+        </div>
+        {% endif %}
+        <div style="margin-top: 12px;">
+            <a href="/cetak/{{ sesi.id }}" target="_blank" class="btn-print-banner">🖨️ Cetak Lembar Presensi Resmi</a>
+        </div>
+    </div>
+
+    <!-- Tabel Siswa -->
+    <div class="card table-card">
+        <h3 class="card-title" style="margin-bottom: 12px;">Daftar Kehadiran Siswa ({{ presensi|length }} Orang)</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;">No</th>
+                        <th>Nama Siswa</th>
+                        <th style="text-align: center;">Kelas</th>
+                        <th style="text-align: center;">L/P</th>
+                        <th style="text-align: center;">Status</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in presensi %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td><b>{{ p.nama }}</b></td>
+                        <td style="text-align: center;">{{ p.kelas }}</td>
+                        <td style="text-align: center;">{{ p.jenis_kelamin }}</td>
+                        <td style="text-align: center;">
+                            {% if p.status_kehadiran == 'Hadir' %}
+                            <span class="status-badge badge-hadir">Hadir</span>
+                            {% elif p.status_kehadiran == 'Izin' %}
+                            <span class="status-badge badge-izin">Izin</span>
+                            {% elif p.status_kehadiran == 'Sakit' %}
+                            <span class="status-badge badge-sakit">Sakit</span>
+                            {% else %}
+                            <span class="status-badge badge-alpa">Alpa</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ p.keterangan if p.keterangan else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
