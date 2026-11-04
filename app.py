@@ -204,14 +204,37 @@ def pelatih_dashboard():
     pelatih_id = session['user_id']
     conn = get_db()
     
-    # Ambil data pelatih dan ekskul yang diampunya
+    # Ambil data pelatih
     user = conn.execute("SELECT * FROM users WHERE id = ?", (pelatih_id,)).fetchone()
-    ekskul = conn.execute("SELECT * FROM ekskul WHERE id = ?", (user['ekskul_id'],)).fetchone()
-    lokasi = conn.execute("SELECT * FROM pengaturan_lokasi WHERE is_active = 1 LIMIT 1").fetchone()
     
-    if not ekskul:
+    # Ambil seluruh cabang ekskul yang diampu oleh pelatih ini
+    assigned_ekskuls = conn.execute("""
+    SELECT e.* FROM ekskul e
+    JOIN pelatih_ekskul pe ON e.id = pe.ekskul_id
+    WHERE pe.user_id = ?
+    ORDER BY e.nama ASC
+    """, (pelatih_id,)).fetchall()
+
+    # Fallback jika belum di pelatih_ekskul tapi ada ekskul_id di users
+    if not assigned_ekskuls and user['ekskul_id']:
+        assigned_ekskuls = conn.execute("SELECT * FROM ekskul WHERE id = ?", (user['ekskul_id'],)).fetchall()
+
+    if not assigned_ekskuls:
         conn.close()
-        return "Ekskul belum dihubungkan ke akun pelatih ini. Hubungi Admin.", 400
+        return "Ekskul belum dihubungkan ke akun pelatih ini. Silakan hubungi Admin Master.", 400
+
+    # Tentukan cabang ekskul yang sedang aktif dibuka
+    active_ekskul_id = request.args.get('ekskul_id', type=int)
+    ekskul = None
+    if active_ekskul_id:
+        for e in assigned_ekskuls:
+            if e['id'] == active_ekskul_id:
+                ekskul = e
+                break
+    if not ekskul:
+        ekskul = assigned_ekskuls[0]
+
+    lokasi = conn.execute("SELECT * FROM pengaturan_lokasi WHERE is_active = 1 LIMIT 1").fetchone()
 
     # Ambil daftar siswa yang memilih ekskul ini
     siswa_list = conn.execute("""
@@ -231,7 +254,7 @@ def pelatih_dashboard():
     ORDER BY p.created_at DESC
     """, (ekskul['id'], today_str)).fetchall()
 
-    # Riwayat sesi latihan pelatih ini
+    # Riwayat sesi latihan pelatih untuk ekskul ini
     sesi_terakhir = conn.execute("""
     SELECT s.*, 
            (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
@@ -245,6 +268,7 @@ def pelatih_dashboard():
     return render_template('pelatih_dashboard.html', 
                            user=user, 
                            ekskul=ekskul, 
+                           assigned_ekskuls=assigned_ekskuls,
                            lokasi=lokasi, 
                            siswa_list=siswa_list,
                            pengajuan_izin=pengajuan_izin,
@@ -263,13 +287,14 @@ def update_jadwal_pelatih():
     conn.commit()
     conn.close()
     flash("Jadwal latihan berhasil diperbarui!", "success")
-    return redirect(url_for('pelatih_dashboard'))
+    return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
 
 @app.route('/pelatih/pengajuan/approval/<int:pengajuan_id>', methods=['POST'])
 @role_required('pelatih')
 def approval_pengajuan(pengajuan_id):
     action = request.form.get('action') # 'DISETUJUI' atau 'DITOLAK'
     catatan = request.form.get('catatan_pelatih', '').strip()
+    ekskul_id = request.form.get('ekskul_id')
     
     conn = get_db()
     conn.execute("""
@@ -280,29 +305,54 @@ def approval_pengajuan(pengajuan_id):
     conn.commit()
     conn.close()
     flash(f"Pengajuan siswa telah {action.lower()}.", "success")
-    return redirect(url_for('pelatih_dashboard'))
+    return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id) if ekskul_id else url_for('pelatih_dashboard'))
 
 @app.route('/pelatih/riwayat')
 @role_required('pelatih')
 def pelatih_riwayat():
     conn = get_db()
-    user = conn.execute("SELECT * FROM users WHERE id = ?", (session['user_id'],)).fetchone()
-    ekskul = conn.execute("SELECT * FROM ekskul WHERE id = ?", (user['ekskul_id'],)).fetchone()
+    pelatih_id = session['user_id']
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (pelatih_id,)).fetchone()
     
-    sesi_list = conn.execute("""
-    SELECT s.*, 
-           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
-           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Izin') as total_izin,
-           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Sakit') as total_sakit,
-           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Alpa') as total_alpa,
-           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
-    FROM sesi_latihan s
-    WHERE s.ekskul_id = ?
-    ORDER BY s.tanggal DESC, s.jam_mulai DESC
-    """, (ekskul['id'],)).fetchall()
+    assigned_ekskuls = conn.execute("""
+    SELECT e.* FROM ekskul e
+    JOIN pelatih_ekskul pe ON e.id = pe.ekskul_id
+    WHERE pe.user_id = ?
+    ORDER BY e.nama ASC
+    """, (pelatih_id,)).fetchall()
+
+    if not assigned_ekskuls and user['ekskul_id']:
+        assigned_ekskuls = conn.execute("SELECT * FROM ekskul WHERE id = ?", (user['ekskul_id'],)).fetchall()
+
+    active_ekskul_id = request.args.get('ekskul_id', type=int)
+    ekskul = None
+    if active_ekskul_id:
+        for e in assigned_ekskuls:
+            if e['id'] == active_ekskul_id:
+                ekskul = e
+                break
+    if not ekskul and assigned_ekskuls:
+        ekskul = assigned_ekskuls[0]
+
+    sesi_list = []
+    if ekskul:
+        sesi_list = conn.execute("""
+        SELECT s.*, 
+               (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
+               (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Izin') as total_izin,
+               (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Sakit') as total_sakit,
+               (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Alpa') as total_alpa,
+               (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
+        FROM sesi_latihan s
+        WHERE s.ekskul_id = ?
+        ORDER BY s.tanggal DESC, s.jam_mulai DESC
+        """, (ekskul['id'],)).fetchall()
     
     conn.close()
-    return render_template('pelatih_riwayat.html', ekskul=ekskul, sesi_list=sesi_list)
+    return render_template('pelatih_riwayat.html', 
+                           ekskul=ekskul, 
+                           assigned_ekskuls=assigned_ekskuls, 
+                           sesi_list=sesi_list)
 
 # =========================================================
 # 2. AKUN SISWA (PILIH EKSKUL & INFO PRA-PRESENSI)
@@ -471,13 +521,30 @@ def admin_pelatih():
     conn = get_db()
     current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
 
-    pelatih_list = conn.execute("""
+    raw_pelatih_list = conn.execute("""
     SELECT u.*, e.nama as nama_ekskul, e.icon as icon_ekskul, e.hari_latihan, e.jam_latihan 
     FROM users u
     LEFT JOIN ekskul e ON u.ekskul_id = e.id
     WHERE u.role = 'pelatih'
     ORDER BY u.nama ASC
     """).fetchall()
+
+    pelatih_list = []
+    for p in raw_pelatih_list:
+        p_dict = dict(p)
+        assigned = conn.execute("""
+        SELECT e.* FROM ekskul e
+        JOIN pelatih_ekskul pe ON e.id = pe.ekskul_id
+        WHERE pe.user_id = ?
+        ORDER BY e.nama ASC
+        """, (p['id'],)).fetchall()
+
+        if not assigned and p['ekskul_id']:
+            assigned = conn.execute("SELECT * FROM ekskul WHERE id = ?", (p['ekskul_id'],)).fetchall()
+
+        p_dict['assigned_ekskuls'] = assigned
+        p_dict['assigned_ids'] = [e['id'] for e in assigned]
+        pelatih_list.append(p_dict)
 
     ekskul_list = conn.execute("SELECT * FROM ekskul ORDER BY nama ASC").fetchall()
     reset_requests = conn.execute("SELECT * FROM reset_password_requests WHERE status = 'PENDING'").fetchall()
@@ -694,8 +761,14 @@ def admin_delete_pelatih(user_id):
         flash("Akun pelatih tidak ditemukan.", "danger")
         return redirect(url_for('admin_pelatih'))
 
-    if user['ekskul_id']:
-        conn.execute("UPDATE ekskul SET pelatih_nama = 'Belum Ada' WHERE id = ?", (user['ekskul_id'],))
+    # Kosongkan nama pelatih di tabel ekskul yang dipegang
+    conn.execute("""
+    UPDATE ekskul SET pelatih_nama = 'Belum Ada' 
+    WHERE id IN (SELECT ekskul_id FROM pelatih_ekskul WHERE user_id = ?)
+       OR id = ?
+    """, (user_id, user['ekskul_id']))
+
+    conn.execute("DELETE FROM pelatih_ekskul WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM reset_password_requests WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
@@ -785,20 +858,79 @@ def admin_tambah_pelatih():
     nama = request.form.get('nama', '').strip()
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
-    ekskul_id = request.form.get('ekskul_id')
+    ekskul_ids = request.form.getlist('ekskul_ids')
 
-    if nama and username and password:
-        conn = get_db()
-        try:
-            conn.execute("""
-            INSERT INTO users (username, password, nama, role, ekskul_id)
-            VALUES (?, ?, ?, 'pelatih', ?)
-            """, (username, password, nama, ekskul_id))
-            conn.commit()
-            flash(f"Akun Pelatih '{nama}' berhasil dibuat!", "success")
-        except Exception:
-            flash(f"Username '{username}' sudah digunakan.", "danger")
+    # Fallback jika hanya 1 ekskul_id dikirim
+    if not ekskul_ids and request.form.get('ekskul_id'):
+        ekskul_ids = [request.form.get('ekskul_id')]
+
+    if not nama or not username or not password:
+        flash("Nama, username, dan kata sandi wajib diisi.", "danger")
+        return redirect(url_for('admin_pelatih'))
+
+    if not ekskul_ids:
+        flash("Pilih minimal satu cabang ekstrakurikuler yang diampu oleh pelatih/guru ini.", "warning")
+        return redirect(url_for('admin_pelatih'))
+
+    primary_ekskul = ekskul_ids[0]
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        INSERT INTO users (username, password, nama, role, ekskul_id)
+        VALUES (?, ?, ?, 'pelatih', ?)
+        """, (username, password, nama, primary_ekskul))
+        new_user_id = cursor.lastrowid
+
+        for eid in ekskul_ids:
+            cursor.execute("""
+            INSERT OR IGNORE INTO pelatih_ekskul (user_id, ekskul_id)
+            VALUES (?, ?)
+            """, (new_user_id, eid))
+            cursor.execute("UPDATE ekskul SET pelatih_nama = ? WHERE id = ?", (nama, eid))
+
+        conn.commit()
+        flash(f"Akun Pelatih '{nama}' berhasil dibuat dan memegang {len(ekskul_ids)} cabang ekskul!", "success")
+    except Exception as e:
+        flash(f"Gagal membuat akun: Username '{username}' sudah digunakan ({e}).", "danger")
+    conn.close()
+    return redirect(url_for('admin_pelatih'))
+
+@app.route('/admin/pelatih/update-ekskul', methods=['POST'])
+@role_required('admin')
+def admin_update_ekskul_pelatih():
+    """Ubah cabang ekskul yang diampu oleh pelatih yang sudah terdaftar"""
+    user_id = request.form.get('user_id')
+    ekskul_ids = request.form.getlist('ekskul_ids')
+
+    if not user_id:
+        flash("ID Pelatih tidak valid.", "danger")
+        return redirect(url_for('admin_pelatih'))
+
+    if not ekskul_ids:
+        flash("Pilih minimal satu cabang ekskul untuk pelatih ini.", "warning")
+        return redirect(url_for('admin_pelatih'))
+
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND role = 'pelatih'", (user_id,)).fetchone()
+    if not user:
         conn.close()
+        flash("Akun pelatih tidak ditemukan.", "danger")
+        return redirect(url_for('admin_pelatih'))
+
+    primary_ekskul = ekskul_ids[0]
+    conn.execute("UPDATE users SET ekskul_id = ? WHERE id = ?", (primary_ekskul, user_id))
+    
+    # Hapus penetapan ekskul lama dan masukkan yang baru
+    conn.execute("DELETE FROM pelatih_ekskul WHERE user_id = ?", (user_id,))
+    for eid in ekskul_ids:
+        conn.execute("INSERT OR IGNORE INTO pelatih_ekskul (user_id, ekskul_id) VALUES (?, ?)", (user_id, eid))
+        conn.execute("UPDATE ekskul SET pelatih_nama = ? WHERE id = ?", (user['nama'], eid))
+
+    conn.commit()
+    conn.close()
+    flash(f"Cabang ekskul yang diampu pelatih '{user['nama']}' berhasil diperbarui ({len(ekskul_ids)} ekskul)!", "success")
     return redirect(url_for('admin_pelatih'))
 
 @app.route('/admin/siswa/import', methods=['POST'])

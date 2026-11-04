@@ -57,6 +57,19 @@ def init_db():
     )
     """)
 
+    # 3b. Tabel Pelatih_Ekskul (Relasi 1 Pelatih/Guru memegang beberapa Ekskul)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS pelatih_ekskul (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        ekskul_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, ekskul_id),
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (ekskul_id) REFERENCES ekskul(id)
+    )
+    """)
+
     # 4. Tabel Pengajuan Pra-Presensi Siswa (Sebelum Latihan)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS pengajuan_izin (
@@ -138,6 +151,17 @@ def init_db():
     """)
 
     conn.commit()
+
+    # Migrasi data relasi pelatih ke tabel pelatih_ekskul
+    try:
+        cursor.execute("""
+        INSERT OR IGNORE INTO pelatih_ekskul (user_id, ekskul_id)
+        SELECT id, ekskul_id FROM users
+        WHERE role = 'pelatih' AND ekskul_id IS NOT NULL
+        """)
+        conn.commit()
+    except Exception:
+        pass
 
     # Seeding Default Data jika kosong
     cursor.execute("SELECT COUNT(*) FROM ekskul")
@@ -231,6 +255,17 @@ def init_db():
         """)
 
     conn.commit()
+
+    # Migrasi data relasi pelatih ke tabel pelatih_ekskul
+    try:
+        cursor.execute("""
+        INSERT OR IGNORE INTO pelatih_ekskul (user_id, ekskul_id)
+        SELECT id, ekskul_id FROM users
+        WHERE role = 'pelatih' AND ekskul_id IS NOT NULL
+        """)
+        conn.commit()
+    except Exception:
+        pass
     conn.close()
 
 if __name__ == "__main__":
