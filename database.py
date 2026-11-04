@@ -122,6 +122,21 @@ def init_db():
     )
     """)
 
+    # 8. Tabel Permohonan Lupa / Reset Password
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS reset_password_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        username TEXT NOT NULL,
+        nama TEXT,
+        role TEXT,
+        keterangan TEXT,
+        status TEXT DEFAULT 'PENDING', -- 'PENDING', 'SELESAI', 'DITOLAK'
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+    """)
+
     conn.commit()
 
     # Seeding Default Data jika kosong

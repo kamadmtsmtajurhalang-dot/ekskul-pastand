@@ -1030,6 +1030,103 @@ code {
     color: white;
 }
 
+/* =========================================================
+   ADMIN MASTER ENHANCED MODALS & ACTIONS
+   ========================================================= */
+.modal-card-lg {
+    max-width: 650px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.modal-card-md {
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.modal-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    color: #64748B;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close-btn:hover {
+    color: #0F172A;
+}
+
+.admin-stat-card.clickable {
+    cursor: pointer;
+    transition: transform 0.15s, background-color 0.15s;
+    position: relative;
+}
+
+.admin-stat-card.clickable:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.admin-stat-hint {
+    font-size: 9px;
+    color: #FEF08A;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+.btn-action-sm {
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-action-reset {
+    background: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
+}
+
+.btn-action-reset:hover {
+    background: #DBEAFE;
+}
+
+.btn-action-delete {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+}
+
+.btn-action-delete:hover {
+    background: #FEE2E2;
+}
+
+.search-input-box {
+    margin-bottom: 12px;
+}
+
 /* Footer */
 .app-footer {
     max-width: 760px;

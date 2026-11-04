@@ -1,38 +1,106 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard Admin Master — Presensi MTs Muhammadiyah Tajurhalang{% endblock %}
+{% block title %}Dashboard Admin Master — Presensi MTs Muhammadiyah Tajurhalang TA 2026/2027{% endblock %}
 
 {% block content %}
 <div class="screen-wrapper">
     <!-- Admin Hero Card -->
     <div class="card admin-hero-card">
-        <div class="admin-hero-header">
+        <div class="admin-hero-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
             <div>
                 <span class="badge-tag tag-amber">👑 Akun Admin Master (Kamad/Kesiswaan)</span>
                 <h1 class="page-heading" style="color:white; margin-top:4px;">Panel Pengelola Ekstrakurikuler</h1>
                 <p style="font-size:12px; color:#E2E8F0;">Pusat kendali cabang ekskul, akun pelatih, data siswa, dan kalibrasi GPS lapangan.</p>
             </div>
+            <div>
+                <button type="button" class="btn-quick" onclick="openModalProfilAdmin()" style="background: rgba(255,255,255,0.2); color:white; border: 1px solid rgba(255,255,255,0.4); font-weight: 700;">
+                    ⚙️ Profil & Sandi Admin
+                </button>
+            </div>
         </div>
 
-        <div class="admin-stats-grid">
+        <!-- 3. Dashboard Real-Time Cards -->
+        <div class="admin-stats-grid" style="margin-top: 14px;">
             <div class="admin-stat-card">
-                <span class="astat-val">{{ ekskul_list|length }}</span>
+                <span class="astat-val">{{ total_ekskul }}</span>
                 <span class="astat-label">Cabang Ekskul</span>
             </div>
-            <div class="admin-stat-card">
+            
+            <div class="admin-stat-card clickable" onclick="openModalPelatih()" title="Klik untuk melihat jadwal rutin pelatih">
                 <span class="astat-val">{{ total_pelatih }}</span>
-                <span class="astat-label">Pelatih Bertugas</span>
+                <span class="astat-label">Pelatih Terdaftar</span>
+                <span class="admin-stat-hint">👆 Klik: Jadwal Rutin</span>
             </div>
-            <div class="admin-stat-card">
+
+            <div class="admin-stat-card clickable" onclick="openModalSiswa()" title="Klik untuk melihat siswa & ekskul yang diikuti">
                 <span class="astat-val">{{ total_siswa }}</span>
                 <span class="astat-label">Siswa Terdaftar</span>
+                <span class="admin-stat-hint">👆 Klik: Ekskul Siswa</span>
             </div>
+
             <div class="admin-stat-card">
                 <span class="astat-val">{{ total_sesi }}</span>
                 <span class="astat-label">Sesi Latihan</span>
             </div>
         </div>
     </div>
+
+    <!-- 2. NOTIFIKASI PERMOHONAN LUPA / RESET PASSWORD -->
+    {% if reset_requests and reset_requests|length > 0 %}
+    <div class="card" style="border-left: 4px solid #EF4444; background: #FEF2F2;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h3 style="font-size: 15px; font-weight: 800; color: #991B1B; margin: 0;">
+                    🔔 Ada {{ reset_requests|length }} Permohonan Lupa / Reset Password!
+                </h3>
+                <p style="font-size: 12px; color: #B91C1C; margin: 4px 0 0 0;">
+                    Siswa atau Pelatih mengajukan bantuan reset akun/kata sandi karena tidak bisa masuk.
+                </p>
+            </div>
+        </div>
+
+        <div class="table-responsive" style="margin-top: 10px;">
+            <table class="data-table">
+                <thead>
+                    <tr style="background: #FEE2E2;">
+                        <th>Nama Pemohon</th>
+                        <th>Peran</th>
+                        <th>Username</th>
+                        <th>Keterangan</th>
+                        <th style="text-align: center;">Aksi Admin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in reset_requests %}
+                    <tr>
+                        <td><b>{{ req.nama_user if req.nama_user else req.nama }}</b></td>
+                        <td>
+                            <span class="badge-tag {% if req.role == 'pelatih' %}tag-blue{% else %}tag-green{% endif %}">
+                                {{ '🏆 Pelatih' if req.role == 'pelatih' else '🎒 Siswa' }}
+                            </span>
+                        </td>
+                        <td><code>{{ req.username }}</code></td>
+                        <td><small>{{ req.keterangan if req.keterangan else 'Lupa kata sandi' }}</small></td>
+                        <td style="text-align: center;">
+                            <div style="display: inline-flex; gap: 4px;">
+                                <button type="button" class="btn-action-sm btn-action-reset" 
+                                        onclick="openModalReset('{{ req.user_id if req.user_id else '' }}', '{{ req.nama }}', '{{ req.username }}', '{{ req.role }}', '{{ req.id }}')">
+                                    🔑 Reset Sekarang
+                                </button>
+                                <form action="/admin/reset-request/tolak/{{ req.id }}" method="POST" style="display: inline;" onsubmit="return confirm('Tolak permohonan reset password ini?');">
+                                    <button type="submit" class="btn-action-sm btn-action-delete" title="Tolak permohonan">
+                                        ✕
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- 1. KELOLA DATA SISWA & FITUR IMPORT CSV/EXCEL -->
     <div class="card form-card" style="border-left: 4px solid #10B981;">
@@ -58,9 +126,130 @@
         </form>
     </div>
 
-    <!-- 2. KELOLA EKSKUL & PELATIH YANG BERTUGAS -->
+    <!-- 5. MENU DATA MASTER PELATIH & OPSI HAPUS AKUN -->
     <div class="card table-card">
-        <h2 class="card-title" style="margin-bottom: 8px;">🏆 Daftar Ekskul & Pelatih yang Bertugas</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+            <div>
+                <h2 class="card-title" style="margin: 0;">🏆 Data Master Pelatih Terdaftar ({{ pelatih_list|length }} Akun)</h2>
+                <p class="card-desc" style="margin-top: 2px;">Kelola akun login pelatih pembina ekskul, atur ulang sandi, atau hapus akun.</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">No</th>
+                        <th>Nama Pelatih</th>
+                        <th>Ekskul Diampu</th>
+                        <th>Jadwal Rutin</th>
+                        <th>Username Login</th>
+                        <th style="text-align: center; width: 140px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pelatih_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td><b>{{ p.nama }}</b></td>
+                        <td><span class="badge-tag tag-blue">{{ p.icon_ekskul }} {{ p.nama_ekskul if p.nama_ekskul else 'Belum ditentukan' }}</span></td>
+                        <td>
+                            <small>{{ p.hari_latihan if p.hari_latihan else '-' }}<br/>{{ p.jam_latihan if p.jam_latihan else '' }}</small>
+                        </td>
+                        <td><code>{{ p.username }}</code></td>
+                        <td style="text-align: center;">
+                            <div style="display: inline-flex; gap: 4px;">
+                                <button type="button" class="btn-action-sm btn-action-reset" 
+                                        onclick="openModalReset('{{ p.id }}', '{{ p.nama }}', '{{ p.username }}', 'pelatih')"
+                                        title="Reset kata sandi pelatih ini">
+                                    🔑 Reset
+                                </button>
+                                <form action="/admin/pelatih/delete/{{ p.id }}" method="POST" style="display: inline;" 
+                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun pelatih {{ p.nama }} ({{ p.username }})?');">
+                                    <button type="submit" class="btn-action-sm btn-action-delete" title="Hapus akun pelatih ini">
+                                        🗑️ Hapus
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: #64748B;">Belum ada akun pelatih terdaftar.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. MENU DAFTAR SISWA TERDAFTAR & OPSI HAPUS AKUN -->
+    <div class="card table-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+            <div>
+                <h2 class="card-title" style="margin: 0;">🎒 Data Master Siswa Terdaftar ({{ siswa_list|length }} Siswa)</h2>
+                <p class="card-desc" style="margin-top: 2px;">Daftar seluruh siswa, ekskul yang diikuti, reset sandi, atau hapus akun jika double/bug.</p>
+            </div>
+            <div>
+                <input type="text" id="searchInputSiswa" class="form-control" placeholder="🔍 Cari nama siswa / kelas..." onkeyup="filterSiswaTable()" style="max-width: 260px; font-size: 12px;">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table" id="tableSiswaMaster">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">No</th>
+                        <th>Nama Siswa</th>
+                        <th style="text-align: center;">Kelas</th>
+                        <th style="text-align: center;">L/P</th>
+                        <th>Ekskul yang Diikuti</th>
+                        <th>Username</th>
+                        <th style="text-align: center; width: 140px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in siswa_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td><b>{{ s.nama }}</b></td>
+                        <td style="text-align: center;">{{ s.kelas }}</td>
+                        <td style="text-align: center;">{{ s.jenis_kelamin }}</td>
+                        <td>
+                            <span class="badge-tag tag-blue" style="white-space: normal; line-height: 1.4;">
+                                {{ s.daftar_ekskul if s.daftar_ekskul else (s.icon_ekskul ~ ' ' ~ s.nama_ekskul if s.nama_ekskul else 'Belum memilih') }}
+                            </span>
+                        </td>
+                        <td><code>{{ s.username }}</code></td>
+                        <td style="text-align: center;">
+                            <div style="display: inline-flex; gap: 4px;">
+                                <button type="button" class="btn-action-sm btn-action-reset" 
+                                        onclick="openModalReset('{{ s.id }}', '{{ s.nama }}', '{{ s.username }}', 'siswa')"
+                                        title="Reset kata sandi siswa ini">
+                                    🔑 Reset
+                                </button>
+                                <form action="/admin/siswa/delete/{{ s.id }}" method="POST" style="display: inline;" 
+                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun siswa {{ s.nama }} ({{ s.username }})? Data presensi terkait juga akan dibersihkan.');">
+                                    <button type="submit" class="btn-action-sm btn-action-delete" title="Hapus akun siswa yang duplikat/salah">
+                                        🗑️ Hapus
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #64748B;">Belum ada siswa terdaftar.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DAFTAR EKSKUL LENGKAP -->
+    <div class="card table-card">
+        <h2 class="card-title" style="margin-bottom: 8px;">🏆 Ringkasan Cabang Ekskul & Jadwal</h2>
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -89,7 +278,7 @@
         </div>
     </div>
 
-    <!-- 3. TAMBAH EKSKUL & AKUN PELATIH BARU -->
+    <!-- TAMBAH EKSKUL & AKUN PELATIH BARU -->
     <div class="card form-card">
         <h2 class="card-title">➕ Tambah Cabang Ekskul Baru</h2>
         <form action="/admin/ekskul/tambah" method="POST" style="margin-top: 10px;">
@@ -154,7 +343,7 @@
         </form>
     </div>
 
-    <!-- 4. PENGATURAN GPS LOKASI LAPANGAN -->
+    <!-- PENGATURAN GPS LOKASI LAPANGAN -->
     <div class="card form-card">
         <h2 class="card-title">📍 Kalibrasi GPS Titik Lapangan Madrasah</h2>
         <form action="/admin/lokasi/update" method="POST" style="margin-top: 10px;">
@@ -186,35 +375,164 @@
             </div>
         </form>
     </div>
+</div>
 
-    <!-- 5. DAFTAR MASTER SELURUH SISWA -->
-    <div class="card table-card">
-        <h2 class="card-title" style="margin-bottom: 8px;">🎒 Data Master Siswa Terdaftar ({{ siswa_list|length }} Siswa)</h2>
-        <div class="table-responsive">
-            <table class="data-table">
+<!-- =========================================================
+     MODAL 1: PROFIL ADMIN MASTER (UBAH USERNAME & PASSWORD)
+     ========================================================= -->
+<div id="modalProfilAdmin" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0;">⚙️ Profil & Kata Sandi Admin Master</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalProfilAdmin()">&times;</button>
+        </div>
+        <form action="/admin/profil/update" method="POST">
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Admin <span class="req">*</span></label>
+                <input type="text" name="nama" class="form-control" value="{{ current_admin.nama if current_admin else session.get('nama') }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username Login Admin <span class="req">*</span></label>
+                <input type="text" name="username" class="form-control" value="{{ current_admin.username if current_admin else session.get('username') }}" required>
+                <small style="color: #64748B;">Digunakan untuk masuk ke akun Admin Master.</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Kata Sandi Baru</label>
+                <input type="password" name="password_baru" class="form-control" placeholder="Kosongkan jika tidak ingin mengubah sandi">
+                <small style="color: #64748B;">Hanya diisi jika Anda ingin mengganti kata sandi admin.</small>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalProfilAdmin()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2;">💾 Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: RESET PASSWORD PELATIH / SISWA
+     ========================================================= -->
+<div id="modalResetPassword" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0;">🔑 Reset Kata Sandi Pengguna</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalReset()">&times;</button>
+        </div>
+        <form action="/admin/user/reset-password" method="POST">
+            <input type="hidden" id="resetUserId" name="user_id" value="">
+            <input type="hidden" id="resetRequestId" name="request_id" value="">
+            
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; margin-bottom: 12px; font-size: 12px;">
+                <div>Pengguna: <strong id="resetTargetNama">-</strong></div>
+                <div>Username: <code id="resetTargetUsername">-</code> (<span id="resetTargetRole">-</span>)</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Kata Sandi Baru</label>
+                <input type="text" id="resetNewPassword" name="new_password" class="form-control" placeholder="Biarkan kosong untuk memakai sandi default">
+                <small style="color: #64748B;">
+                    Default jika dikosongkan: <b>siswa123</b> (untuk siswa) atau <b>pelatih123</b> (untuk pelatih).
+                </small>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalReset()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2; background: #2563EB;">🚀 Terapkan Reset Sandi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 3: DETAIL SISWA & EKSKUL YANG DIIKUTI
+     ========================================================= -->
+<div id="modalDetailSiswa" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-lg">
+        <div class="modal-header-row">
+            <div>
+                <h3 class="modal-title" style="margin: 0;">🎒 Informasi Siswa & Ekskul yang Diikuti</h3>
+                <small style="color: #64748B;">Total: {{ siswa_list|length }} Siswa Aktif Terdaftar</small>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeModalSiswa()">&times;</button>
+        </div>
+        
+        <div class="search-input-box">
+            <input type="text" id="modalSearchSiswa" class="form-control" placeholder="🔍 Cari nama siswa, kelas, atau ekskul..." onkeyup="filterModalSiswa()">
+        </div>
+
+        <div class="table-responsive" style="max-height: 55vh; overflow-y: auto;">
+            <table class="data-table" id="modalTableSiswa">
                 <thead>
-                    <tr>
+                    <tr style="position: sticky; top: 0; background: #F8FAFC; z-index: 2;">
                         <th style="width: 30px; text-align: center;">No</th>
                         <th>Nama Siswa</th>
                         <th style="text-align: center;">Kelas</th>
-                        <th style="text-align: center;">L/P</th>
-                        <th>Ekskul Pilihan</th>
-                        <th>Username</th>
+                        <th>Cabang Ekskul yang Diikuti</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for s in siswa_list %}
                     <tr>
                         <td style="text-align: center;">{{ loop.index }}</td>
-                        <td><b>{{ s.nama }}</b></td>
-                        <td style="text-align: center;">{{ s.kelas }}</td>
-                        <td style="text-align: center;">{{ s.jenis_kelamin }}</td>
-                        <td><span class="badge-tag tag-blue">{{ s.icon_ekskul }} {{ s.nama_ekskul }}</span></td>
-                        <td><code>{{ s.username }}</code></td>
+                        <td><b>{{ s.nama }}</b> (<code>{{ s.username }}</code>)</td>
+                        <td style="text-align: center;">{{ s.kelas }} ({{ s.jenis_kelamin }})</td>
+                        <td>
+                            <span class="badge-tag tag-blue" style="white-space: normal; line-height: 1.4;">
+                                {{ s.daftar_ekskul if s.daftar_ekskul else (s.icon_ekskul ~ ' ' ~ s.nama_ekskul if s.nama_ekskul else 'Belum memilih') }}
+                            </span>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        <div style="margin-top: 14px; text-align: right;">
+            <button type="button" class="btn-modal-secondary" onclick="closeModalSiswa()">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 4: DETAIL PELATIH & JADWAL RUTIN LATIHAN
+     ========================================================= -->
+<div id="modalDetailPelatih" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-lg">
+        <div class="modal-header-row">
+            <div>
+                <h3 class="modal-title" style="margin: 0;">🏆 Informasi Pelatih & Jadwal Rutin Latihan</h3>
+                <small style="color: #64748B;">Total: {{ pelatih_list|length }} Guru / Pelatih Pembina</small>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeModalPelatih()">&times;</button>
+        </div>
+
+        <div class="table-responsive" style="max-height: 55vh; overflow-y: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr style="position: sticky; top: 0; background: #F8FAFC; z-index: 2;">
+                        <th style="width: 30px; text-align: center;">No</th>
+                        <th>Nama Pelatih</th>
+                        <th>Cabang Ekskul</th>
+                        <th>Hari Latihan</th>
+                        <th>Waktu / Jam Latihan</th>
+                        <th>Username</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pelatih_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td><b>{{ p.nama }}</b></td>
+                        <td><span class="badge-tag tag-blue">{{ p.icon_ekskul }} {{ p.nama_ekskul if p.nama_ekskul else 'Belum ada' }}</span></td>
+                        <td><b>{{ p.hari_latihan if p.hari_latihan else '-' }}</b></td>
+                        <td>{{ p.jam_latihan if p.jam_latihan else '-' }}</td>
+                        <td><code>{{ p.username }}</code></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top: 14px; text-align: right;">
+            <button type="button" class="btn-modal-secondary" onclick="closeModalPelatih()">Tutup</button>
         </div>
     </div>
 </div>
@@ -222,6 +540,7 @@
 
 {% block scripts %}
 <script>
+// GPS Admin
 function getAdminCurrentGps() {
     if (!navigator.geolocation) {
         alert("Browser tidak mendukung GPS.");
@@ -236,5 +555,74 @@ function getAdminCurrentGps() {
         alert("Gagal membaca GPS: " + err.message);
     }, { enableHighAccuracy: true });
 }
+
+// Modal Profil Admin Master
+function openModalProfilAdmin() {
+    document.getElementById('modalProfilAdmin').style.display = 'flex';
+}
+function closeModalProfilAdmin() {
+    document.getElementById('modalProfilAdmin').style.display = 'none';
+}
+
+// Modal Reset Password
+function openModalReset(userId, nama, username, role, requestId = '') {
+    document.getElementById('resetUserId').value = userId;
+    document.getElementById('resetRequestId').value = requestId;
+    document.getElementById('resetTargetNama').innerText = nama;
+    document.getElementById('resetTargetUsername').innerText = username;
+    document.getElementById('resetTargetRole').innerText = role === 'pelatih' ? 'Pelatih' : 'Siswa';
+    document.getElementById('resetNewPassword').value = '';
+    document.getElementById('resetNewPassword').placeholder = role === 'pelatih' ? 'Default: pelatih123' : 'Default: siswa123';
+    document.getElementById('modalResetPassword').style.display = 'flex';
+}
+function closeModalReset() {
+    document.getElementById('modalResetPassword').style.display = 'none';
+}
+
+// Modal Detail Siswa (Klik Card Siswa)
+function openModalSiswa() {
+    document.getElementById('modalDetailSiswa').style.display = 'flex';
+}
+function closeModalSiswa() {
+    document.getElementById('modalDetailSiswa').style.display = 'none';
+}
+
+// Modal Detail Pelatih (Klik Card Pelatih)
+function openModalPelatih() {
+    document.getElementById('modalDetailPelatih').style.display = 'flex';
+}
+function closeModalPelatih() {
+    document.getElementById('modalDetailPelatih').style.display = 'none';
+}
+
+// Filter Pencarian Siswa di Tabel Master Utama
+function filterSiswaTable() {
+    const filter = document.getElementById('searchInputSiswa').value.toLowerCase();
+    const rows = document.querySelectorAll('#tableSiswaMaster tbody tr');
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+}
+
+// Filter Pencarian Siswa di Dalam Modal Siswa
+function filterModalSiswa() {
+    const filter = document.getElementById('modalSearchSiswa').value.toLowerCase();
+    const rows = document.querySelectorAll('#modalTableSiswa tbody tr');
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+}
+
+// Tutup modal jika klik di luar box modal
+window.addEventListener('click', function(e) {
+    ['modalProfilAdmin', 'modalResetPassword', 'modalDetailSiswa', 'modalDetailPelatih'].forEach(id => {
+        const modal = document.getElementById(id);
+        if (modal && e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
 </script>
 {% endblock %}

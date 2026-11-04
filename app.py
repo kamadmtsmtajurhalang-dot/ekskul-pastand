@@ -122,6 +122,39 @@ def logout():
     flash("Anda telah berhasil keluar.", "info")
     return redirect(url_for('login'))
 
+@app.route('/lupa-password', methods=['GET', 'POST'])
+def lupa_password():
+    """Form pengajuan lupa password / lupa akun bagi siswa & pelatih"""
+    if request.method == 'POST':
+        identitas = request.form.get('identitas', '').strip()
+        role = request.form.get('role', 'siswa').strip()
+        keterangan = request.form.get('keterangan', '').strip()
+
+        if not identitas:
+            flash("Silakan masukkan username atau nama lengkap Anda.", "danger")
+            return redirect(url_for('lupa_password'))
+
+        conn = get_db()
+        user = conn.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(nama) = LOWER(?) LIMIT 1",
+                            (identitas, identitas)).fetchone()
+
+        user_id = user['id'] if user else None
+        target_username = user['username'] if user else identitas
+        target_nama = user['nama'] if user else identitas
+        target_role = user['role'] if user else role
+
+        conn.execute("""
+        INSERT INTO reset_password_requests (user_id, username, nama, role, keterangan)
+        VALUES (?, ?, ?, ?, ?)
+        """, (user_id, target_username, target_nama, target_role, keterangan))
+        conn.commit()
+        conn.close()
+
+        flash("Permohonan reset password Anda berhasil dikirim ke Admin Master! Silakan hubungi Guru/Admin Madrasah.", "success")
+        return redirect(url_for('login'))
+
+    return render_template('lupa_password.html')
+
 @app.route('/register-siswa', methods=['GET', 'POST'])
 def register_siswa():
     conn = get_db()
@@ -392,6 +425,8 @@ def siswa_kirim_pengajuan():
 def admin_dashboard():
     conn = get_db()
     
+    current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
+
     ekskul_list = conn.execute("""
     SELECT e.*, 
            (SELECT COUNT(*) FROM siswa_ekskul se WHERE se.ekskul_id = e.id AND se.status = 'AKTIF') as total_siswa,
@@ -401,7 +436,7 @@ def admin_dashboard():
     """).fetchall()
 
     pelatih_list = conn.execute("""
-    SELECT u.*, e.nama as nama_ekskul, e.icon as icon_ekskul 
+    SELECT u.*, e.nama as nama_ekskul, e.icon as icon_ekskul, e.hari_latihan, e.jam_latihan 
     FROM users u
     LEFT JOIN ekskul e ON u.ekskul_id = e.id
     WHERE u.role = 'pelatih'
@@ -409,11 +444,20 @@ def admin_dashboard():
     """).fetchall()
 
     siswa_list = conn.execute("""
-    SELECT u.*, e.nama as nama_ekskul, e.icon as icon_ekskul 
+    SELECT u.*, 
+           COALESCE(
+               (SELECT GROUP_CONCAT(e2.icon || ' ' || e2.nama, ', ')
+                FROM siswa_ekskul se2
+                JOIN ekskul e2 ON se2.ekskul_id = e2.id
+                WHERE se2.user_id = u.id AND se2.status = 'AKTIF'),
+               e.icon || ' ' || e.nama
+           ) as daftar_ekskul,
+           e.nama as nama_ekskul, 
+           e.icon as icon_ekskul 
     FROM users u
     LEFT JOIN ekskul e ON u.ekskul_id = e.id
     WHERE u.role = 'siswa'
-    ORDER BY e.nama ASC, u.kelas ASC, u.nama ASC
+    ORDER BY u.kelas ASC, u.nama ASC
     """).fetchall()
 
     lokasi = conn.execute("SELECT * FROM pengaturan_lokasi WHERE is_active = 1 LIMIT 1").fetchone()
@@ -422,15 +466,151 @@ def admin_dashboard():
     total_pelatih_count = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'pelatih'").fetchone()[0]
     total_sesi_count = conn.execute("SELECT COUNT(*) FROM sesi_latihan").fetchone()[0]
 
+    # Permohonan Reset Password Pending
+    reset_requests = conn.execute("""
+    SELECT r.*, u.nama as nama_user, u.role as role_user
+    FROM reset_password_requests r
+    LEFT JOIN users u ON r.user_id = u.id
+    WHERE r.status = 'PENDING'
+    ORDER BY r.created_at DESC
+    """).fetchall()
+
     conn.close()
     return render_template('admin_dashboard.html',
+                           current_admin=current_admin,
                            ekskul_list=ekskul_list,
                            pelatih_list=pelatih_list,
                            siswa_list=siswa_list,
                            lokasi=lokasi,
+                           total_ekskul=len(ekskul_list),
                            total_siswa=total_siswa_count,
                            total_pelatih=total_pelatih_count,
-                           total_sesi=total_sesi_count)
+                           total_sesi=total_sesi_count,
+                           reset_requests=reset_requests)
+
+@app.route('/admin/profil/update', methods=['POST'])
+@role_required('admin')
+def admin_profil_update():
+    """Ubah username, nama, dan password untuk Admin Master"""
+    admin_id = session.get('user_id')
+    nama = request.form.get('nama', '').strip()
+    username = request.form.get('username', '').strip()
+    password_baru = request.form.get('password_baru', '').strip()
+
+    if not nama or not username:
+        flash("Nama dan Username tidak boleh kosong.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    conn = get_db()
+    exist = conn.execute("SELECT id FROM users WHERE username = ? AND id != ?", (username, admin_id)).fetchone()
+    if exist:
+        conn.close()
+        flash(f"Username '{username}' sudah digunakan pengguna lain. Silakan pilih username berbeda.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    if password_baru:
+        conn.execute("UPDATE users SET nama = ?, username = ?, password = ? WHERE id = ?",
+                     (nama, username, password_baru, admin_id))
+        flash("Profil dan kata sandi Admin Master berhasil diperbarui!", "success")
+    else:
+        conn.execute("UPDATE users SET nama = ?, username = ? WHERE id = ?",
+                     (nama, username, admin_id))
+        flash("Profil Admin Master berhasil diperbarui!", "success")
+
+    conn.commit()
+    conn.close()
+
+    session['nama'] = nama
+    session['username'] = username
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/user/reset-password', methods=['POST'])
+@role_required('admin')
+def admin_reset_password():
+    """Reset password akun Pelatih atau Siswa"""
+    user_id = request.form.get('user_id')
+    new_password = request.form.get('new_password', '').strip()
+    request_id = request.form.get('request_id')
+
+    if not user_id:
+        flash("ID Pengguna tidak valid.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        flash("Akun pengguna tidak ditemukan.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    # Default password jika tidak diisi manual
+    if not new_password:
+        new_password = 'siswa123' if user['role'] == 'siswa' else 'pelatih123'
+
+    conn.execute("UPDATE users SET password = ? WHERE id = ?", (new_password, user_id))
+
+    if request_id:
+        conn.execute("UPDATE reset_password_requests SET status = 'SELESAI' WHERE id = ?", (request_id,))
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Kata sandi akun '{user['nama']}' ({user['username']}) berhasil direset menjadi: '{new_password}'", "success")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/reset-request/tolak/<int:req_id>', methods=['POST'])
+@role_required('admin')
+def admin_tolak_reset_request(req_id):
+    """Tolak permohonan reset password"""
+    conn = get_db()
+    conn.execute("UPDATE reset_password_requests SET status = 'DITOLAK' WHERE id = ?", (req_id,))
+    conn.commit()
+    conn.close()
+    flash("Permohonan reset password telah ditolak.", "info")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/siswa/delete/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def admin_delete_siswa(user_id):
+    """Hapus akun siswa yang duplikat/salah"""
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND role = 'siswa'", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        flash("Akun siswa tidak ditemukan.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    conn.execute("DELETE FROM siswa_ekskul WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM pengajuan_izin WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM presensi_siswa WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM reset_password_requests WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    conn.commit()
+    conn.close()
+    flash(f"Akun siswa '{user['nama']}' ({user['username']}) berhasil dihapus dari sistem.", "success")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/pelatih/delete/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def admin_delete_pelatih(user_id):
+    """Hapus akun pelatih"""
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND role = 'pelatih'", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        flash("Akun pelatih tidak ditemukan.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    if user['ekskul_id']:
+        conn.execute("UPDATE ekskul SET pelatih_nama = 'Belum Ada' WHERE id = ?", (user['ekskul_id'],))
+    conn.execute("DELETE FROM reset_password_requests WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    conn.commit()
+    conn.close()
+    flash(f"Akun pelatih '{user['nama']}' ({user['username']}) berhasil dihapus.", "success")
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/ekskul/tambah', methods=['POST'])
 @role_required('admin')

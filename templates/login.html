@@ -19,8 +19,11 @@
             </div>
 
             <div class="form-group">
-                <label for="password" class="form-label">Kata Sandi</label>
-                <input type="password" id="password" name="password" class="form-control" placeholder="Masukkan kata sandi..." required>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="password" class="form-label" style="margin-bottom: 0;">Kata Sandi</label>
+                    <a href="/lupa-password" style="font-size: 11px; color: var(--primary); text-decoration: none; font-weight: 600;">❓ Lupa Akun / Sandi?</a>
+                </div>
+                <input type="password" id="password" name="password" class="form-control" placeholder="Masukkan kata sandi..." required style="margin-top: 4px;">
             </div>
 
             <button type="submit" class="btn-submit" style="margin-top: 16px;">
@@ -30,6 +33,7 @@
 
         <div class="register-prompt">
             <p>Siswa baru belum memiliki akun? <a href="/register-siswa" class="link-bold">Daftar Akun Siswa & Pilih Ekskul</a></p>
+            <p style="margin-top: 6px;"><a href="/lupa-password" style="color: #64748B; font-size: 11.5px; text-decoration: none;">🔑 Lupa kata sandi atau akun? Klik untuk ajukan reset ke Admin</a></p>
         </div>
 
         <!-- Bantuan Akun Bawaan (Quick Demo Accounts) -->
