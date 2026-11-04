@@ -5,6 +5,19 @@
 {% block content %}
 <div class="screen-wrapper">
     <div class="page-title-box">
+        {% if session.get('role') == 'admin' %}
+        <div style="margin-bottom: 8px;">
+            <a href="/admin" class="btn-quick" style="text-decoration: none; font-size: 11.5px; padding: 5px 10px; background: #E2E8F0; color: #1E293B; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                ← Kembali ke Panel Admin Master
+            </a>
+        </div>
+        {% elif session.get('role') == 'pelatih' %}
+        <div style="margin-bottom: 8px;">
+            <a href="/pelatih" class="btn-quick" style="text-decoration: none; font-size: 11.5px; padding: 5px 10px; background: #E2E8F0; color: #1E293B; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                ← Kembali ke Dashboard Pelatih
+            </a>
+        </div>
+        {% endif %}
         <h1 class="page-heading">📊 Rekapitulasi Kehadiran Siswa</h1>
         <p class="page-subheading">Statistik akumulasi kehadiran seluruh siswa anggota per cabang ekstrakurikuler</p>
     </div>

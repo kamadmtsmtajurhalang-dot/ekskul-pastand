@@ -1013,6 +1013,118 @@ def export_csv(ekskul_id):
         headers={"Content-disposition": f"attachment; filename={nama_file}"}
     )
 
+# =========================================================
+# REKAPITULASI & RIWAYAT SESI LATIHAN (ADMIN & PELATIH)
+# =========================================================
+
+@app.route('/rekap')
+@app.route('/rekap/<int:ekskul_id>')
+@login_required
+def rekap(ekskul_id=None):
+    """Halaman Rekapitulasi Presensi Anggota Ekskul"""
+    conn = get_db()
+    ekskul_list = conn.execute("SELECT * FROM ekskul ORDER BY nama ASC").fetchall()
+
+    if not ekskul_list:
+        conn.close()
+        flash("Belum ada cabang ekstrakurikuler yang terdaftar.", "warning")
+        return redirect(url_for('index'))
+
+    # Ambil ekskul_id dari argumen query atau parameter rute atau ekskul pertama
+    if not ekskul_id:
+        ekskul_id = request.args.get('ekskul_id', type=int) or ekskul_list[0]['id']
+
+    ekskul = conn.execute("SELECT * FROM ekskul WHERE id = ?", (ekskul_id,)).fetchone()
+    if not ekskul:
+        ekskul = ekskul_list[0]
+        ekskul_id = ekskul['id']
+
+    rekap_siswa = conn.execute("""
+    SELECT u.id, u.nama, u.kelas, u.jenis_kelamin,
+           COUNT(ps.id) as total_sesi,
+           SUM(CASE WHEN ps.status_kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+           SUM(CASE WHEN ps.status_kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
+           SUM(CASE WHEN ps.status_kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+           SUM(CASE WHEN ps.status_kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa
+    FROM users u
+    LEFT JOIN siswa_ekskul se ON u.id = se.user_id AND se.status = 'AKTIF'
+    LEFT JOIN presensi_siswa ps ON u.id = ps.user_id AND ps.sesi_id IN (SELECT id FROM sesi_latihan WHERE ekskul_id = ?)
+    WHERE (se.ekskul_id = ? OR u.ekskul_id = ?) AND u.role = 'siswa'
+    GROUP BY u.id
+    ORDER BY u.kelas ASC, u.nama ASC
+    """, (ekskul_id, ekskul_id, ekskul_id)).fetchall()
+
+    total_latihan = conn.execute("SELECT COUNT(*) FROM sesi_latihan WHERE ekskul_id = ?", (ekskul_id,)).fetchone()[0]
+    conn.close()
+
+    return render_template('rekap.html',
+                           ekskul=ekskul,
+                           ekskul_list=ekskul_list,
+                           rekap_siswa=rekap_siswa,
+                           total_latihan=total_latihan)
+
+@app.route('/riwayat')
+@login_required
+def riwayat():
+    """Daftar riwayat sesi latihan ekstrakurikuler"""
+    ekskul_id = request.args.get('ekskul_id', type=int)
+    conn = get_db()
+
+    query = """
+    SELECT s.*, e.nama as nama_ekskul, e.icon as icon_ekskul,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Izin') as total_izin,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Sakit') as total_sakit,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Alpa') as total_alpa,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
+    FROM sesi_latihan s
+    JOIN ekskul e ON s.ekskul_id = e.id
+    """
+    params = []
+    if ekskul_id:
+        query += " WHERE s.ekskul_id = ?"
+        params.append(ekskul_id)
+
+    query += " ORDER BY s.tanggal DESC, s.jam_mulai DESC LIMIT 50"
+
+    sesi_list = conn.execute(query, params).fetchall()
+    ekskul_list = conn.execute("SELECT * FROM ekskul ORDER BY nama ASC").fetchall()
+    conn.close()
+
+    return render_template('riwayat.html',
+                           sesi_list=sesi_list,
+                           ekskul_list=ekskul_list,
+                           selected_ekskul=ekskul_id)
+
+@app.route('/riwayat/<int:sesi_id>')
+@app.route('/sesi/<int:sesi_id>')
+@login_required
+def detail_sesi(sesi_id):
+    """Detail satu sesi latihan beserta daftar presensi siswa"""
+    conn = get_db()
+    sesi = conn.execute("""
+    SELECT s.*, e.nama as nama_ekskul, e.icon as icon_ekskul, e.kategori
+    FROM sesi_latihan s
+    JOIN ekskul e ON s.ekskul_id = e.id
+    WHERE s.id = ?
+    """, (sesi_id,)).fetchone()
+
+    if not sesi:
+        conn.close()
+        flash("Sesi latihan tidak ditemukan.", "warning")
+        return redirect(url_for('riwayat'))
+
+    presensi = conn.execute("""
+    SELECT ps.*, u.nama, u.kelas, u.jenis_kelamin
+    FROM presensi_siswa ps
+    JOIN users u ON ps.user_id = u.id
+    WHERE ps.sesi_id = ?
+    ORDER BY u.kelas ASC, u.nama ASC
+    """, (sesi_id,)).fetchall()
+
+    conn.close()
+    return render_template('detail_sesi.html', sesi=sesi, presensi=presensi)
+
 if __name__ == '__main__':
     print("Memulai Server Presensi Ekskul Multi-Role MTs Muhammadiyah Tajurhalang...")
     app.run(host='0.0.0.0', port=5000, debug=False)

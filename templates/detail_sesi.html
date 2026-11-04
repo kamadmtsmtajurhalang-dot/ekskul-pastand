@@ -5,7 +5,12 @@
 {% block content %}
 <div class="screen-wrapper">
     <div class="page-title-box">
-        <a href="/riwayat" class="back-link">← Kembali ke Riwayat</a>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+            <a href="/riwayat" class="back-link" style="text-decoration: none; font-size: 11.5px; padding: 5px 10px; background: #E2E8F0; color: #1E293B; border-radius: 6px;">← Kembali ke Riwayat</a>
+            {% if session.get('role') == 'admin' %}
+            <a href="/admin" class="back-link" style="text-decoration: none; font-size: 11.5px; padding: 5px 10px; background: #E2E8F0; color: #1E293B; border-radius: 6px;">← Panel Admin</a>
+            {% endif %}
+        </div>
         <h1 class="page-heading">{{ sesi.icon_ekskul }} Detail Sesi {{ sesi.nama_ekskul }}</h1>
         <p class="page-subheading">{{ sesi.tanggal }} | Jam: {{ sesi.jam_mulai }} WIB | Pelatih: <b>{{ sesi.nama_pelatih }}</b></p>
     </div>
