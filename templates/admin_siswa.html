@@ -18,10 +18,15 @@
                 Kelola basis data siswa, hapus akun duplikat/salah, reset sandi siswa, dan impor data massal dari file CSV.
             </p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
             <a href="/admin/template-csv" class="btn-action-pill" style="background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.25); text-decoration: none; padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
                 📥 Unduh Template CSV
             </a>
+            {% if siswa_list and siswa_list|length > 0 %}
+            <button type="button" class="btn-action-pill" onclick="openModalDeleteAllSiswa()" style="background: #EF4444; color: white; border: 1px solid #DC2626; padding: 7px 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="Hapus semua data siswa sekaligus">
+                🗑️ Hapus Semua Siswa ({{ siswa_list|length }})
+            </button>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -69,8 +74,14 @@
             </p>
         </div>
 
-        <!-- Filter Tools -->
+        <!-- Filter & Action Tools -->
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            {% if siswa_list and siswa_list|length > 0 %}
+            <button type="button" class="btn-action-pill" onclick="openModalDeleteAllSiswa()" style="background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5; padding: 7px 11px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Opsi hapus semua data siswa sekaligus">
+                🗑️ Hapus Semua Siswa
+            </button>
+            {% endif %}
+
             <!-- Filter Kelas -->
             <select id="filterKelas" onchange="filterSiswaTable()" class="form-control" style="width: auto; padding: 7px 10px; font-size: 12px;">
                 <option value="">Semua Tingkat Kelas</option>
@@ -152,6 +163,49 @@
         </table>
     </div>
 </div>
+
+<!-- =========================================================
+     MODAL KONFIRMASI HAPUS SELURUH DATA SISWA (BULK DELETE)
+     ========================================================= -->
+<div id="modalDeleteAllSiswa" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md" style="border-top: 4px solid #DC2626;">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: #991B1B;">
+                ⚠️ Konfirmasi Hapus Seluruh Data Siswa
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalDeleteAllSiswa()">&times;</button>
+        </div>
+        
+        <div style="padding: 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; margin: 14px 0 16px 0;">
+            <p style="font-size: 13px; color: #991B1B; margin: 0 0 8px 0; font-weight: 800;">
+                🚨 Peringatan Penting: Tindakan ini bersifat PERMANEN!
+            </p>
+            <ul style="font-size: 12px; color: #B91C1C; margin: 0; padding-left: 18px; line-height: 1.6;">
+                <li>Seluruh data master siswa (total <b>{{ siswa_list|length }} akun siswa</b>) akan dihapus secara menyeluruh.</li>
+                <li>Seluruh riwayat presensi kehadiran dan pengajuan izin latihan siswa akan terhapus.</li>
+                <li>Data relasi cabang ekskul yang diikuti siswa akan dibersihkan.</li>
+                <li><b>Akun Pelatih dan Admin Master TIDAK AKAN terhapus.</b></li>
+            </ul>
+        </div>
+
+        <form action="/admin/siswa/delete-all" method="POST" onsubmit="return validateDeleteAllConfirmation();">
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 700; color: #0F172A;">
+                    Ketik teks konfirmasi <span style="color: #DC2626; font-family: monospace; font-size: 13.5px; background: #FEE2E2; padding: 2px 6px; border-radius: 4px;">HAPUS SEMUA</span> di bawah:
+                </label>
+                <input type="text" id="confirmDeleteAllInput" class="form-control" placeholder="Ketik HAPUS SEMUA" autocomplete="off" required style="border-color: #F87171;">
+                <small style="color: #64748B;">Langkah ini untuk memastikan Anda tidak menekan tombol secara tidak sengaja.</small>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalDeleteAllSiswa()">Batal</button>
+                <button type="submit" id="btnSubmitDeleteAll" class="btn-modal-primary" style="flex: 2; background: #DC2626; border-color: #B91C1C; color: white;">
+                    🗑️ Ya, Hapus Semua Siswa
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block admin_scripts %}
@@ -178,5 +232,38 @@ function filterSiswaTable() {
         }
     }
 }
+
+// Modal Konfirmasi Hapus Semua Siswa
+function openModalDeleteAllSiswa() {
+    const input = document.getElementById('confirmDeleteAllInput');
+    if (input) input.value = '';
+    const modal = document.getElementById('modalDeleteAllSiswa');
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => input && input.focus(), 100);
+    }
+}
+
+function closeModalDeleteAllSiswa() {
+    const modal = document.getElementById('modalDeleteAllSiswa');
+    if (modal) modal.style.display = 'none';
+}
+
+function validateDeleteAllConfirmation() {
+    const val = (document.getElementById('confirmDeleteAllInput').value || '').trim();
+    if (val !== 'HAPUS SEMUA') {
+        alert('Konfirmasi gagal: Silakan ketik kata "HAPUS SEMUA" (huruf kapital) untuk melanjutkan penghapusan seluruh data siswa.');
+        return false;
+    }
+    return confirm('Peringatan Terakhir: Apakah Anda benar-benar yakin ingin menghapus seluruh data siswa? Tindakan ini tidak dapat dibatalkan.');
+}
+
+// Tutup modal jika klik di luar kotak modal
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('modalDeleteAllSiswa');
+    if (modal && e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
 </script>
 {% endblock %}
