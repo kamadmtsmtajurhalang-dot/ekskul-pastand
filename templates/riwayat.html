@@ -6,19 +6,23 @@
 <div class="screen-wrapper">
     <!-- Header Page -->
     <div class="page-title-box">
-        {% if session.get('role') == 'admin' %}
-        <div style="margin-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+            {% if session.get('role') == 'admin' %}
             <a href="/admin" class="btn-quick" style="text-decoration: none; font-size: 11.5px; padding: 5px 10px; background: #E2E8F0; color: #1E293B; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
                 ← Kembali ke Panel Admin Master
             </a>
-        </div>
-        {% elif session.get('role') == 'pelatih' %}
-        <div style="margin-bottom: 8px;">
+            {% elif session.get('role') == 'pelatih' %}
             <a href="/pelatih" class="btn-quick" style="text-decoration: none; font-size: 11.5px; padding: 5px 10px; background: #E2E8F0; color: #1E293B; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
                 ← Kembali ke Dashboard Pelatih
             </a>
+            {% endif %}
+
+            {% if session.get('role') == 'admin' and sesi_list and sesi_list|length > 0 %}
+            <button type="button" class="btn-action-pill" onclick="openModalDeleteAllSesi()" style="background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Hapus seluruh riwayat sesi latihan">
+                🗑️ Hapus Semua Riwayat Sesi ({{ sesi_list|length }})
+            </button>
+            {% endif %}
         </div>
-        {% endif %}
         <h1 class="page-heading">📋 Riwayat Sesi Latihan</h1>
         <p class="page-subheading">Daftar rekapitulasi sesi pelatihan ekstrakurikuler yang telah dilaksanakan</p>
     </div>
@@ -82,9 +86,16 @@
             <p class="session-note"><i>"{{ s.catatan }}"</i></p>
             {% endif %}
 
-            <div class="session-actions">
-                <a href="/riwayat/{{ s.id }}" class="btn-card-action btn-detail">🔎 Detail Siswa</a>
-                <a href="/cetak/{{ s.id }}" target="_blank" class="btn-card-action btn-print">🖨️ Cetak Lembar</a>
+            <div class="session-actions" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <a href="/riwayat/{{ s.id }}" class="btn-card-action btn-detail" style="flex: 1; text-align: center;">🔎 Detail Siswa</a>
+                <a href="/cetak/{{ s.id }}" target="_blank" class="btn-card-action btn-print" style="flex: 1; text-align: center;">🖨️ Cetak Lembar</a>
+                {% if session.get('role') == 'admin' %}
+                <form action="/admin/sesi/delete/{{ s.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('Hapus sesi latihan {{ s.nama_ekskul }} tanggal {{ s.tanggal }}? Riwayat kehadiran sesi ini akan ikut terhapus.');">
+                    <button type="submit" class="btn-card-action" style="background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5; padding: 7px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer;" title="Hapus sesi latihan ini">
+                        🗑️ Hapus
+                    </button>
+                </form>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -98,4 +109,81 @@
     </div>
     {% endif %}
 </div>
+
+<!-- =========================================================
+     MODAL KONFIRMASI HAPUS SEMUA RIWAYAT SESI (BULK DELETE)
+     ========================================================= -->
+<div id="modalDeleteAllSesi" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md" style="border-top: 4px solid #DC2626;">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: #991B1B;">
+                ⚠️ Konfirmasi Hapus Seluruh Riwayat Sesi
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalDeleteAllSesi()">&times;</button>
+        </div>
+        
+        <div style="padding: 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; margin: 14px 0 16px 0;">
+            <p style="font-size: 13px; color: #991B1B; margin: 0 0 8px 0; font-weight: 800;">
+                🚨 Peringatan Penting: Tindakan ini bersifat PERMANEN!
+            </p>
+            <ul style="font-size: 12px; color: #B91C1C; margin: 0; padding-left: 18px; line-height: 1.6;">
+                <li>Seluruh catatan riwayat sesi pelatihan ekstrakurikuler akan dihapus bersih.</li>
+                <li>Seluruh data log presensi kehadiran siswa per sesi akan ikut terhapus.</li>
+                <li><b>Akun Siswa, Pelatih, dan Admin Master TIDAK AKAN terhapus.</b></li>
+            </ul>
+        </div>
+
+        <form action="/admin/sesi/delete-all" method="POST" onsubmit="return validateDeleteAllSesiConfirmation();">
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 700; color: #0F172A;">
+                    Ketik teks konfirmasi <span style="color: #DC2626; font-family: monospace; font-size: 13.5px; background: #FEE2E2; padding: 2px 6px; border-radius: 4px;">HAPUS SESI</span> di bawah:
+                </label>
+                <input type="text" id="confirmDeleteAllSesiInput" class="form-control" placeholder="Ketik HAPUS SESI" autocomplete="off" required style="border-color: #F87171;">
+                <small style="color: #64748B;">Langkah ini untuk memastikan Anda tidak menekan tombol secara tidak sengaja.</small>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalDeleteAllSesi()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2; background: #DC2626; border-color: #B91C1C; color: white;">
+                    🗑️ Ya, Hapus Semua Riwayat Sesi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModalDeleteAllSesi() {
+    const input = document.getElementById('confirmDeleteAllSesiInput');
+    if (input) input.value = '';
+    const modal = document.getElementById('modalDeleteAllSesi');
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => input && input.focus(), 100);
+    }
+}
+
+function closeModalDeleteAllSesi() {
+    const modal = document.getElementById('modalDeleteAllSesi');
+    if (modal) modal.style.display = 'none';
+}
+
+function validateDeleteAllSesiConfirmation() {
+    const val = (document.getElementById('confirmDeleteAllSesiInput').value || '').trim();
+    if (val !== 'HAPUS SESI') {
+        alert('Konfirmasi gagal: Silakan ketik kata "HAPUS SESI" (huruf kapital) untuk melanjutkan penghapusan seluruh riwayat sesi latihan.');
+        return false;
+    }
+    return confirm('Peringatan Terakhir: Apakah Anda benar-benar yakin ingin menghapus seluruh riwayat sesi latihan? Tindakan ini tidak dapat dibatalkan.');
+}
+
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('modalDeleteAllSesi');
+    if (modal && e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+</script>
 {% endblock %}

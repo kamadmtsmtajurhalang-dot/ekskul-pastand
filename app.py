@@ -704,6 +704,56 @@ def admin_delete_pelatih(user_id):
     flash(f"Akun pelatih '{user['nama']}' ({user['username']}) berhasil dihapus.", "success")
     return redirect(url_for('admin_pelatih'))
 
+@app.route('/admin/sesi/delete/<int:sesi_id>', methods=['POST'])
+@role_required('admin')
+def admin_delete_sesi(sesi_id):
+    """Hapus satu sesi latihan beserta data presensinya (Admin Master)"""
+    conn = get_db()
+    sesi = conn.execute("""
+    SELECT s.*, e.nama as nama_ekskul
+    FROM sesi_latihan s
+    JOIN ekskul e ON s.ekskul_id = e.id
+    WHERE s.id = ?
+    """, (sesi_id,)).fetchone()
+
+    if not sesi:
+        conn.close()
+        flash("Sesi latihan tidak ditemukan.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    conn.execute("DELETE FROM presensi_siswa WHERE sesi_id = ?", (sesi_id,))
+    conn.execute("DELETE FROM sesi_latihan WHERE id = ?", (sesi_id,))
+    conn.commit()
+    conn.close()
+
+    flash(f"Sesi latihan '{sesi['nama_ekskul']}' tanggal {sesi['tanggal']} berhasil dihapus dari sistem.", "success")
+    
+    referer = request.referrer or ''
+    if '/sesi/' in referer or f'/riwayat/{sesi_id}' in referer:
+        return redirect(url_for('riwayat'))
+    return redirect(referer or url_for('admin_dashboard'))
+
+@app.route('/admin/sesi/delete-all', methods=['POST'])
+@role_required('admin')
+def admin_delete_all_sesi():
+    """Hapus seluruh riwayat sesi latihan beserta data presensinya (Bulk Delete)"""
+    conn = get_db()
+    count_row = conn.execute("SELECT COUNT(*) FROM sesi_latihan").fetchone()
+    total_sesi = count_row[0] if count_row else 0
+
+    if total_sesi == 0:
+        conn.close()
+        flash("Tidak ada riwayat sesi latihan yang dapat dihapus.", "warning")
+        return redirect(request.referrer or url_for('admin_dashboard'))
+
+    conn.execute("DELETE FROM presensi_siswa")
+    conn.execute("DELETE FROM sesi_latihan")
+    conn.commit()
+    conn.close()
+
+    flash(f"Berhasil! Seluruh riwayat sesi latihan ({total_sesi} sesi) beserta data presensinya telah dihapus dari sistem.", "success")
+    return redirect(request.referrer or url_for('admin_dashboard'))
+
 @app.route('/admin/ekskul/tambah', methods=['POST'])
 @role_required('admin')
 def admin_tambah_ekskul():

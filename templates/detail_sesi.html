@@ -39,8 +39,15 @@
             <p class="meta-desc"><i>"{{ sesi.catatan }}"</i></p>
         </div>
         {% endif %}
-        <div style="margin-top: 12px;">
+        <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
             <a href="/cetak/{{ sesi.id }}" target="_blank" class="btn-print-banner">🖨️ Cetak Lembar Presensi Resmi</a>
+            {% if session.get('role') == 'admin' %}
+            <form action="/admin/sesi/delete/{{ sesi.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('Hapus sesi latihan ini secara permanen? Data riwayat kehadiran sesi ini akan ikut terhapus.');">
+                <button type="submit" class="btn-print-banner" style="background: #DC2626; border-color: #B91C1C; color: white; cursor: pointer;">
+                    🗑️ Hapus Sesi Ini
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
 
