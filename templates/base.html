@@ -24,7 +24,7 @@
 <body>
     <!-- Top Header -->
     <header class="app-header">
-        <div class="header-container {% if session.get('role') == 'admin' %}header-admin{% endif %}">
+        <div class="header-container {% if session.get('role') in ['admin', 'pelatih'] %}header-admin{% endif %}">
             <a href="/" class="brand-link">
                 <img src="/static/logo-mtsm.png" alt="Logo MTs Muhammadiyah Tajurhalang" class="brand-logo" width="38" height="38" style="width: 38px !important; height: 38px !important; max-width: 38px !important; max-height: 38px !important; object-fit: contain; flex-shrink: 0;">
                 <div class="brand-text">
@@ -44,7 +44,7 @@
                         {% endif %}
                     </span>
                 </div>
-                <a href="/logout" class="btn-logout" title="Keluar">🚪 Keluar</a>
+                <a href="/logout" class="btn-logout" title="Keluar" onclick="return confirm('Apakah Anda yakin ingin keluar dari akun?');">🚪 Keluar</a>
             </div>
             {% else %}
             <div class="header-clock" id="liveClock">--:-- WIB</div>
@@ -68,7 +68,7 @@
     </div>
 
     <!-- Main Container -->
-    <main class="main-container {% if session.get('role') == 'admin' %}main-admin{% endif %}">
+    <main class="main-container {% if session.get('role') in ['admin', 'pelatih'] %}main-admin{% endif %}">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

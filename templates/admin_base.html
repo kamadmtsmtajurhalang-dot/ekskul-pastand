@@ -45,7 +45,7 @@
                 <span>📋 Riwayat Sesi</span>
             </a>
 
-            <a href="/logout" class="sidebar-nav-item logout-item" title="Keluar dari akun Admin">
+            <a href="/logout" class="sidebar-nav-item logout-item" title="Keluar dari akun Admin" onclick="return confirm('Apakah Anda yakin ingin keluar dari akun Admin Master?');">
                 <span>🚪 Keluar Akun</span>
             </a>
         </nav>
@@ -89,6 +89,33 @@
         {% block admin_content %}{% endblock %}
     </section>
 </div>
+
+<!-- Mobile Bottom Navigation Bar for Admin Master (Thumb Zone) -->
+<nav class="mobile-bottom-nav">
+    <a href="/admin" class="bottom-nav-item {% if active_menu == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+        {% if reset_requests and reset_requests|length > 0 %}
+        <span class="nav-badge-dot" title="{{ reset_requests|length }} Permohonan Reset"></span>
+        {% endif %}
+    </a>
+    <a href="/admin/pelatih" class="bottom-nav-item {% if active_menu == 'pelatih' %}active{% endif %}">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Pelatih</span>
+    </a>
+    <a href="/admin/siswa" class="bottom-nav-item {% if active_menu == 'siswa' %}active{% endif %}">
+        <span class="nav-icon">🎒</span>
+        <span class="nav-label">Siswa</span>
+    </a>
+    <a href="/admin/ekskul-gps" class="bottom-nav-item {% if active_menu == 'ekskul_gps' %}active{% endif %}">
+        <span class="nav-icon">📍</span>
+        <span class="nav-label">Ekskul</span>
+    </a>
+    <button type="button" class="bottom-nav-item bottom-nav-btn" onclick="toggleAdminSidebar()" aria-label="Buka Menu Lengkap">
+        <span class="nav-icon">☰</span>
+        <span class="nav-label">Lainnya</span>
+    </button>
+</nav>
 
 <!-- =========================================================
      MODAL 1: PROFIL ADMIN MASTER (UBAH USERNAME & PASSWORD)
@@ -169,6 +196,12 @@ function toggleAdminSidebar() {
 
 // Modal Profil Admin Master
 function openModalProfilAdmin() {
+    const sidebar = document.getElementById('adminSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+    }
     document.getElementById('modalProfilAdmin').style.display = 'flex';
 }
 function closeModalProfilAdmin() {
@@ -177,6 +210,12 @@ function closeModalProfilAdmin() {
 
 // Modal Reset Password
 function openModalReset(userId, nama, username, role, requestId = '') {
+    const sidebar = document.getElementById('adminSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+    }
     document.getElementById('resetUserId').value = userId;
     document.getElementById('resetRequestId').value = requestId;
     document.getElementById('resetTargetNama').innerText = nama;
@@ -190,7 +229,7 @@ function closeModalReset() {
     document.getElementById('modalResetPassword').style.display = 'none';
 }
 
-// Tutup modal jika klik di luar box modal
+// Tutup modal jika klik di luar box modal atau tekan Escape
 window.addEventListener('click', function(e) {
     ['modalProfilAdmin', 'modalResetPassword'].forEach(id => {
         const modal = document.getElementById(id);
@@ -198,6 +237,19 @@ window.addEventListener('click', function(e) {
             modal.style.display = 'none';
         }
     });
+});
+
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModalProfilAdmin();
+        closeModalReset();
+        const sidebar = document.getElementById('adminSidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        if (sidebar && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('open');
+        }
+    }
 });
 </script>
 {% block admin_scripts %}{% endblock %}

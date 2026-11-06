@@ -5,8 +5,17 @@
 {% block pelatih_content %}
 <div class="screen-wrapper" style="max-width: 100%;">
     <div class="page-title-box">
-        <h1 class="page-heading">📋 Riwayat Sesi Latihan {{ ekskul.nama }}</h1>
-        <p class="page-subheading">Daftar arsip sesi pelatihan dan cetak lembar presensi resmi kegiatan ekstrakurikuler.</p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h1 class="page-heading">📋 Riwayat Sesi Latihan & Cetak — {{ ekskul.nama }}</h1>
+                <p class="page-subheading">Daftar arsip sesi pelatihan, cetak lembar presensi resmi, dan unduh laporan ke format MS Excel.</p>
+            </div>
+            <div>
+                <a href="/export-csv/{{ ekskul.id }}" class="btn-submit" style="text-decoration: none; width: auto; padding: 9px 16px; font-size: 12.5px; font-weight: 700; background: #059669; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px;">
+                    📥 Unduh Laporan (MS Excel)
+                </a>
+            </div>
+        </div>
     </div>
 
     {% if sesi_list and sesi_list|length > 0 %}

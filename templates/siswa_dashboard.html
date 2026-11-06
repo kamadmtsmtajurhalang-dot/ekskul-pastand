@@ -35,6 +35,27 @@
         </div>
     </div>
 
+    <!-- Pengumuman & Pengingat dari Pelatih Ekskul -->
+    {% if pengumuman_list and pengumuman_list|length > 0 %}
+    <div class="card" style="background: #EFF6FF; border: 1.5px solid #93C5FD; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 20px;">📣</span>
+            <strong style="color: #1E40AF; font-size: 13.5px;">Pemberitahuan & Pengingat dari Pelatih</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            {% for p in pengumuman_list %}
+            <div style="background: white; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 12px; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                    <span style="font-weight: 800; color: #1E3A8A;">{{ p.nama_pengirim or 'Pelatih' }} &bull; {{ p.nama_ekskul or '' }}</span>
+                    <span style="font-size: 10.5px; color: #64748B;">{{ p.created_at }}</span>
+                </div>
+                <div style="color: #334155; line-height: 1.4;">{{ p.isi }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Alert jika Siswa Sedang Menunggu Persetujuan Pelatih -->
     {% if ekskul_menunggu and ekskul_menunggu|length > 0 %}
     <div class="card" style="background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;">
@@ -52,7 +73,7 @@
 
     <!-- 1. Statistik Kehadiran Pribadi -->
     <div class="card stat-card" style="margin-bottom: 14px;">
-        <h2 class="card-title">📊 Statistik Kehadiran Pribadi Anda</h2>
+        <h2 class="card-title">📊 Statistik Kehadiran</h2>
         <div class="summary-pill-box" style="margin-top: 10px;">
             <div class="summary-pill pill-hadir">Hadir: <b>{{ statistik.hadir or 0 }}</b></div>
             <div class="summary-pill pill-izin">Izin: <b>{{ statistik.izin or 0 }}</b></div>
@@ -64,8 +85,8 @@
     <!-- Rapor & Evaluasi Bulanan dari Pelatih -->
     <div class="card stat-card" style="margin-bottom: 14px; border-left: 4px solid #10B981;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <h2 class="card-title" style="margin: 0;">📈 Rapor Perkembangan & Evaluasi Bulanan dari Pelatih</h2>
-            <span style="font-size: 11px; color: #64748B;">Nilai skor & catatan kecakapan skill</span>
+            <h2 class="card-title" style="margin: 0;">📈 Evaluasi Bulanan Pelatih</h2>
+            <span style="font-size: 11px; color: #64748B;">Nilai skor & catatan kecakapan</span>
         </div>
 
         {% if rapor_bulanan and rapor_bulanan|length > 0 %}
@@ -116,8 +137,8 @@
 
     <!-- 2. Form Pra-Presensi Sebelum Latihan (Akan Hadir / Izin / Sakit) -->
     <div class="card form-card" style="border-left: 4px solid var(--primary); margin-bottom: 14px;">
-        <h2 class="card-title">📣 Konfirmasi Sebelum Latihan Dimulai</h2>
-        <p class="card-desc">Beritahukan kepada Pelatih apakah kamu akan hadir, izin, atau sakit sebelum jam latihan.</p>
+        <h2 class="card-title">📣 Konfirmasi Pra-Latihan</h2>
+        <p class="card-desc">Kirim pemberitahuan kehadiran, izin, atau sakit sebelum jadwal latihan dimulai.</p>
 
         {% if not ekskul_diikuti or ekskul_diikuti|length == 0 %}
         <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; text-align: center; color: #64748B; font-size: 12.5px; margin-top: 12px;">
@@ -181,7 +202,7 @@
             </div>
 
             <button type="submit" class="btn-submit" style="margin-top: 14px;">
-                📨 Kirim Konfirmasi ke Pelatih
+                Kirim Konfirmasi Kehadiran
             </button>
         </form>
         {% endif %}
@@ -189,7 +210,7 @@
 
     <!-- 3. Riwayat Status Pengajuan Siswa -->
     <div class="card table-card" style="margin-bottom: 14px;">
-        <h2 class="card-title">📋 Riwayat Konfirmasi & Status Persetujuan Pelatih</h2>
+        <h2 class="card-title">📋 Riwayat Konfirmasi Kehadiran</h2>
         {% if riwayat_pengajuan %}
         <div class="pre-history-list" style="margin-top: 10px;">
             {% for r in riwayat_pengajuan %}
@@ -227,8 +248,8 @@
 
     <!-- 4. Ubah / Pilih Cabang Ekskul -->
     <div class="card form-card">
-        <h2 class="card-title">⚙️ Ganti / Pilih Cabang Ekstrakurikuler</h2>
-        <p class="card-desc">Pilihan cabang ekstrakurikuler baru akan dikirimkan ke Pelatih untuk disetujui terlebih dahulu.</p>
+        <h2 class="card-title">⚙️ Pilihan Cabang Ekstrakurikuler</h2>
+        <p class="card-desc">Pilihan cabang baru akan dikirimkan ke Pelatih untuk persetujuan terlebih dahulu.</p>
 
         <form action="/siswa/ekskul/pilih" method="POST" style="margin-top: 8px;">
             <div class="form-group">
@@ -242,7 +263,7 @@
                 </select>
             </div>
             <button type="submit" class="btn-card-action btn-detail" style="border: none; width: 100%; margin-top: 10px;">
-                🔄 Kirim Permohonan Pilihan Ekskul ke Pelatih
+                Kirim Permohonan Pilihan Ekskul
             </button>
         </form>
     </div>

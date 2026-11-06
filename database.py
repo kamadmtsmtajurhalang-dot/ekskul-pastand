@@ -203,6 +203,22 @@ def init_db():
     )
     """)
 
+    # 12. Tabel Pengumuman & Informasi Pengingat (Admin & Pelatih)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS pengumuman (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipe TEXT NOT NULL, -- 'admin' atau 'pelatih'
+        pengirim_id INTEGER NOT NULL,
+        ekskul_id INTEGER,  -- NULL jika untuk seluruh ekskul
+        judul TEXT,
+        isi TEXT NOT NULL,
+        target_role TEXT DEFAULT 'siswa', -- 'pelatih', 'siswa', 'semua'
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (pengirim_id) REFERENCES users(id),
+        FOREIGN KEY (ekskul_id) REFERENCES ekskul(id)
+    )
+    """)
+
     conn.commit()
 
     # Migrasi data relasi pelatih ke tabel pelatih_ekskul

@@ -1,280 +1,264 @@
 {% extends 'pelatih_base.html' %}
 
-{% block title %}Presensi {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+{% block title %}Dashboard Pelatih — {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
 
 {% block pelatih_content %}
 <div class="screen-wrapper" style="max-width: 100%;">
-    <!-- Alert Pendaftaran Siswa Menunggu Persetujuan jika ada -->
-    {% if total_pending and total_pending > 0 %}
-    <div class="card" style="padding: 12px 16px; margin-bottom: 14px; background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 26px;">👥</span>
-            <div>
-                <strong style="color: #92400E; font-size: 13.5px;">Ada {{ total_pending }} Calon Siswa Menunggu Persetujuan!</strong>
-                <p style="margin: 2px 0 0 0; font-size: 12px; color: #78350F;">Siswa harus disetujui terlebih dahulu agar resmi masuk ke presensi latihan.</p>
-            </div>
-        </div>
-        <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="btn-approve" style="text-decoration: none; padding: 7px 16px; font-size: 12.5px; font-weight: 800; border-radius: 8px;">
-            Tinjau Pendaftaran Siswa →
-        </a>
-    </div>
-    {% endif %}
-
-    <!-- Alert Permohonan Izin / Sakit Menunggu Respon jika ada -->
-    {% if total_izin and total_izin > 0 %}
-    <div class="card" style="padding: 12px 16px; margin-bottom: 14px; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 26px;">📬</span>
-            <div>
-                <strong style="color: #92400E; font-size: 13.5px;">Ada {{ total_izin }} Permohonan Izin/Sakit Siswa Menunggu Persetujuan!</strong>
-                <p style="margin: 2px 0 0 0; font-size: 12px; color: #78350F;">Siswa mengajukan izin tidak latihan. Berikan persetujuan agar otomatis tercatat di presensi.</p>
-            </div>
-        </div>
-        <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" class="btn-approve" style="text-decoration: none; padding: 7px 16px; font-size: 12.5px; font-weight: 800; border-radius: 8px; background: #D97706; color: white;">
-            Tinjau Permohonan Izin →
-        </a>
-    </div>
-    {% endif %}
-
-    <!-- 1. Header Card Khusus Ekskul Pelatih (Clean UI) -->
-    <div class="card coach-hero-card" style="margin-bottom: 14px;">
+    <!-- 1. Coach Hero Welcome Header -->
+    <div class="card coach-hero-card" style="margin-bottom: 18px; border-left: 5px solid #1E3A8A;">
         <div class="coach-hero-header">
             <div class="coach-hero-title">
                 <span class="coach-hero-icon">{{ ekskul.icon }}</span>
                 <div>
                     <span class="badge-tag tag-blue">{{ ekskul.kategori }}</span>
-                    <h1 class="coach-hero-name" style="font-size: 20px;">{{ ekskul.nama }}</h1>
-                    <p class="coach-hero-sub">Pelatih: <b>{{ user.nama }}</b></p>
+                    <h1 class="coach-hero-name" style="font-size: 20px; margin: 3px 0;">{{ ekskul.nama }}</h1>
+                    <p class="coach-hero-sub" style="margin: 0;">
+                        Selamat datang, <b>{{ user.nama }}</b> &bull; MTs Muhammadiyah Tajurhalang
+                    </p>
                 </div>
             </div>
-            <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" class="btn-edit-schedule" style="text-decoration: none;">
-                ✏️ Ubah Jadwal
-            </a>
-        </div>
-
-        <div class="schedule-badge-row">
-            <div class="schedule-item">
-                <span class="sch-label">📅 Hari Latihan:</span>
-                <span class="sch-val">{{ ekskul.hari_latihan or 'Belum disetel' }}</span>
-            </div>
-            <div class="schedule-item">
-                <span class="sch-label">⏰ Jam Latihan:</span>
-                <span class="sch-val">{{ ekskul.jam_latihan or 'Belum disetel' }} WIB</span>
-            </div>
-            <div class="schedule-item">
-                <span class="sch-label">👥 Total Anggota Resmi:</span>
-                <span class="sch-val"><b>{{ siswa_list|length }}</b> Siswa</span>
+            <div style="text-align: right; font-size: 11.5px; color: #475569;">
+                <div style="font-weight: 700; color: #1E3A8A;">📅 {{ today_formatted }}</div>
+                <div id="liveClockPelatih" style="font-weight: 800; font-size: 13px; color: #0F172A; margin-top: 2px;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Kotak Konfirmasi Izin/Sakit Siswa Hari Ini (Pra-Presensi) -->
-    {% if pengajuan_izin and pengajuan_izin|length > 0 %}
-    <div class="card" style="margin-bottom: 14px; border-left: 4px solid #F59E0B;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+    <!-- 2. Shortcut Utama 1 & 2: Presensi Latihan Hari Ini & Jadwal Ekskul (Grid 2 Kolom) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 18px;">
+        <!-- FITUR SHORTCUT 4: LINK PRESENSI LATIHAN HARI INI -->
+        <div class="card" style="margin: 0; background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 1.5px solid #93C5FD; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-                <h3 style="font-size: 14px; font-weight: 800; color: #0F172A; margin: 0;">📬 Konfirmasi Izin Siswa Hari Ini ({{ today_str }})</h3>
-                <p style="font-size: 11.5px; color: #64748B; margin: 2px 0 0 0;">Izin yang disetujui otomatis mencentang status Izin/Sakit pada form presensi di bawah.</p>
-            </div>
-            <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" style="font-size: 12px; font-weight: 700; color: #1E40AF; text-decoration: none;">
-                Buka Menu Izin Lengkap →
-            </a>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            {% for p in pengajuan_izin %}
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
-                <div>
-                    <span style="font-weight: 800; font-size: 13.5px; color: #0F172A;">{{ p.nama_siswa }}</span>
-                    <span class="badge-tag tag-blue" style="font-size: 11px;">{{ p.kelas }}</span>
-                    <span class="pre-status-tag status-{{ p.status_pengajuan|lower }}" style="font-size: 11.5px; font-weight: 700;">
-                        {{ '🟡' if p.status_pengajuan == 'Izin' else ('🔵' if p.status_pengajuan == 'Sakit' else '🟢') }}
-                        {{ p.status_pengajuan }}
-                    </span>
-                    {% if p.alasan %}
-                    <span style="font-size: 12px; color: #475569; font-style: italic; margin-left: 6px;">"{{ p.alasan }}"</span>
-                    {% endif %}
-                </div>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    {% if p.status_approval == 'MENUNGGU' %}
-                    <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;">
-                        <input type="hidden" name="action" value="DISETUJUI">
-                        <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
-                        <input type="hidden" name="ref" value="dashboard">
-                        <button type="submit" class="btn-approve" style="padding: 5px 12px; font-size: 11.5px; border-radius: 6px;" title="Setujui Izin">
-                            ✅ Setujui
-                        </button>
-                    </form>
-                    <form action="/pelatih/pengajuan/approval/{{ p.id }}" method="POST" style="display:inline;" onsubmit="return confirm('Tolak permohonan izin?');">
-                        <input type="hidden" name="action" value="DITOLAK">
-                        <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
-                        <input type="hidden" name="ref" value="dashboard">
-                        <button type="submit" class="btn-reject" style="padding: 5px 10px; font-size: 11.5px; border-radius: 6px;" title="Tolak Izin">
-                            ❌ Tolak
-                        </button>
-                    </form>
-                    {% elif p.status_approval == 'DISETUJUI' %}
-                    <span class="badge-tag tag-green" style="font-size: 11.5px; font-weight: 700;">✅ Disetujui</span>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="font-size: 28px;">📝</span>
+                    {% if sesi_hari_ini %}
+                    <span class="badge-tag tag-green" style="font-size: 11px; padding: 4px 8px;">✅ Sudah Ada Presensi Hari Ini</span>
                     {% else %}
-                    <span class="badge-tag tag-red" style="font-size: 11.5px; font-weight: 700;">❌ Ditolak</span>
+                    <span class="badge-tag tag-yellow" style="font-size: 11px; padding: 4px 8px;">⏳ Belum Presensi Hari Ini</span>
                     {% endif %}
                 </div>
+                <h3 style="font-size: 15px; font-weight: 800; color: #1E3A8A; margin: 0 0 6px 0;">Presensi Latihan Hari Ini</h3>
+                <p style="font-size: 12px; color: #1E40AF; margin: 0 0 14px 0; line-height: 1.5;">
+                    Pencatatan absensi kehadiran siswa, verifikasi GPS lokasi lapangan, dan pencatatan jurnal materi latihan resmi.
+                </p>
             </div>
-            {% endfor %}
+            <div>
+                <a href="/pelatih/presensi?ekskul_id={{ ekskul.id }}" class="btn-submit" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; width: 100%; padding: 11px 16px; font-size: 13px; font-weight: 800; border-radius: 8px; box-shadow: 0 4px 10px rgba(30, 58, 138, 0.25);">
+                    👉 Buka Formulir Presensi Latihan Hari Ini &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- FITUR SHORTCUT 1: JADWAL MINGGUAN & JADWAL TERDEKAT (SERTA MATERI PELATIHAN) -->
+        <div class="card" style="margin: 0; background: #FFFFFF; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="font-size: 28px;">📅</span>
+                    <span class="badge-tag tag-blue" style="font-size: 11px; padding: 4px 8px;">{{ ekskul.kategori }}</span>
+                </div>
+                <h3 style="font-size: 15px; font-weight: 800; color: #0F172A; margin: 0 0 8px 0;">Jadwal Mingguan & Materi Latihan</h3>
+                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: #64748B;">Hari Rutin:</span>
+                        <strong style="color: #0F172A;">{{ ekskul.hari_latihan or 'Belum disetel' }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: #64748B;">Jam Latihan:</span>
+                        <strong style="color: #0F172A;">{{ ekskul.jam_latihan or '15:30 - 17:00' }} WIB</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #64748B;">Materi Terencana:</span>
+                        <span style="color: #1E40AF; font-weight: 700; text-align: right; max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ materi_terdekat or 'Silabus reguler' }}">
+                            {{ materi_terdekat or 'Sesuai silabus bulanan' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" class="btn-card-action btn-detail" style="display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; width: 100%; padding: 10px 14px; font-size: 12.5px; font-weight: 700; border-radius: 8px;">
+                    ⚙️ Buka Jadwal Ekskul &rarr;
+                </a>
+            </div>
         </div>
     </div>
-    {% endif %}
 
-    <!-- 2. Kotak Verifikasi GPS Lokasi Lapangan -->
-    <div class="card location-card" style="margin-bottom: 14px;">
-        <div class="location-header">
-            <div class="location-title-box">
-                <span class="pulse-icon">📍</span>
+    <!-- 3. Shortcut Utama 2: Permohonan Izin Siswa (Hanya Angka yang Perlu Ditindak) -->
+    <div class="card" style="margin-bottom: 18px; border-left: 5px solid {% if total_izin and total_izin > 0 %}#F59E0B{% else %}#10B981{% endif %}; background: #FFFFFF; border-radius: 12px; padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: {% if total_izin and total_izin > 0 %}#FEF3C7{% else %}#ECFDF5{% endif %}; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: {% if total_izin and total_izin > 0 %}#D97706{% else %}#059669{% endif %}; border: 1.5px solid {% if total_izin and total_izin > 0 %}#FCD34D{% else %}#A7F3D0{% endif %};">
+                    {{ total_izin }}
+                </div>
                 <div>
-                    <h2 class="card-title">Verifikasi GPS Lokasi Pelatih</h2>
-                    <p class="card-desc">{{ lokasi.nama_lokasi if lokasi else 'MTs Muhammadiyah Tajurhalang' }}</p>
+                    <h3 style="font-size: 14.5px; font-weight: 800; color: #0F172A; margin: 0 0 3px 0;">
+                        Data Permohonan Izin Tidak Ikut Ekskul
+                    </h3>
+                    <p style="font-size: 12px; color: #475569; margin: 0;">
+                        {% if total_izin and total_izin > 0 %}
+                        <span style="color: #D97706; font-weight: 700;">{{ total_izin }} permohonan izin/sakit</span> menunggu persetujuan atau penolakan pelatih.
+                        {% else %}
+                        <span style="color: #059669; font-weight: 700;">0 permohonan izin.</span> Semua permohonan telah ditindaklanjuti.
+                        {% endif %}
+                    </p>
                 </div>
             </div>
-            <button type="button" class="btn-refresh-gps" onclick="checkUserLocation(true)">
-                🔄 Cek GPS
-            </button>
-        </div>
-
-        <div class="gps-status-box">
-            <div class="gps-badge" id="gpsBadge">
-                <span id="gpsBadgeIcon">⏳</span>
-                <span id="gpsBadgeText">Mendeteksi posisi GPS HP Anda...</span>
+            <div>
+                <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" class="btn-card-action" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none; padding: 9px 18px; font-size: 12.5px; font-weight: 800; border-radius: 8px; background: {% if total_izin and total_izin > 0 %}#F59E0B{% else %}#1E3A8A{% endif %}; color: white;">
+                    📬 Buka Menu Persetujuan Izin ({% if total_izin and total_izin > 0 %}{{ total_izin }} Perlu Respon{% else %}0{% endif %}) &rarr;
+                </a>
             </div>
-            <div class="gps-details" id="gpsDetails" style="display: none;">
-                <div class="gps-metric">
-                    <span class="metric-label">Jarak ke Lapangan:</span>
-                    <span class="metric-value" id="gpsDistance">-- meter</span>
-                </div>
-                <div class="gps-metric">
-                    <span class="metric-label">Toleransi Area:</span>
-                    <span class="metric-value">{{ lokasi.radius_meter if lokasi else 250 }} meter</span>
-                </div>
-            </div>
-            <p class="gps-note" id="gpsNote">Presensi resmi diverifikasi saat pelatih berada di area madrasah.</p>
         </div>
     </div>
 
-    <!-- 3. Form Presensi Latihan & Checklist Siswa Anggota Resmi -->
-    <form id="formPresensiPelatih" onsubmit="event.preventDefault(); submitPresensiPelatih();">
-        <input type="hidden" id="userLat" value="0">
-        <input type="hidden" id="userLng" value="0">
-        <input type="hidden" id="userDistance" value="0">
-        <input type="hidden" id="userLocStatus" value="BELUM_CEK">
-        <input type="hidden" id="ekskulId" value="{{ ekskul.id }}">
-
-        <div class="card form-card" style="margin-bottom: 14px;">
-            <h2 class="card-title">📝 Jurnal & Materi Latihan Hari Ini</h2>
-            
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label">Tanggal Latihan</label>
-                    <input type="date" id="tglLatihan" class="form-control" value="{{ today_str }}" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Waktu Presensi Pelatih</label>
-                    <input type="time" id="jamLatihan" class="form-control" required>
-                </div>
+    <!-- 4. Shortcut Utama 3: Pengumuman Admin Master & Menu Kirim Pengingat ke Siswa -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <!-- Info dari Admin Master (Berupa Angka) -->
+        <div class="card" style="margin: 0; background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="font-size: 14px; font-weight: 800; color: #0F172A; margin: 0; display: flex; align-items: center; gap: 6px;">
+                    <span>📢</span> Pengumuman / Info Admin Master
+                </h3>
+                <span style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-weight: 800; font-size: 13px; padding: 3px 10px; border-radius: 20px;">
+                    {{ total_pengumuman_admin }}
+                </span>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Materi / Fokus Latihan</label>
-                <input type="text" id="materiLatihan" class="form-control" placeholder="Contoh: Passing bawah, jurus katak, teknik smash..." required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Catatan Tambahan (Kondisi Lapangan / Siswa)</label>
-                <textarea id="catatanLatihan" class="form-control textarea-compact" rows="2" placeholder="Catatan opsional pelatih..."></textarea>
-            </div>
-        </div>
-
-        <!-- Checklist Siswa Anggota Ekskul Ini -->
-        <div class="card roster-card">
-            <div class="roster-header">
-                <div>
-                    <h2 class="card-title">👥 Presensi Siswa Anggota Resmi ({{ siswa_list|length }} Siswa)</h2>
-                    <p class="card-desc">Siswa yang izinnya telah disetujui otomatis terisi</p>
-                </div>
-                {% if siswa_list and siswa_list|length > 0 %}
-                <div class="quick-actions">
-                    <button type="button" class="btn-quick all-hadir" onclick="setAllAttendance('Hadir')">
-                        ✅ Semua Hadir
-                    </button>
-                </div>
-                {% endif %}
-            </div>
-
-            {% if siswa_list and siswa_list|length > 0 %}
-            <!-- Counter Ringkasan Realtime -->
-            <div class="summary-pill-box">
-                <div class="summary-pill pill-hadir">Hadir: <b id="countHadir">0</b></div>
-                <div class="summary-pill pill-izin">Izin: <b id="countIzin">0</b></div>
-                <div class="summary-pill pill-sakit">Sakit: <b id="countSakit">0</b></div>
-                <div class="summary-pill pill-alpa">Alpa: <b id="countAlpa">0</b></div>
-            </div>
-
-            <!-- Search Filter Siswa -->
-            <div class="search-box">
-                <input type="text" id="searchSiswa" class="search-input" placeholder="🔍 Cari nama siswa..." onkeyup="filterSiswa()">
-            </div>
-
-            <!-- Container Siswa -->
-            <div class="student-list" id="studentListContainer">
-                {% for s in siswa_list %}
-                {% set approved_status = namespace(val='Hadir', note='') %}
-                {% for p in pengajuan_izin %}
-                    {% if p.user_id == s.id and p.status_approval == 'DISETUJUI' %}
-                        {% set approved_status.val = p.status_pengajuan %}
-                        {% set approved_status.note = '(Izin disetujui)' %}
-                    {% endif %}
-                {% endfor %}
-                <div class="student-row" data-id="{{ s.id }}" data-name="{{ s.nama|lower }}" data-class="{{ s.kelas|lower }}">
-                    <div class="student-info">
-                        <span class="student-name">{{ s.nama }}</span>
-                        <span class="student-meta">{{ s.kelas }} • ({{ s.jenis_kelamin }}) <small style="color:#D97706;">{{ approved_status.note }}</small></span>
-                    </div>
-                    <div class="att-buttons">
-                        <button type="button" class="btn-att {{ 'active-H' if approved_status.val == 'Hadir' else '' }}" onclick="setSingleAttendance({{ s.id }}, 'Hadir', this)">H</button>
-                        <button type="button" class="btn-att {{ 'active-I' if approved_status.val == 'Izin' else '' }}" onclick="setSingleAttendance({{ s.id }}, 'Izin', this)">I</button>
-                        <button type="button" class="btn-att {{ 'active-S' if approved_status.val == 'Sakit' else '' }}" onclick="setSingleAttendance({{ s.id }}, 'Sakit', this)">S</button>
-                        <button type="button" class="btn-att {{ 'active-A' if approved_status.val == 'Alpa' else '' }}" onclick="setSingleAttendance({{ s.id }}, 'Alpa', this)">A</button>
-                    </div>
+            {% if pengumuman_admin_list and pengumuman_admin_list|length > 0 %}
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                {% for pa in pengumuman_admin_list %}
+                <div style="background: #F8FAFC; border-left: 3px solid #1E3A8A; padding: 10px 12px; border-radius: 4px; font-size: 12px;">
+                    <div style="font-weight: 700; color: #0F172A; margin-bottom: 2px;">{{ pa.judul or 'Pengumuman Madrasah' }}</div>
+                    <div style="color: #475569; line-height: 1.4;">{{ pa.isi }}</div>
+                    <div style="font-size: 10.5px; color: #94A3B8; margin-top: 4px;">{{ pa.created_at }}</div>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div style="text-align: center; padding: 30px 16px; background: #F8FAFC; border-radius: 10px; margin-top: 10px;">
-                <p style="font-size: 13px; color: #64748B; margin: 0 0 10px 0;">Belum ada anggota siswa yang disetujui untuk cabang {{ ekskul.nama }}.</p>
-                <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="btn-card-action btn-detail" style="text-decoration: none; display: inline-block;">
-                    Lihat Pendaftaran Siswa Menunggu Persetujuan →
-                </a>
+            <div style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 18px; text-align: center; color: #64748B; font-size: 12px;">
+                <div style="font-size: 24px; margin-bottom: 4px;">📭</div>
+                <b>0 Pengumuman Baru</b>
+                <p style="margin: 2px 0 0 0; font-size: 11px;">Tidak ada pengumuman khusus dari Admin Master saat ini.</p>
             </div>
             {% endif %}
         </div>
 
-        <!-- Tombol Simpan Presensi -->
-        {% if siswa_list and siswa_list|length > 0 %}
-        <div class="submit-bar">
-            <button type="submit" class="btn-submit" id="btnSubmit">
-                💾 Simpan & Rekap Presensi Latihan {{ ekskul.nama }}
-            </button>
-        </div>
-        {% endif %}
-    </form>
-</div>
+        <!-- Menu Kirim Informasi Pengingat kepada Siswa Peserta Ekskul -->
+        <div class="card" style="margin: 0; background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 style="font-size: 14px; font-weight: 800; color: #0F172A; margin: 0; display: flex; align-items: center; gap: 6px;">
+                    <span>📣</span> Kirim Pengingat ke Siswa Ekskul
+                </h3>
+                <span class="badge-tag tag-green" style="font-size: 10.5px; padding: 2px 8px;">Muncul di Akun Siswa</span>
+            </div>
+            <p style="font-size: 11.5px; color: #64748B; margin: 0 0 10px 0;">
+                Kirimkan pengumuman / pengingat latihan ke seluruh peserta {{ ekskul.nama }}.
+            </p>
 
-<!-- Modal Dialog Sukses -->
-<div class="modal-overlay" id="modalSuccess" style="display: none;">
-    <div class="modal-card">
-        <div class="modal-icon">🎉</div>
-        <h3 class="modal-title">Presensi Berhasil Disimpan!</h3>
-        <p class="modal-body" id="modalSuccessMsg">Presensi sesi latihan telah berhasil disimpan ke database resmi.</p>
-        <div class="modal-actions">
-            <a href="/pelatih?ekskul_id={{ ekskul.id }}" class="btn-modal-primary" onclick="closeModal()">Kembali ke Presensi</a>
-            <a href="/pelatih/riwayat?ekskul_id={{ ekskul.id }}" class="btn-modal-secondary">Lihat Lembar Cetak</a>
+            <form action="/pelatih/pengumuman/kirim" method="POST">
+                <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <textarea name="isi_pengumuman" class="form-control" rows="2" style="font-size: 12px;" placeholder="Tuliskan pesan pengingat untuk siswa (contoh: Latihan besok dimajukan jam 15:00, harap membawa seragam ekskul lengkap)..." required></textarea>
+                </div>
+                <div style="text-align: right;">
+                    <button type="submit" class="btn-submit" style="width: auto; padding: 7px 16px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; background: #10B981;">
+                        📨 Kirim Pengingat ke Siswa
+                    </button>
+                </div>
+            </form>
+
+            {% if pengumuman_pelatih_list and pengumuman_pelatih_list|length > 0 %}
+            <div style="margin-top: 12px; border-top: 1px solid #E2E8F0; padding-top: 10px;">
+                <div style="font-size: 11px; font-weight: 700; color: #64748B; margin-bottom: 6px;">
+                    Pemberitahuan Aktif Terkirim:
+                </div>
+                {% for pp in pengumuman_pelatih_list[:2] %}
+                <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 6px 10px; font-size: 11.5px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                    <div style="color: #166534; line-height: 1.35;">
+                        "{{ pp.isi }}"
+                        <div style="font-size: 10px; color: #86EFAC; margin-top: 2px;">{{ pp.created_at }}</div>
+                    </div>
+                    <form action="/pelatih/pengumuman/hapus/{{ pp.id }}" method="POST" onsubmit="return confirm('Tarik pengumuman ini?');">
+                        <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+                        <button type="submit" style="background: none; border: none; color: #DC2626; cursor: pointer; font-size: 12px; padding: 0;" title="Hapus Pengumuman">
+                            🗑️
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 5. Grid Pintas Menuju Seluruh Menu Sidebar -->
+    <div class="card" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px;">
+        <h3 style="font-size: 13.5px; font-weight: 800; color: #0F172A; margin: 0 0 12px 0;">
+            🚀 Pintasan Cepat ke Menu Fitur Pelatih:
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <a href="/pelatih/presensi?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📝</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">1. Presensi Hari Ini</div>
+                    <div style="font-size: 11px; color: #64748B;">Absensi & GPS Lokasi</div>
+                </div>
+            </a>
+
+            <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📬</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">2. Persetujuan Izin Siswa</div>
+                    <div style="font-size: 11px; color: #64748B;">{{ total_izin }} Menunggu Respon</div>
+                </div>
+            </a>
+
+            <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">⚙️</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">3. Jadwal Ekskul</div>
+                    <div style="font-size: 11px; color: #64748B;">Atur Hari & Jam Latihan</div>
+                </div>
+            </a>
+
+            <a href="/pelatih/laporan-pekan-terakhir?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📅</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">4. Laporan Akhir Bulan</div>
+                    <div style="font-size: 11px; color: #64748B;">Rekap Pekan Terakhir</div>
+                </div>
+            </a>
+
+            <a href="/pelatih/siswa?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">🎒</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">5. Anggota Siswa</div>
+                    <div style="font-size: 11px; color: #64748B;">{{ total_siswa_aktif }} Siswa Aktif</div>
+                </div>
+            </a>
+
+            <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">👥</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">6. Persetujuan Siswa Baru</div>
+                    <div style="font-size: 11px; color: #64748B;">{{ total_pending }} Menunggu Approval</div>
+                </div>
+            </a>
+
+            <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📑</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">7. Laporan Bulanan (Nilai)</div>
+                    <div style="font-size: 11px; color: #64748B;">Silabus, Rapor & Honor</div>
+                </div>
+            </a>
+
+            <a href="/pelatih/riwayat?ekskul_id={{ ekskul.id }}" style="text-decoration: none; background: white; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📋</span>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0F172A;">8. Riwayat & Cetak (Excel)</div>
+                    <div style="font-size: 11px; color: #64748B;">Unduh MS Excel & PDF</div>
+                </div>
+            </a>
         </div>
     </div>
 </div>
@@ -282,221 +266,13 @@
 
 {% block pelatih_scripts %}
 <script>
-let attendanceState = {};
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Set jam sekarang
+function updateClockPelatih() {
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const jamInput = document.getElementById('jamLatihan');
-    if (jamInput) jamInput.value = `${hours}:${minutes}`;
-
-    // Inisialisasi attendanceState dari DOM awal
-    document.querySelectorAll('.student-row').forEach(row => {
-        const sid = row.getAttribute('data-id');
-        const activeBtn = row.querySelector('.btn-att.active-H, .btn-att.active-I, .btn-att.active-S, .btn-att.active-A');
-        if (activeBtn) {
-            attendanceState[sid] = activeBtn.innerText === 'H' ? 'Hadir' : (activeBtn.innerText === 'I' ? 'Izin' : (activeBtn.innerText === 'S' ? 'Sakit' : 'Alpa'));
-        } else {
-            attendanceState[sid] = 'Hadir';
-        }
-    });
-
-    updateCounters();
-    checkUserLocation(false);
-});
-
-function setSingleAttendance(sid, status, btn) {
-    attendanceState[sid] = status;
-    const parent = btn.parentElement;
-    parent.querySelectorAll('.btn-att').forEach(b => {
-        b.className = 'btn-att';
-    });
-    btn.className = `btn-att active-${status[0]}`;
-    updateCounters();
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+    const clockEl = document.getElementById('liveClockPelatih');
+    if (clockEl) clockEl.innerText = timeStr;
 }
-
-function setAllAttendance(status) {
-    for (const sid in attendanceState) {
-        attendanceState[sid] = status;
-    }
-    document.querySelectorAll('.student-row').forEach(row => {
-        const btns = row.querySelectorAll('.btn-att');
-        btns.forEach(b => {
-            b.className = 'btn-att';
-            if (b.innerText === status[0]) {
-                b.className = `btn-att active-${status[0]}`;
-            }
-        });
-    });
-    updateCounters();
-}
-
-function updateCounters() {
-    let h = 0, i = 0, s = 0, a = 0;
-    Object.values(attendanceState).forEach(st => {
-        if (st === 'Hadir') h++;
-        else if (st === 'Izin') i++;
-        else if (st === 'Sakit') s++;
-        else if (st === 'Alpa') a++;
-    });
-    const cH = document.getElementById('countHadir');
-    const cI = document.getElementById('countIzin');
-    const cS = document.getElementById('countSakit');
-    const cA = document.getElementById('countAlpa');
-    if (cH) cH.innerText = h;
-    if (cI) cI.innerText = i;
-    if (cS) cS.innerText = s;
-    if (cA) cA.innerText = a;
-}
-
-function filterSiswa() {
-    const q = document.getElementById('searchSiswa').value.toLowerCase();
-    document.querySelectorAll('.student-row').forEach(row => {
-        const name = row.getAttribute('data-name');
-        const cls = row.getAttribute('data-class');
-        if (name.includes(q) || cls.includes(q)) {
-            row.style.display = 'flex';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-}
-
-function checkUserLocation(isManual) {
-    const badge = document.getElementById('gpsBadge');
-    const badgeIcon = document.getElementById('gpsBadgeIcon');
-    const badgeText = document.getElementById('gpsBadgeText');
-    const details = document.getElementById('gpsDetails');
-    const distEl = document.getElementById('gpsDistance');
-    const noteEl = document.getElementById('gpsNote');
-
-    if (!navigator.geolocation) {
-        if (badge) {
-            badge.className = 'gps-badge invalid';
-            badgeIcon.innerText = '⚠️';
-            badgeText.innerText = 'Browser HP tidak mendukung GPS';
-        }
-        return;
-    }
-
-    if (badge) {
-        badge.className = 'gps-badge';
-        badgeIcon.innerText = '⏳';
-        badgeText.innerText = 'Mengunci koordinat GPS HP...';
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const latIn = document.getElementById('userLat');
-            const lngIn = document.getElementById('userLng');
-            if (latIn) latIn.value = lat;
-            if (lngIn) lngIn.value = lng;
-
-            try {
-                const res = await fetch('/api/lokasi/cek', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({latitude: lat, longitude: lng})
-                });
-                const data = await res.json();
-                if (details) details.style.display = 'flex';
-                if (distEl) distEl.innerText = `${data.jarak_meter} meter`;
-                const distIn = document.getElementById('userDistance');
-                if (distIn) distIn.value = data.jarak_meter;
-
-                if (badge) {
-                    if (data.is_valid) {
-                        badge.className = 'gps-badge valid';
-                        badgeIcon.innerText = '🟢';
-                        badgeText.innerText = `Lokasi Valid! Berada di area lapangan (${data.jarak_meter}m).`;
-                        document.getElementById('userLocStatus').value = 'VALID';
-                    } else {
-                        badge.className = 'gps-badge invalid';
-                        badgeIcon.innerText = '🔴';
-                        badgeText.innerText = `Di Luar Radius Lapangan (${data.jarak_meter}m dari titik pusat).`;
-                        document.getElementById('userLocStatus').value = 'DILUAR_AREA';
-                    }
-                }
-            } catch(e) {
-                if (badgeText) badgeText.innerText = 'Gagal verifikasi jarak ke server.';
-            }
-        },
-        (err) => {
-            if (badge) {
-                badge.className = 'gps-badge invalid';
-                badgeIcon.innerText = '⚠️';
-                badgeText.innerText = 'Izin lokasi belum diberikan di HP.';
-            }
-            if (noteEl) noteEl.innerText = 'Izinkan akses lokasi di browser agar kehadiran diverifikasi.';
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-    );
-}
-
-async function submitPresensiPelatih() {
-    const ekskulId = document.getElementById('ekskulId').value;
-    const tgl = document.getElementById('tglLatihan').value;
-    const jam = document.getElementById('jamLatihan').value;
-    const materi = document.getElementById('materiLatihan').value.trim();
-    const catatan = document.getElementById('catatanLatihan').value.trim();
-    const lat = document.getElementById('userLat').value;
-    const lng = document.getElementById('userLng').value;
-
-    const presensiArray = [];
-    for (const sid in attendanceState) {
-        presensiArray.push({
-            siswa_id: parseInt(sid),
-            status_kehadiran: attendanceState[sid],
-            keterangan: ''
-        });
-    }
-
-    if (presensiArray.length === 0) {
-        alert("Belum ada anggota siswa aktif di ekskul ini.");
-        return;
-    }
-
-    const btn = document.getElementById('btnSubmit');
-    btn.disabled = true;
-    btn.innerText = "⏳ Sedang Menyimpan Presensi...";
-
-    try {
-        const res = await fetch('/api/presensi/simpan', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                ekskul_id: parseInt(ekskulId),
-                tanggal: tgl,
-                jam_mulai: jam,
-                materi_latihan: materi,
-                catatan: catatan,
-                latitude: parseFloat(lat),
-                longitude: parseFloat(lng),
-                presensi_siswa: presensiArray
-            })
-        });
-        const result = await res.json();
-        btn.disabled = false;
-        btn.innerText = "💾 Simpan & Rekap Presensi Latihan";
-
-        if (result.status === 'SUCCESS') {
-            document.getElementById('modalSuccess').style.display = 'flex';
-        } else {
-            alert("Gagal: " + result.pesan);
-        }
-    } catch(err) {
-        btn.disabled = false;
-        btn.innerText = "💾 Simpan & Rekap Presensi Latihan";
-        alert("Terjadi kesalahan koneksi: " + err.message);
-    }
-}
-
-function closeModal() {
-    document.getElementById('modalSuccess').style.display = 'none';
-}
+setInterval(updateClockPelatih, 1000);
+updateClockPelatih();
 </script>
 {% endblock %}

@@ -33,50 +33,68 @@
         </div>
         {% endif %}
 
-        <!-- Sidebar Navigation Menu -->
+        <!-- Sidebar Navigation Menu (8 Menu Terstruktur) -->
         <nav class="sidebar-nav-menu">
-            <a href="/pelatih?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'presensi' %}active{% endif %}">
+            <a href="/pelatih?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'dashboard' %}active{% endif %}" title="Dashboard Ringkasan & Pintasan">
+                <span>📊 Dashboard Utama</span>
+            </a>
+
+            <div style="height: 1px; background: #E2E8F0; margin: 4px 0;"></div>
+
+            <!-- 1. Presensi Hari Ini -->
+            <a href="/pelatih/presensi?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'presensi' %}active{% endif %}" title="Presensi Latihan & Verifikasi GPS Hari Ini">
                 <span>📝 Presensi Hari Ini</span>
             </a>
 
-            <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'persetujuan' %}active{% endif %}">
-                <span>👥 Persetujuan Siswa</span>
-                {% if total_pending and total_pending > 0 %}
-                <span class="tab-badge tab-badge-alert" title="{{ total_pending }} Siswa Menunggu Persetujuan">{{ total_pending }}</span>
-                {% endif %}
-            </a>
-
-            <a href="/pelatih/siswa?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'siswa' %}active{% endif %}">
-                <span>🎒 Anggota Siswa</span>
-                <span class="tab-badge" style="background: #F1F5F9; color: #475569;">{{ total_siswa_aktif }}</span>
-            </a>
-
-            <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'izin' %}active{% endif %}">
-                <span>📬 Permohonan Izin</span>
+            <!-- 2. Menu Persetujuan Perizinan Siswa -->
+            <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'izin' %}active{% endif %}" title="Persetujuan Izin / Sakit Siswa">
+                <span>📬 Persetujuan Izin Siswa</span>
                 {% if total_izin and total_izin > 0 %}
                 <span class="tab-badge tab-badge-alert" style="background: #F59E0B;" title="{{ total_izin }} Izin Menunggu">{{ total_izin }}</span>
                 {% endif %}
             </a>
 
-            <a href="/pelatih/riwayat?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'riwayat' %}active{% endif %}">
-                <span>📋 Riwayat & Cetak</span>
-            </a>
-
-            <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'laporan_bulanan' %}active{% endif %}">
-                <span>📑 Laporan Bulanan</span>
-            </a>
-
-            <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'pengaturan' %}active{% endif %}">
+            <!-- 3. Jadwal Ekskul -->
+            <a href="/pelatih/pengaturan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'pengaturan' %}active{% endif %}" title="Pengaturan Jadwal Hari & Jam Latihan">
                 <span>⚙️ Jadwal Ekskul</span>
+            </a>
+
+            <!-- 4. Laporan Akhir Bulan (Pekan Terakhir) -->
+            <a href="/pelatih/laporan-pekan-terakhir?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'pekan_terakhir' %}active{% endif %}" title="Rekapitulasi Sesi & Kehadiran Pekan Penutup Bulan">
+                <span>📅 Laporan Akhir Bulan</span>
+            </a>
+
+            <!-- 5. Anggota Siswa Berdasarkan Ekskul yang Diampu -->
+            <a href="/pelatih/siswa?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'siswa' %}active{% endif %}" title="Daftar Siswa Resmi Anggota Ekskul">
+                <span>🎒 Anggota Siswa</span>
+                <span class="tab-badge" style="background: #F1F5F9; color: #475569;">{{ total_siswa_aktif }}</span>
+            </a>
+
+            <!-- 6. Persetujuan Anggota / Siswa Baru -->
+            <a href="/pelatih/persetujuan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'persetujuan' %}active{% endif %}" title="Tinjau Pendaftaran Siswa Baru">
+                <span>👥 Persetujuan Siswa Baru</span>
+                {% if total_pending and total_pending > 0 %}
+                <span class="tab-badge tab-badge-alert" title="{{ total_pending }} Siswa Menunggu Persetujuan">{{ total_pending }}</span>
+                {% endif %}
+            </a>
+
+            <!-- 7. Laporan Bulanan (Nilai Siswa & Rapor) -->
+            <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'laporan_bulanan' %}active{% endif %}" title="Silabus Bulanan, Penilaian Nilai Siswa & Lembar Honor TU">
+                <span>📑 Laporan Bulanan (Nilai)</span>
+            </a>
+
+            <!-- 8. Riwayat dan Cetak (Unduh MS Excel) -->
+            <a href="/pelatih/riwayat?ekskul_id={{ ekskul.id }}" class="sidebar-nav-item {% if active_menu == 'riwayat' %}active{% endif %}" title="Riwayat Sesi, Cetak Lembar Presensi & Unduh Excel">
+                <span>📋 Riwayat & Cetak (Excel)</span>
             </a>
 
             <div style="height: 1px; background: #F1F5F9; margin: 6px 0;"></div>
 
             <a href="/export-csv/{{ ekskul.id }}" class="sidebar-nav-item" title="Unduh data siswa format Excel/CSV">
-                <span>📥 Unduh CSV</span>
+                <span>📥 Unduh MS Excel</span>
             </a>
 
-            <a href="/logout" class="sidebar-nav-item logout-item" title="Keluar dari akun Pelatih">
+            <a href="/logout" class="sidebar-nav-item logout-item" title="Keluar dari akun Pelatih" onclick="return confirm('Apakah Anda yakin ingin keluar dari akun Pelatih?');">
                 <span>🚪 Keluar Akun</span>
             </a>
         </nav>
@@ -101,6 +119,21 @@
 
     <!-- Main Content Area -->
     <section class="admin-content-area">
+        <!-- Mobile Multi-Ekskul Quick Switcher Strip -->
+        {% if assigned_ekskuls and assigned_ekskuls|length > 1 %}
+        <div class="mobile-ekskul-switcher-strip">
+            <span class="switcher-strip-label">Cabang:</span>
+            <div class="switcher-pills-scroll">
+                {% for ae in assigned_ekskuls %}
+                <a href="?ekskul_id={{ ae.id }}" class="switcher-pill {% if ekskul.id == ae.id %}active{% endif %}">
+                    <span>{{ ae.icon }} {{ ae.nama }}</span>
+                    {% if ekskul.id == ae.id %}<span class="pill-dot"></span>{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Mobile Toggle Bar -->
         <div class="admin-mobile-toggle-bar">
             <button type="button" class="btn-toggle-sidebar" onclick="togglePelatihSidebar()">
@@ -108,13 +141,15 @@
                 <span>Menu Pelatih</span>
             </button>
             <div class="mobile-current-page">
-                {% if active_menu == 'presensi' %}📝 Presensi Hari Ini
-                {% elif active_menu == 'persetujuan' %}👥 Persetujuan Siswa
-                {% elif active_menu == 'siswa' %}🎒 Anggota Siswa
-                {% elif active_menu == 'izin' %}📬 Permohonan Izin
-                {% elif active_menu == 'riwayat' %}📋 Riwayat Sesi
-                {% elif active_menu == 'laporan_bulanan' %}📑 Laporan Bulanan
+                {% if active_menu == 'dashboard' %}📊 Dashboard Utama
+                {% elif active_menu == 'presensi' %}📝 Presensi Hari Ini
+                {% elif active_menu == 'izin' %}📬 Persetujuan Izin
                 {% elif active_menu == 'pengaturan' %}⚙️ Jadwal Ekskul
+                {% elif active_menu == 'pekan_terakhir' %}📅 Laporan Akhir Bulan
+                {% elif active_menu == 'siswa' %}🎒 Anggota Siswa
+                {% elif active_menu == 'persetujuan' %}👥 Persetujuan Siswa
+                {% elif active_menu == 'laporan_bulanan' %}📑 Laporan Bulanan
+                {% elif active_menu == 'riwayat' %}📋 Riwayat & Cetak
                 {% endif %}
             </div>
         </div>
@@ -123,6 +158,36 @@
         {% block pelatih_content %}{% endblock %}
     </section>
 </div>
+
+<!-- Mobile Bottom Navigation Bar for Pelatih (Thumb Zone) -->
+<nav class="mobile-bottom-nav">
+    <a href="/pelatih?ekskul_id={{ ekskul.id }}" class="bottom-nav-item {% if active_menu == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+    </a>
+    <a href="/pelatih/presensi?ekskul_id={{ ekskul.id }}" class="bottom-nav-item {% if active_menu == 'presensi' %}active{% endif %}">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">Presensi</span>
+    </a>
+    <a href="/pelatih/izin?ekskul_id={{ ekskul.id }}" class="bottom-nav-item {% if active_menu == 'izin' %}active{% endif %}">
+        <span class="nav-icon">📬</span>
+        <span class="nav-label">Izin</span>
+        {% if total_izin and total_izin > 0 %}
+        <span class="nav-badge-dot" title="{{ total_izin }} Izin Menunggu"></span>
+        {% endif %}
+    </a>
+    <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}" class="bottom-nav-item {% if active_menu == 'laporan_bulanan' %}active{% endif %}">
+        <span class="nav-icon">📑</span>
+        <span class="nav-label">Laporan</span>
+    </a>
+    <button type="button" class="bottom-nav-item bottom-nav-btn" onclick="togglePelatihSidebar()" aria-label="Buka Menu Lengkap">
+        <span class="nav-icon">☰</span>
+        <span class="nav-label">Lainnya</span>
+        {% if total_pending and total_pending > 0 %}
+        <span class="nav-badge-dot" title="{{ total_pending }} Siswa Baru"></span>
+        {% endif %}
+    </button>
+</nav>
 
 <!-- MODAL PROFIL & SANDI PELATIH -->
 <div id="modalProfilPelatih" class="modal-overlay" style="display: none;">
@@ -165,6 +230,12 @@ function togglePelatihSidebar() {
 }
 
 function openModalProfilPelatih() {
+    const sidebar = document.getElementById('pelatihSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+    }
     document.getElementById('modalProfilPelatih').style.display = 'flex';
 }
 function closeModalProfilPelatih() {
@@ -175,6 +246,18 @@ window.addEventListener('click', function(e) {
     const modal = document.getElementById('modalProfilPelatih');
     if (modal && e.target === modal) {
         modal.style.display = 'none';
+    }
+});
+
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModalProfilPelatih();
+        const sidebar = document.getElementById('pelatihSidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        if (sidebar && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('open');
+        }
     }
 });
 </script>

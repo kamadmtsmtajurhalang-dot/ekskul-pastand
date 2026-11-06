@@ -1,0 +1,180 @@
+{% extends 'pelatih_base.html' %}
+
+{% block title %}Laporan Akhir Bulan (Pekan Terakhir) — {{ ekskul.nama }} — MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block pelatih_content %}
+<div class="screen-wrapper" style="max-width: 100%;">
+    <!-- Header Halaman -->
+    <div class="page-title-box">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h1 class="page-heading">📅 Laporan Akhir Bulan (Pekan Terakhir) — {{ ekskul.icon }} {{ ekskul.nama }}</h1>
+                <p class="page-subheading">Rekapitulasi pelaksanaan sesi latihan pekan penutup bulan, evaluasi kehadiran, dan persiapan pelaporan honorarium.</p>
+            </div>
+            <div>
+                <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}&bulan={{ selected_bulan }}&tahun={{ selected_tahun }}" class="btn-card-action" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; font-weight: 700; background: #1E3A8A; color: white; border-radius: 8px;">
+                    📑 Buka Laporan Bulanan & Rapor Nilai Siswa &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Periode Bulan & Tahun -->
+    <div class="card" style="margin-bottom: 20px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px;">
+        <form method="GET" action="/pelatih/laporan-pekan-terakhir" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px;">
+            <input type="hidden" name="ekskul_id" value="{{ ekskul.id }}">
+            
+            <div style="flex: 1; min-width: 160px;">
+                <label style="display: block; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 6px;">
+                    📅 Pilih Bulan:
+                </label>
+                <select name="bulan" class="form-control" style="font-weight: 600;">
+                    {% for m_num, m_name in list_bulan.items() %}
+                    <option value="{{ m_num }}" {% if selected_bulan == m_num %}selected{% endif %}>
+                        Bulan {{ m_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 130px;">
+                <label style="display: block; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 6px;">
+                    📆 Pilih Tahun:
+                </label>
+                <select name="tahun" class="form-control" style="font-weight: 600;">
+                    {% for y in range(current_year - 1, current_year + 3) %}
+                    <option value="{{ y }}" {% if selected_tahun == y %}selected{% endif %}>
+                        Tahun {{ y }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="min-width: 140px;">
+                <button type="submit" class="btn-detail" style="width: 100%; padding: 10px 16px; font-size: 12.5px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    🔍 Tampilkan Laporan
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Ringkasan Statistik Pekan Terakhir -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px;">
+        <div class="card" style="margin: 0; background: #EFF6FF; border: 1.5px solid #BFDBFE; border-radius: 12px; padding: 16px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 800; color: #1E40AF; text-transform: uppercase;">📅 Sesi Pekan Terakhir</div>
+            <div style="font-size: 28px; font-weight: 800; color: #1E3A8A; margin: 4px 0;">{{ sesi_pekan_terakhir|length }} Sesi</div>
+            <div style="font-size: 11px; color: #3B82F6;">Tanggal 22 s/d Akhir {{ nama_bulan }}</div>
+        </div>
+
+        <div class="card" style="margin: 0; background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 12px; padding: 16px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 800; color: #065F46; text-transform: uppercase;">👥 Rata-rata Kehadiran</div>
+            <div style="font-size: 28px; font-weight: 800; color: #064E3B; margin: 4px 0;">{{ "%.0f"|format(persen_hadir_pekan_terakhir) }}%</div>
+            <div style="font-size: 11px; color: #059669;">Tingkat partisipasi siswa</div>
+        </div>
+
+        <div class="card" style="margin: 0; background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 12px; padding: 16px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 800; color: #92400E; text-transform: uppercase;">📝 Status Rapor Bulanan</div>
+            <div style="font-size: 20px; font-weight: 800; color: #78350F; margin: 8px 0;">
+                {% if laporan and laporan.status_penilaian == 'SELESAI' %}
+                ✅ Siap Cetak
+                {% elif laporan and laporan.status_rencana == 'LENGKAP' %}
+                ⏳ Siap Diisi
+                {% else %}
+                🔒 Belum Lengkap
+                {% endif %}
+            </div>
+            <div style="font-size: 11px; color: #B45309;">Acuan honorarium staf TU</div>
+        </div>
+    </div>
+
+    <!-- Tabel Sesi Latihan Pekan Terakhir -->
+    <div class="card" style="margin-bottom: 20px; border-left: 4px solid #1E3A8A;">
+        <h2 class="card-title" style="margin-bottom: 6px;">
+            📋 Riwayat Latihan Pekan Penutup Bulan (Pekan Terakhir {{ nama_bulan }} {{ selected_tahun }})
+        </h2>
+        <p class="card-desc" style="margin-bottom: 14px;">
+            Daftar sesi latihan resmi yang dilaksanakan pada rentang pekan terakhir bulan {{ nama_bulan }}.
+        </p>
+
+        {% if sesi_pekan_terakhir and sesi_pekan_terakhir|length > 0 %}
+        <div class="table-responsive">
+            <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 11.5px;">
+                <thead>
+                    <tr style="background: #F1F5F9; color: #334155;">
+                        <th style="width: 35px; padding: 8px; text-align: center;">No</th>
+                        <th style="width: 110px; padding: 8px; text-align: center;">Tanggal</th>
+                        <th style="width: 90px; padding: 8px; text-align: center;">Jam</th>
+                        <th style="padding: 8px;">Materi Pelatihan Dilaksanakan</th>
+                        <th style="width: 100px; padding: 8px; text-align: center;">Siswa Hadir</th>
+                        <th style="width: 110px; padding: 8px; text-align: center;">Lokasi GPS</th>
+                        <th style="width: 80px; padding: 8px; text-align: center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sesi_pekan_terakhir %}
+                    <tr>
+                        <td style="text-align: center; font-weight: 700; padding: 8px;">{{ loop.index }}</td>
+                        <td style="text-align: center; font-weight: 700; padding: 8px;">{{ s.tanggal }}</td>
+                        <td style="text-align: center; padding: 8px;">{{ s.jam_mulai }} WIB</td>
+                        <td style="padding: 8px;">{{ s.materi_latihan if s.materi_latihan else 'Latihan Reguler' }}</td>
+                        <td style="text-align: center; font-weight: 700; padding: 8px;">
+                            <span class="badge-tag tag-green" style="font-size: 11px;">{{ s.total_hadir }} / {{ s.total_peserta }}</span>
+                        </td>
+                        <td style="text-align: center; padding: 8px;">
+                            {% if s.status_lokasi == 'VALID' %}
+                            <span class="badge-tag tag-green" style="font-size: 10px; padding: 2px 6px;">🟢 Valid</span>
+                            {% else %}
+                            <span class="badge-tag tag-yellow" style="font-size: 10px; padding: 2px 6px;">🟡 {{ s.jarak_meter }}m</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center; padding: 8px;">
+                            <a href="/cetak/{{ s.id }}" target="_blank" class="btn-card-action btn-print" style="text-decoration: none; font-size: 11px; padding: 4px 8px;" title="Cetak Lembar Presensi">
+                                🖨️ Cetak
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 24px; text-align: center; color: #64748B;">
+            <div style="font-size: 32px; margin-bottom: 6px;">📆</div>
+            <b>Belum ada sesi latihan di pekan terakhir bulan {{ nama_bulan }} {{ selected_tahun }}.</b>
+            <p style="font-size: 12px; margin: 4px 0 0 0;">Jika latihan baru dilaksanakan, silakan lakukan presensi pada menu <b>Presensi Hari Ini</b>.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Panduan & Checklist Tutup Bulan Pelatih -->
+    <div class="card" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px;">
+        <h3 style="font-size: 13.5px; font-weight: 800; color: #0F172A; margin: 0 0 10px 0;">
+            ✅ Checklist Pelatih di Akhir Bulan:
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #334155;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 16px;">{% if sesi_pekan_terakhir|length > 0 %}✅{% else %}⏳{% endif %}</span>
+                <span>1. Seluruh sesi latihan pekan penutup bulan telah dipresensikan via sistem digital GPS.</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 16px;">{% if laporan and laporan.status_rencana == 'LENGKAP' %}✅{% else %}⏳{% endif %}</span>
+                <span>2. Rencana silabus materi bulanan (Fitur 1) telah disimpan lengkap.</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 16px;">{% if laporan and laporan.status_penilaian == 'SELESAI' %}✅{% else %}⏳{% endif %}</span>
+                <span>3. Nilai skor dan evaluasi kecakapan seluruh siswa telah diisi & terkirim ke akun siswa (Fitur 2).</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 16px;">{% if laporan and laporan.status_penilaian == 'SELESAI' %}✅{% else %}⏳{% endif %}</span>
+                <span>4. Lembar rekapitulasi hari kerja latihan telah dicetak untuk diserahkan ke Staf TU & Bendahara Madrasah (Fitur 3).</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #E2E8F0; text-align: right;">
+            <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}&bulan={{ selected_bulan }}&tahun={{ selected_tahun }}" class="btn-submit" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none; padding: 8px 18px; font-size: 12px; font-weight: 700; width: auto;">
+                📑 Lanjut ke Pengisian Nilai & Lembar Honor TU &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

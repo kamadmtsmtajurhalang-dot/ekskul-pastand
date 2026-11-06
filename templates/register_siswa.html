@@ -7,9 +7,9 @@
     <div class="card login-card">
         <div class="login-header">
             <img src="/static/logo-mtsm.png" alt="Logo MTs Muhammadiyah Tajurhalang" class="login-logo-img" width="68" height="68" style="width: 68px !important; height: 68px !important; max-width: 68px !important; max-height: 68px !important; object-fit: contain;">
-            <h1 class="login-title">Daftar Akun Siswa Ekskul</h1>
+            <h1 class="login-title">Daftar Akun Siswa</h1>
             <p class="login-school-sub">PRESENSI EKSKUL MTs Muhammadiyah Tajurhalang TA 2026/2027</p>
-            <p class="login-desc">Pilih cabang ekstrakurikuler minatmu dan daftarkan akun untuk konfirmasi kehadiran latihan.</p>
+            <p class="login-desc">Pilih cabang ekstrakurikuler dan daftarkan akun siswa untuk presensi latihan.</p>
         </div>
 
         <form action="/register-siswa" method="POST" class="login-form">
@@ -37,9 +37,9 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Pilih Cabang Ekstrakurikuler Utama <span class="req">*</span></label>
+                <label class="form-label">Cabang Ekstrakurikuler Pilihan <span class="req">*</span></label>
                 <select name="ekskul_id" class="form-control" required>
-                    <option value="" disabled selected>-- Pilih Ekskul --</option>
+                    <option value="" disabled selected>-- Pilih Cabang Ekskul --</option>
                     {% for e in ekskul_list %}
                     <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }} ({{ e.hari_latihan }})</option>
                     {% endfor %}
@@ -48,21 +48,21 @@
 
             <div class="form-grid-2">
                 <div class="form-group">
-                    <label class="form-label">Buat Username <span class="req">*</span></label>
+                    <label class="form-label">Username Akun <span class="req">*</span></label>
                     <input type="text" name="username" class="form-control" placeholder="Contoh: ahmad7a / nisn" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Buat Kata Sandi <span class="req">*</span></label>
-                    <input type="password" name="password" class="form-control" placeholder="Kata sandi..." required>
+                    <label class="form-label">Kata Sandi <span class="req">*</span></label>
+                    <input type="password" name="password" class="form-control" placeholder="Kata sandi akun..." required>
                 </div>
             </div>
 
-            <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12px; color: #1E40AF;">
-                ℹ️ <b>Pemberitahuan:</b> Setelah akun dibuat, keanggotaan cabang ekskul Anda harus disetujui terlebih dahulu oleh Pelatih terkait agar resmi masuk ke sistem presensi latihan.
+            <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12px; color: #1E40AF; line-height: 1.5;">
+                <b>Catatan:</b> Pendaftaran cabang ekskul akan diverifikasi oleh pelatih terkait sebelum tercatat aktif dalam lembar presensi.
             </div>
 
             <button type="submit" class="btn-submit" style="margin-top: 16px;">
-                ✅ Selesaikan Pendaftaran
+                Daftarkan Akun Siswa →
             </button>
         </form>
 

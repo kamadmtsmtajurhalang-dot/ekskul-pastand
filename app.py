@@ -27,6 +27,11 @@ NAMA_BULAN = {
     9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
 }
 
+NAMA_HARI = {
+    0: 'Senin', 1: 'Selasa', 2: 'Rabu', 3: 'Kamis',
+    4: 'Jumat', 5: 'Sabtu', 6: 'Minggu'
+}
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'presensi-ekskul-tajurhalang-multi-role-2026'
 
@@ -285,6 +290,69 @@ def pelatih_dashboard():
         conn.close()
         return "Ekskul belum dihubungkan ke akun pelatih ini. Silakan hubungi Admin Master.", 400
 
+    now_wib = get_wib_datetime()
+    today_str = get_wib_today_str()
+    hari_str = NAMA_HARI.get(now_wib.weekday(), '')
+    today_formatted = f"{hari_str}, {now_wib.day} {NAMA_BULAN.get(now_wib.month, '')} {now_wib.year}"
+
+    # Cek apakah sudah ada sesi presensi hari ini
+    sesi_hari_ini = conn.execute("""
+    SELECT * FROM sesi_latihan WHERE ekskul_id = ? AND tanggal = ?
+    """, (ekskul['id'], today_str)).fetchone()
+
+    # Jadwal terdekat dan materi pelatihan dari silabus jika ada
+    materi_row = conn.execute("""
+    SELECT lmm.materi FROM laporan_materi_mingguan lmm
+    JOIN laporan_bulanan lb ON lmm.laporan_id = lb.id
+    WHERE lb.ekskul_id = ? AND lb.bulan = ? AND lb.tahun = ?
+    ORDER BY lmm.pertemuan_ke ASC LIMIT 1
+    """, (ekskul['id'], now_wib.month, now_wib.year)).fetchone()
+    materi_terdekat = materi_row['materi'] if materi_row else (ekskul['deskripsi'] or 'Latihan reguler mingguan')
+
+    # Pengumuman / Info dari Admin Master (berupa angka & daftar)
+    pengumuman_admin_rows = conn.execute("""
+    SELECT * FROM pengumuman 
+    WHERE tipe = 'admin' AND (target_role IN ('pelatih', 'semua'))
+    ORDER BY created_at DESC LIMIT 5
+    """).fetchall()
+    pengumuman_admin_list = [dict(p) for p in pengumuman_admin_rows]
+    total_pengumuman_admin = len(pengumuman_admin_list)
+
+    # Pengumuman / pengingat yang pernah dikirim oleh pelatih ke siswa ekskul ini
+    pengumuman_pelatih_rows = conn.execute("""
+    SELECT * FROM pengumuman
+    WHERE tipe = 'pelatih' AND ekskul_id = ?
+    ORDER BY created_at DESC LIMIT 5
+    """, (ekskul['id'],)).fetchall()
+    pengumuman_pelatih_list = [dict(p) for p in pengumuman_pelatih_rows]
+
+    conn.close()
+    return render_template('pelatih_dashboard.html',
+                           active_menu='dashboard',
+                           user=user,
+                           ekskul=ekskul,
+                           assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
+                           today_str=today_str,
+                           today_formatted=today_formatted,
+                           sesi_hari_ini=sesi_hari_ini,
+                           materi_terdekat=materi_terdekat,
+                           total_pengumuman_admin=total_pengumuman_admin,
+                           pengumuman_admin_list=pengumuman_admin_list,
+                           pengumuman_pelatih_list=pengumuman_pelatih_list)
+
+@app.route('/pelatih/presensi')
+@role_required('pelatih')
+def pelatih_presensi():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
+    
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini. Silakan hubungi Admin Master.", 400
+
     lokasi = conn.execute("SELECT * FROM pengaturan_lokasi WHERE is_active = 1 LIMIT 1").fetchone()
 
     # Ambil daftar siswa resmi aktif yang mengikuti ekskul ini
@@ -304,17 +372,8 @@ def pelatih_dashboard():
     ORDER BY p.created_at DESC
     """, (ekskul['id'], today_str)).fetchall()
 
-    sesi_terakhir = conn.execute("""
-    SELECT s.*, 
-           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
-           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
-    FROM sesi_latihan s
-    WHERE s.ekskul_id = ?
-    ORDER BY s.tanggal DESC, s.jam_mulai DESC LIMIT 5
-    """, (ekskul['id'],)).fetchall()
-
     conn.close()
-    return render_template('pelatih_dashboard.html', 
+    return render_template('pelatih_presensi.html', 
                            active_menu='presensi',
                            user=user, 
                            ekskul=ekskul, 
@@ -325,8 +384,115 @@ def pelatih_dashboard():
                            lokasi=lokasi, 
                            siswa_list=siswa_list,
                            pengajuan_izin=pengajuan_izin,
-                           sesi_terakhir=sesi_terakhir,
                            today_str=today_str)
+
+@app.route('/pelatih/laporan-pekan-terakhir')
+@role_required('pelatih')
+def pelatih_pekan_terakhir():
+    pelatih_id = session['user_id']
+    conn, user, assigned_ekskuls, ekskul, total_pending, total_izin, total_siswa_aktif = get_pelatih_context(pelatih_id)
+
+    if not assigned_ekskuls:
+        conn.close()
+        return "Ekskul belum dihubungkan ke akun pelatih ini.", 400
+
+    now_wib = get_wib_datetime()
+    current_year = now_wib.year
+    selected_bulan = request.args.get('bulan', type=int) or now_wib.month
+    selected_tahun = request.args.get('tahun', type=int) or current_year
+
+    if selected_bulan < 1 or selected_bulan > 12:
+        selected_bulan = now_wib.month
+
+    month_prefix = f"{selected_tahun:04d}-{selected_bulan:02d}"
+
+    # Sesi latihan pekan terakhir (tanggal 22 s/d akhir bulan)
+    sesi_rows = conn.execute("""
+    SELECT s.*,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
+    FROM sesi_latihan s
+    WHERE s.ekskul_id = ? AND s.tanggal LIKE ? AND CAST(substr(s.tanggal, 9, 2) AS INTEGER) >= 22
+    ORDER BY s.tanggal ASC, s.jam_mulai ASC
+    """, (ekskul['id'], f"{month_prefix}%")).fetchall()
+    
+    # Jika belum ada di tanggal >= 22 tapi ada sesi di bulan itu, ambil 2 sesi penutup terakhir
+    if not sesi_rows:
+        sesi_rows = conn.execute("""
+        SELECT s.*,
+               (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
+               (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
+        FROM sesi_latihan s
+        WHERE s.ekskul_id = ? AND s.tanggal LIKE ?
+        ORDER BY s.tanggal DESC, s.jam_mulai DESC LIMIT 2
+        """, (ekskul['id'], f"{month_prefix}%")).fetchall()
+        sesi_rows = list(reversed(sesi_rows))
+
+    sesi_pekan_terakhir = [dict(s) for s in sesi_rows]
+
+    # Hitung rata-rata kehadiran pekan terakhir
+    total_hadir_sum = sum(s['total_hadir'] for s in sesi_pekan_terakhir)
+    total_peserta_sum = sum(s['total_peserta'] for s in sesi_pekan_terakhir)
+    persen_hadir_pekan_terakhir = (total_hadir_sum / total_peserta_sum * 100) if total_peserta_sum > 0 else 0.0
+
+    # Cek laporan bulanan
+    laporan = conn.execute("""
+    SELECT * FROM laporan_bulanan WHERE ekskul_id = ? AND bulan = ? AND tahun = ?
+    """, (ekskul['id'], selected_bulan, selected_tahun)).fetchone()
+
+    conn.close()
+    return render_template('pelatih_pekan_terakhir.html',
+                           active_menu='pekan_terakhir',
+                           user=user,
+                           ekskul=ekskul,
+                           assigned_ekskuls=assigned_ekskuls,
+                           total_pending=total_pending,
+                           total_izin=total_izin,
+                           total_siswa_aktif=total_siswa_aktif,
+                           sesi_pekan_terakhir=sesi_pekan_terakhir,
+                           persen_hadir_pekan_terakhir=persen_hadir_pekan_terakhir,
+                           laporan=laporan,
+                           list_bulan=NAMA_BULAN,
+                           nama_bulan=NAMA_BULAN.get(selected_bulan, ''),
+                           selected_bulan=selected_bulan,
+                           selected_tahun=selected_tahun,
+                           current_year=current_year)
+
+@app.route('/pelatih/pengumuman/kirim', methods=['POST'])
+@role_required('pelatih')
+def pelatih_kirim_pengumuman():
+    pelatih_id = session['user_id']
+    ekskul_id = request.form.get('ekskul_id', type=int)
+    isi = request.form.get('isi_pengumuman', '').strip()
+
+    if not isi:
+        flash("Isi pesan pengingat tidak boleh kosong.", "danger")
+        return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
+
+    conn = get_db()
+    conn.execute("""
+    INSERT INTO pengumuman (tipe, pengirim_id, ekskul_id, judul, isi, target_role)
+    VALUES ('pelatih', ?, ?, 'Pengingat dari Pelatih', ?, 'siswa')
+    """, (pelatih_id, ekskul_id, isi))
+    conn.commit()
+    conn.close()
+
+    flash("Pesan pengingat berhasil dikirim ke dashboard seluruh siswa ekskul ini!", "success")
+    return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
+
+@app.route('/pelatih/pengumuman/hapus/<int:pengumuman_id>', methods=['POST'])
+@role_required('pelatih')
+def pelatih_hapus_pengumuman(pengumuman_id):
+    pelatih_id = session['user_id']
+    ekskul_id = request.form.get('ekskul_id', type=int)
+
+    conn = get_db()
+    conn.execute("DELETE FROM pengumuman WHERE id = ? AND pengirim_id = ?", (pengumuman_id, pelatih_id))
+    conn.commit()
+    conn.close()
+
+    flash("Pengumuman / pengingat berhasil ditarik/dihapus.", "success")
+    return redirect(url_for('pelatih_dashboard', ekskul_id=ekskul_id))
 
 @app.route('/pelatih/persetujuan')
 @role_required('pelatih')
@@ -1062,6 +1228,20 @@ def siswa_dashboard():
         rd['nama_bulan'] = NAMA_BULAN.get(r['bulan'], f"Bulan {r['bulan']}")
         rapor_bulanan.append(rd)
 
+    # Pengumuman & pengingat dari Pelatih atau Madrasah
+    pengumuman_rows = conn.execute("""
+    SELECT p.*, u.nama as nama_pengirim, e.nama as nama_ekskul
+    FROM pengumuman p
+    LEFT JOIN users u ON p.pengirim_id = u.id
+    LEFT JOIN ekskul e ON p.ekskul_id = e.id
+    WHERE (p.tipe = 'admin' AND p.target_role IN ('siswa', 'semua'))
+       OR (p.tipe = 'pelatih' AND p.ekskul_id IN (
+           SELECT ekskul_id FROM siswa_ekskul WHERE user_id = ? AND status = 'AKTIF'
+       ))
+    ORDER BY p.created_at DESC LIMIT 5
+    """, (siswa_id,)).fetchall()
+    pengumuman_list = [dict(p) for p in pengumuman_rows]
+
     today_str = get_wib_today_str()
     conn.close()
     
@@ -1074,6 +1254,7 @@ def siswa_dashboard():
                            riwayat_pengajuan=riwayat_pengajuan,
                            statistik=statistik_kehadiran,
                            rapor_bulanan=rapor_bulanan,
+                           pengumuman_list=pengumuman_list,
                            today_str=today_str)
 
 @app.route('/siswa/ekskul/pilih', methods=['POST'])
@@ -1870,12 +2051,12 @@ def export_csv(ekskul_id):
         persen = round(((r['hadir'] or 0) / total) * 100, 1) if total > 0 else 0
         cw.writerow([idx, r['nama'], r['kelas'], r['jenis_kelamin'], r['hadir'] or 0, r['izin'] or 0, r['sakit'] or 0, r['alpa'] or 0, f"{persen}%"])
 
-    output = si.getvalue()
+    output = '\ufeff' + si.getvalue()
     nama_file = f"Rekap_Presensi_{ekskul['nama'].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.csv"
 
     return Response(
         output,
-        mimetype="text/csv",
+        mimetype="text/csv; charset=utf-8",
         headers={"Content-disposition": f"attachment; filename={nama_file}"}
     )
 
