@@ -1,0 +1,312 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Pengaturan Pejabat & TTD Laporan — Presensi MTs Muhammadiyah Tajurhalang{% endblock %}
+
+{% block admin_content %}
+<!-- Hero Header -->
+<div class="card admin-hero-card" style="padding: 18px 20px; margin-bottom: 18px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-tag tag-purple" style="font-size: 11px; padding: 2px 8px; border-radius: 6px;">✍️ Tanda Tangan Laporan</span>
+                <span style="font-size: 12px; color: #E2E8F0;">Integrasi Otomatis Format Cetak & Honorarium</span>
+            </div>
+            <h1 style="color: white; margin: 6px 0 2px 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">
+                Pengaturan Pejabat Penandatangan Laporan
+            </h1>
+            <p style="font-size: 12px; color: #94A3B8; margin: 0;">
+                Kelola nama dan NBM Kepala Madrasah, Bendahara, Staf Tata Usaha (TU), dan Waka Kesiswaan. Perubahan langsung terintegrasi secara dinamis ke seluruh hasil cetak laporan bulanan, acuan honor, dan lembar presensi resmi.
+            </p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            {% if sample_laporan_id %}
+            <a href="/laporan/cetak/{{ sample_laporan_id }}" target="_blank" class="btn-action-pill" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); text-decoration: none; padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                👁️ Contoh Cetak Laporan Bulanan
+            </a>
+            {% endif %}
+            {% if sample_sesi_id %}
+            <a href="/cetak/{{ sample_sesi_id }}" target="_blank" class="btn-action-pill" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); text-decoration: none; padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                🖨️ Contoh Cetak Lembar Sesi
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<form action="/admin/pejabat/simpan" method="POST" id="formPejabat">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        
+        <!-- CARD 1: KEPALA MADRASAH (KAMAD) -->
+        <div class="card" style="border-top: 4px solid #1E3A8A; background: #FFFFFF; border-radius: 12px; padding: 18px 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background: #EFF6FF; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    👑
+                </div>
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: #1E3A8A; margin: 0;">
+                        1. Kepala Madrasah (Kamad)
+                    </h3>
+                    <p style="font-size: 11.5px; color: #64748B; margin: 2px 0 0 0;">
+                        Pihak yang mengetahui & mengesahkan seluruh laporan madrasah
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nama Lengkap & Gelar <span class="req">*</span></label>
+                <input type="text" name="nama_kamad" id="inputNamaKamad" class="form-control" value="{{ pejabat.nama_kamad }}" placeholder="Contoh: H. E. Samsul Rizal, S.Ag., M.Pd." required oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nomor Baku Muhammadiyah (NBM) / NIP</label>
+                <input type="text" name="nbm_kamad" id="inputNbmKamad" class="form-control" value="{{ pejabat.nbm_kamad or '' }}" placeholder="Contoh: NBM. 1089234" oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Teks Nomenklatur Jabatan</label>
+                <input type="text" name="jabatan_kamad" id="inputJabatanKamad" class="form-control" value="{{ pejabat.jabatan_kamad }}" placeholder="Contoh: Kepala MTs Muhammadiyah Tajurhalang" oninput="updateLivePreview()">
+            </div>
+        </div>
+
+        <!-- CARD 2: BENDAHARA MADRASAH -->
+        <div class="card" style="border-top: 4px solid #10B981; background: #FFFFFF; border-radius: 12px; padding: 18px 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    💰
+                </div>
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: #065F46; margin: 0;">
+                        2. Bendahara Madrasah
+                    </h3>
+                    <p style="font-size: 11.5px; color: #64748B; margin: 2px 0 0 0;">
+                        Pihak pemeriksa anggaran & persetujuan pembayaran honor pelatih
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nama Lengkap & Gelar <span class="req">*</span></label>
+                <input type="text" name="nama_bendahara" id="inputNamaBendahara" class="form-control" value="{{ pejabat.nama_bendahara }}" placeholder="Contoh: Hj. Siti Rohmah, S.E." required oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nomor Baku Muhammadiyah (NBM) / NIP</label>
+                <input type="text" name="nbm_bendahara" id="inputNbmBendahara" class="form-control" value="{{ pejabat.nbm_bendahara or '' }}" placeholder="Contoh: NBM. 1120455" oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Teks Nomenklatur Jabatan</label>
+                <input type="text" name="jabatan_bendahara" id="inputJabatanBendahara" class="form-control" value="{{ pejabat.jabatan_bendahara }}" placeholder="Contoh: Bendahara Madrasah" oninput="updateLivePreview()">
+            </div>
+        </div>
+
+        <!-- CARD 3: STAF TATA USAHA (TU) -->
+        <div class="card" style="border-top: 4px solid #F59E0B; background: #FFFFFF; border-radius: 12px; padding: 18px 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background: #FFFBEB; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    📂
+                </div>
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: #B45309; margin: 0;">
+                        3. Staf Tata Usaha (TU)
+                    </h3>
+                    <p style="font-size: 11.5px; color: #64748B; margin: 2px 0 0 0;">
+                        Pihak pencatat kehadiran fisik & perhitungan jam latihan ekskul
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nama Lengkap & Gelar <span class="req">*</span></label>
+                <input type="text" name="nama_staff_tu" id="inputNamaTu" class="form-control" value="{{ pejabat.nama_staff_tu }}" placeholder="Contoh: Ahmad Syarifudin, S.Kom." required oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nomor Baku Muhammadiyah (NBM) / NIP</label>
+                <input type="text" name="nbm_staff_tu" id="inputNbmTu" class="form-control" value="{{ pejabat.nbm_staff_tu or '' }}" placeholder="Contoh: NBM. 1198302" oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Teks Nomenklatur Jabatan</label>
+                <input type="text" name="jabatan_staff_tu" id="inputJabatanTu" class="form-control" value="{{ pejabat.jabatan_staff_tu }}" placeholder="Contoh: Staf Tata Usaha" oninput="updateLivePreview()">
+            </div>
+        </div>
+
+        <!-- CARD 4: WAKA KESISWAAN -->
+        <div class="card" style="border-top: 4px solid #8B5CF6; background: #FFFFFF; border-radius: 12px; padding: 18px 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background: #F5F3FF; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    🎒
+                </div>
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: #6D28D9; margin: 0;">
+                        4. Waka Kesiswaan
+                    </h3>
+                    <p style="font-size: 11.5px; color: #64748B; margin: 2px 0 0 0;">
+                        Pemeriksa kesesuaian silabus dan kegiatan ekstrakurikuler siswa
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nama Lengkap & Gelar <span class="req">*</span></label>
+                <input type="text" name="nama_waka_kesiswaan" id="inputNamaWaka" class="form-control" value="{{ pejabat.nama_waka_kesiswaan }}" placeholder="Contoh: Mulyadi, S.Pd." required oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Nomor Baku Muhammadiyah (NBM) / NIP</label>
+                <input type="text" name="nbm_waka_kesiswaan" id="inputNbmWaka" class="form-control" value="{{ pejabat.nbm_waka_kesiswaan or '' }}" placeholder="Contoh: NBM. 1054321" oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Teks Nomenklatur Jabatan</label>
+                <input type="text" name="jabatan_waka_kesiswaan" id="inputJabatanWaka" class="form-control" value="{{ pejabat.jabatan_waka_kesiswaan }}" placeholder="Contoh: Waka Kesiswaan MTs Muhammadiyah" oninput="updateLivePreview()">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- PENGATURAN KOTA / TITIMANGSA -->
+    <div class="card" style="margin-bottom: 20px; padding: 16px 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+            <div style="flex: 1; min-width: 250px;">
+                <label class="form-label" style="font-weight: 800; color: #0F172A; margin-bottom: 3px;">
+                    📍 Kota / Lokasi Titimangsa Penandatanganan
+                </label>
+                <p style="font-size: 11.5px; color: #64748B; margin: 0 0 8px 0;">
+                    Nama kecamatan/kota yang tercantum sebelum tanggal surat (Contoh: <i>Tajurhalang, 30 November 2026</i>).
+                </p>
+                <input type="text" name="kota_tanda_tangan" id="inputKota" class="form-control" style="max-width: 320px; background: white;" value="{{ pejabat.kota_tanda_tangan or 'Tajurhalang' }}" placeholder="Contoh: Tajurhalang" required oninput="updateLivePreview()">
+            </div>
+
+            <div>
+                <button type="submit" class="btn-submit" style="padding: 11px 26px; font-size: 13.5px; background: #059669; font-weight: 800; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; width: auto; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);">
+                    💾 Simpan Perubahan Pejabat & TTD Laporan
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- LIVE PREVIEW TANDA TANGAN LAPORAN RESMI -->
+<div class="card" style="margin-bottom: 24px; border: 1px solid #CBD5E1; border-top: 4px solid #1E40AF; background: #FFFFFF; border-radius: 12px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; border-bottom: 1px dashed #CBD5E1; padding-bottom: 12px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="badge-tag tag-blue" style="font-size: 11px;">👁️ Live Preview Dokumen</span>
+                <span style="font-size: 12px; color: #1E40AF; font-weight: 700;">Format Tanda Tangan Hasil Cetak Laporan Bulanan & Honor TU</span>
+            </div>
+            <h3 style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 0 0;">
+                Simulasi Tampilan Tanda Tangan Resmi
+            </h3>
+        </div>
+        <div style="font-size: 11.5px; color: #64748B;">
+            <i>Tampilan ini otomatis menyesuaikan saat Anda mengetik data di atas</i>
+        </div>
+    </div>
+
+    <!-- Kotak Tanda Tangan Simulasi (Sesuai Kertas A4 Laporan Bulanan) -->
+    <div style="background: #FFFFFF; border: 1px solid #94A3B8; border-radius: 8px; padding: 24px; box-shadow: inset 0 0 10px rgba(0,0,0,0.02); font-family: Arial, sans-serif; font-size: 11.5px; line-height: 1.4;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center;">
+            <!-- Baris 1: Pelatih & Waka Kesiswaan -->
+            <tr>
+                <td style="width: 50%; padding: 8px 16px; vertical-align: top;">
+                    <span id="prevKota">{{ pejabat.kota_tanda_tangan or 'Tajurhalang' }}</span>, {{ tgl_sekarang if tgl_sekarang else '30 November 2026' }}<br/>
+                    <b>Pelatih Ekstrakurikuler</b><br/>
+                    <i style="color: #64748B; font-size: 10.5px;">(Pembuat Laporan Kegiatan)</i>
+                    <div style="height: 55px;"></div>
+                    <b style="font-size: 12.5px;"><u id="prevPelatih">Nama Pelatih Ekskul</u></b><br/>
+                    <span style="color: #475569; font-size: 11px;">Pelatih Cabang Olahraga / Seni</span>
+                </td>
+                <td style="width: 50%; padding: 8px 16px; vertical-align: top;">
+                    Mengetahui / Memverifikasi,<br/>
+                    <b id="prevJabatanWaka">{{ pejabat.jabatan_waka_kesiswaan or 'Waka Kesiswaan MTs Muhammadiyah' }}</b><br/>
+                    <i style="color: #64748B; font-size: 10.5px;">(Pemeriksa Kegiatan & Silabus)</i>
+                    <div style="height: 55px;"></div>
+                    <b style="font-size: 12.5px;"><u id="prevNamaWaka">{{ pejabat.nama_waka_kesiswaan or 'Mulyadi, S.Pd.' }}</u></b><br/>
+                    <span id="prevNbmWaka" style="color: #475569; font-size: 11px;">{{ pejabat.nbm_waka_kesiswaan or 'NBM. -' }}</span>
+                </td>
+            </tr>
+
+            <!-- Baris 2: Staf TU & Bendahara -->
+            <tr>
+                <td style="width: 50%; padding: 24px 16px 8px 16px; vertical-align: top;">
+                    Pencatatan Kehadiran & Administrasi,<br/>
+                    <b id="prevJabatanTu">{{ pejabat.jabatan_staff_tu or 'Staf Tata Usaha' }}</b><br/>
+                    <i style="color: #64748B; font-size: 10.5px;">(Acuan Perhitungan Jam Latihan)</i>
+                    <div style="height: 55px;"></div>
+                    <b style="font-size: 12.5px;"><u id="prevNamaTu">{{ pejabat.nama_staff_tu or 'Ahmad Syarifudin, S.Kom.' }}</u></b><br/>
+                    <span id="prevNbmTu" style="color: #475569; font-size: 11px;">{{ pejabat.nbm_staff_tu or 'NBM. -' }}</span>
+                </td>
+                <td style="width: 50%; padding: 24px 16px 8px 16px; vertical-align: top;">
+                    Verifikasi Anggaran & Persetujuan Honor,<br/>
+                    <b id="prevJabatanBendahara">{{ pejabat.jabatan_bendahara or 'Bendahara Madrasah' }}</b><br/>
+                    <i style="color: #64748B; font-size: 10.5px;">(Acuan Dasar Pencairan Honorarium)</i>
+                    <div style="height: 55px;"></div>
+                    <b style="font-size: 12.5px;"><u id="prevNamaBendahara">{{ pejabat.nama_bendahara or 'Hj. Siti Rohmah, S.E.' }}</u></b><br/>
+                    <span id="prevNbmBendahara" style="color: #475569; font-size: 11px;">{{ pejabat.nbm_bendahara or 'NBM. -' }}</span>
+                </td>
+            </tr>
+
+            <!-- Baris 3: Kepala Madrasah (Tengah / Pengesahan) -->
+            <tr>
+                <td colspan="2" style="padding-top: 26px; text-align: center; vertical-align: top;">
+                    Menyetujui & Mengesahkan,<br/>
+                    <b id="prevJabatanKamad">{{ pejabat.jabatan_kamad or 'Kepala MTs Muhammadiyah Tajurhalang' }}</b><br/>
+                    <i style="color: #64748B; font-size: 10.5px;">Pengesahan Laporan Resmi Madrasah</i>
+                    <div style="height: 55px;"></div>
+                    <b style="font-size: 13px;"><u id="prevNamaKamad">{{ pejabat.nama_kamad or 'H. E. Samsul Rizal, S.Ag., M.Pd.' }}</u></b><br/>
+                    <span id="prevNbmKamad" style="color: #475569; font-size: 11px;">{{ pejabat.nbm_kamad or 'NBM. -' }}</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+// Fungsi Live Preview Tanda Tangan Laporan secara Real-Time
+function updateLivePreview() {
+    const namaKamad = document.getElementById('inputNamaKamad').value.trim() || 'Nama Kepala Madrasah';
+    const nbmKamad = document.getElementById('inputNbmKamad').value.trim() || 'NBM. -';
+    const jabatanKamad = document.getElementById('inputJabatanKamad').value.trim() || 'Kepala MTs Muhammadiyah Tajurhalang';
+
+    const namaBendahara = document.getElementById('inputNamaBendahara').value.trim() || 'Nama Bendahara';
+    const nbmBendahara = document.getElementById('inputNbmBendahara').value.trim() || 'NBM. -';
+    const jabatanBendahara = document.getElementById('inputJabatanBendahara').value.trim() || 'Bendahara Madrasah';
+
+    const namaTu = document.getElementById('inputNamaTu').value.trim() || 'Nama Staf TU';
+    const nbmTu = document.getElementById('inputNbmTu').value.trim() || 'NBM. -';
+    const jabatanTu = document.getElementById('inputJabatanTu').value.trim() || 'Staf Tata Usaha';
+
+    const namaWaka = document.getElementById('inputNamaWaka').value.trim() || 'Nama Waka Kesiswaan';
+    const nbmWaka = document.getElementById('inputNbmWaka').value.trim() || 'NBM. -';
+    const jabatanWaka = document.getElementById('inputJabatanWaka').value.trim() || 'Waka Kesiswaan MTs Muhammadiyah';
+
+    const kota = document.getElementById('inputKota').value.trim() || 'Tajurhalang';
+
+    // Update elemen pratinjau
+    document.getElementById('prevNamaKamad').textContent = namaKamad;
+    document.getElementById('prevNbmKamad').textContent = nbmKamad;
+    document.getElementById('prevJabatanKamad').textContent = jabatanKamad;
+
+    document.getElementById('prevNamaBendahara').textContent = namaBendahara;
+    document.getElementById('prevNbmBendahara').textContent = nbmBendahara;
+    document.getElementById('prevJabatanBendahara').textContent = jabatanBendahara;
+
+    document.getElementById('prevNamaTu').textContent = namaTu;
+    document.getElementById('prevNbmTu').textContent = nbmTu;
+    document.getElementById('prevJabatanTu').textContent = jabatanTu;
+
+    document.getElementById('prevNamaWaka').textContent = namaWaka;
+    document.getElementById('prevNbmWaka').textContent = nbmWaka;
+    document.getElementById('prevJabatanWaka').textContent = jabatanWaka;
+
+    document.getElementById('prevKota').textContent = kota;
+}
+
+// Inisialisasi saat halaman dimuat
+document.addEventListener('DOMContentLoaded', updateLivePreview);
+</script>
+{% endblock %}

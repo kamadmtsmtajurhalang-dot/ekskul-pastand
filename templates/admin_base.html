@@ -35,6 +35,10 @@
                 <span>📍 Ekskul & GPS</span>
             </a>
 
+            <a href="/admin/pejabat" class="sidebar-nav-item {% if active_menu == 'pejabat' %}active{% endif %}">
+                <span>✍️ Pejabat & TTD Laporan</span>
+            </a>
+
             <div style="height: 1px; background: #F1F5F9; margin: 6px 0;"></div>
 
             <a href="/rekap" class="sidebar-nav-item" title="Lihat Rekapitulasi Presensi">
@@ -81,6 +85,7 @@
                 {% elif active_menu == 'pelatih' %}🏆 Data Pelatih
                 {% elif active_menu == 'siswa' %}🎒 Data Siswa
                 {% elif active_menu == 'ekskul_gps' %}📍 Ekskul & GPS
+                {% elif active_menu == 'pejabat' %}✍️ Pejabat & TTD Laporan
                 {% endif %}
             </div>
         </div>

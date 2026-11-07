@@ -346,12 +346,12 @@
     </div>
     {% endif %}
 
-    <!-- BAGIAN 4: TANDA TANGAN BERJENJANG RESMI (4 PIHAK) -->
+    <!-- BAGIAN 4: TANDA TANGAN BERJENJANG RESMI (PELATIH, WAKA, STAF TU, BENDAHARA, KEPALA MADRASAH) -->
     <div class="sig-container">
         <table class="sig-table">
             <tr>
                 <td>
-                    Tajurhalang, {{ tgl_laporan }}<br/>
+                    {{ pejabat.kota_tanda_tangan or 'Tajurhalang' }}, {{ tgl_laporan }}<br/>
                     <b>Pelatih Ekstrakurikuler</b><br/>
                     <i>(Pembuat Laporan Kegiatan)</i>
                     <div class="sig-space"></div>
@@ -360,29 +360,39 @@
                 </td>
                 <td>
                     Mengetahui / Memverifikasi,<br/>
-                    <b>Waka Kesiswaan MTs Muhammadiyah</b><br/>
+                    <b>{{ pejabat.jabatan_waka_kesiswaan or 'Waka Kesiswaan MTs Muhammadiyah' }}</b><br/>
                     <i>(Pemeriksa Kegiatan & Silabus)</i>
                     <div class="sig-space"></div>
-                    <b><u>Mulyadi, S.Pd.</u></b><br/>
-                    NBM. -
+                    <b><u>{{ pejabat.nama_waka_kesiswaan or 'Mulyadi, S.Pd.' }}</u></b><br/>
+                    {{ pejabat.nbm_waka_kesiswaan or 'NBM. -' }}
                 </td>
             </tr>
             <tr>
                 <td style="padding-top: 24px;">
-                    Verifikasi Administrasi & Keuangan,<br/>
-                    <b>Staf Tata Usaha & Bendahara</b><br/>
-                    <i>(Acuan Dasar Pencairan Honorarium)</i>
+                    Pencatatan Kehadiran & Administrasi,<br/>
+                    <b>{{ pejabat.jabatan_staff_tu or 'Staf Tata Usaha' }}</b><br/>
+                    <i>(Acuan Perhitungan Jam Latihan)</i>
                     <div class="sig-space"></div>
-                    <b><u>Staf Tata Usaha / Bendahara</u></b><br/>
-                    NBM. -
+                    <b><u>{{ pejabat.nama_staff_tu or 'Staf Tata Usaha' }}</u></b><br/>
+                    {{ pejabat.nbm_staff_tu or 'NBM. -' }}
                 </td>
                 <td style="padding-top: 24px;">
-                    Menyetujui,<br/>
-                    <b>Kepala Madrasah (Kamad)</b><br/>
-                    <i>MTs Muhammadiyah Tajurhalang</i>
+                    Verifikasi Anggaran & Persetujuan Honor,<br/>
+                    <b>{{ pejabat.jabatan_bendahara or 'Bendahara Madrasah' }}</b><br/>
+                    <i>(Acuan Dasar Pencairan Honorarium)</i>
                     <div class="sig-space"></div>
-                    <b><u>H. E. Samsul Rizal, S.Ag., M.Pd.</u></b><br/>
-                    NBM. -
+                    <b><u>{{ pejabat.nama_bendahara or 'Bendahara Madrasah' }}</u></b><br/>
+                    {{ pejabat.nbm_bendahara or 'NBM. -' }}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="padding-top: 26px; text-align: center;">
+                    Menyetujui & Mengesahkan,<br/>
+                    <b>{{ pejabat.jabatan_kamad or 'Kepala MTs Muhammadiyah Tajurhalang' }}</b><br/>
+                    <i>Pengesahan Laporan Resmi Madrasah</i>
+                    <div class="sig-space"></div>
+                    <b><u>{{ pejabat.nama_kamad or 'H. E. Samsul Rizal, S.Ag., M.Pd.' }}</u></b><br/>
+                    {{ pejabat.nbm_kamad or 'NBM. -' }}
                 </td>
             </tr>
         </table>

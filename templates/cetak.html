@@ -165,15 +165,22 @@
     <div class="sig-container">
         <table class="sig-table">
             <tr>
-                <td style="width: 50%;">
+                <td style="width: 33%;">
                     Mengetahui,<br/>
-                    <b>Waka Kesiswaan MTs Muhammadiyah Tajurhalang</b>
+                    <b>{{ pejabat.jabatan_waka_kesiswaan if pejabat else 'Waka Kesiswaan MTs Muhammadiyah' }}</b>
                     <div class="sig-space"></div>
-                    <b><u>Mulyadi, S.Pd.</u></b><br/>
-                    NBM. -
+                    <b><u>{{ pejabat.nama_waka_kesiswaan if pejabat else 'Mulyadi, S.Pd.' }}</u></b><br/>
+                    {{ pejabat.nbm_waka_kesiswaan if pejabat else 'NBM. -' }}
                 </td>
-                <td style="width: 50%;">
-                    Tajurhalang, {{ sesi.tanggal }}<br/>
+                <td style="width: 34%;">
+                    Menyetujui,<br/>
+                    <b>{{ pejabat.jabatan_kamad if pejabat else 'Kepala Madrasah' }}</b>
+                    <div class="sig-space"></div>
+                    <b><u>{{ pejabat.nama_kamad if pejabat else 'H. E. Samsul Rizal, S.Ag., M.Pd.' }}</u></b><br/>
+                    {{ pejabat.nbm_kamad if pejabat else 'NBM. -' }}
+                </td>
+                <td style="width: 33%;">
+                    {{ pejabat.kota_tanda_tangan if pejabat else 'Tajurhalang' }}, {{ sesi.tanggal }}<br/>
                     <b>Pelatih / Pembina Ekskul</b>
                     <div class="sig-space"></div>
                     <b><u>{{ sesi.nama_pelatih }}</u></b><br/>

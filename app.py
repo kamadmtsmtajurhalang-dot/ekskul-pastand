@@ -77,6 +77,35 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(R * c, 1)
 
+def get_pengaturan_laporan(conn=None):
+    """Mengambil konfigurasi pejabat penandatangan laporan (Kamad, Bendahara, Staf TU, Waka Kesiswaan)."""
+    close_after = False
+    if conn is None:
+        conn = get_db()
+        close_after = True
+    row = conn.execute("SELECT * FROM pengaturan_laporan ORDER BY id DESC LIMIT 1").fetchone()
+    if not row:
+        conn.execute("""
+        INSERT INTO pengaturan_laporan (
+            nama_kamad, nbm_kamad, jabatan_kamad,
+            nama_bendahara, nbm_bendahara, jabatan_bendahara,
+            nama_staff_tu, nbm_staff_tu, jabatan_staff_tu,
+            nama_waka_kesiswaan, nbm_waka_kesiswaan, jabatan_waka_kesiswaan,
+            kota_tanda_tangan
+        ) VALUES (
+            'H. E. Samsul Rizal, S.Ag., M.Pd.', 'NBM. 1089234', 'Kepala MTs Muhammadiyah Tajurhalang',
+            'Hj. Siti Rohmah, S.E.', 'NBM. 1120455', 'Bendahara Madrasah',
+            'Ahmad Syarifudin, S.Kom.', 'NBM. 1198302', 'Staf Tata Usaha',
+            'Mulyadi, S.Pd.', 'NBM. 1054321', 'Waka Kesiswaan MTs Muhammadiyah',
+            'Tajurhalang'
+        )
+        """)
+        conn.commit()
+        row = conn.execute("SELECT * FROM pengaturan_laporan ORDER BY id DESC LIMIT 1").fetchone()
+    if close_after:
+        conn.close()
+    return dict(row) if row else {}
+
 # =========================================================
 # PWA (PROGRESSIVE WEB APP) ROUTES
 # =========================================================
@@ -1116,6 +1145,7 @@ def pelatih_simpan_penilaian_bulanan():
     return redirect(url_for('pelatih_laporan_bulanan', ekskul_id=ekskul_id, bulan=bulan, tahun=tahun))
 
 @app.route('/pelatih/laporan-bulanan/cetak/<int:laporan_id>')
+@app.route('/laporan/cetak/<int:laporan_id>')
 @login_required
 def cetak_laporan_bulanan(laporan_id):
     conn = get_db()
@@ -1166,6 +1196,8 @@ def cetak_laporan_bulanan(laporan_id):
     nama_bulan = NAMA_BULAN.get(laporan['bulan'], f"Bulan {laporan['bulan']}")
     tgl_laporan = f"{now_wib.day} {NAMA_BULAN.get(now_wib.month)} {now_wib.year}"
 
+    pejabat = get_pengaturan_laporan(conn)
+
     conn.close()
     return render_template('cetak_laporan_bulanan.html',
                            laporan=laporan,
@@ -1178,7 +1210,8 @@ def cetak_laporan_bulanan(laporan_id):
                            sesi_list=sesi_list,
                            siswa_penilaian=siswa_penilaian,
                            print_date=print_date,
-                           tgl_laporan=tgl_laporan)
+                           tgl_laporan=tgl_laporan,
+                           pejabat=pejabat)
 
 # =========================================================
 # 2. AKUN SISWA (PILIH EKSKUL & INFO PRA-PRESENSI)
@@ -2097,6 +2130,108 @@ def admin_update_lokasi():
     return redirect(url_for('admin_ekskul_gps'))
 
 # =========================================================
+# PENGATURAN PEJABAT PENANDATANGAN LAPORAN (KAMAD, BENDAHARA, TU, WAKA)
+# =========================================================
+
+@app.route('/admin/pejabat')
+@app.route('/admin/pengaturan-laporan')
+@role_required('admin')
+def admin_pejabat():
+    """Halaman Pengaturan Pejabat Penandatangan Laporan (Kamad, Bendahara, Staf TU, Waka Kesiswaan)."""
+    conn = get_db()
+    current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
+    pejabat = get_pengaturan_laporan(conn)
+    reset_requests = conn.execute("SELECT * FROM reset_password_requests WHERE status = 'PENDING'").fetchall()
+    
+    # Ambil sampel laporan bulanan jika ada untuk tombol preview cetak
+    sample_laporan = conn.execute("SELECT id FROM laporan_bulanan ORDER BY id DESC LIMIT 1").fetchone()
+    sample_sesi = conn.execute("SELECT id FROM sesi_latihan ORDER BY id DESC LIMIT 1").fetchone()
+    
+    conn.close()
+    return render_template('admin_pejabat.html',
+                           current_admin=current_admin,
+                           pejabat=pejabat,
+                           reset_requests=reset_requests,
+                           sample_laporan_id=sample_laporan['id'] if sample_laporan else None,
+                           sample_sesi_id=sample_sesi['id'] if sample_sesi else None,
+                           active_menu='pejabat')
+
+@app.route('/admin/pejabat/simpan', methods=['POST'])
+@role_required('admin')
+def admin_simpan_pejabat():
+    """Menyimpan pembaruan data pejabat penandatangan laporan."""
+    nama_kamad = request.form.get('nama_kamad', '').strip()
+    nbm_kamad = request.form.get('nbm_kamad', '').strip()
+    jabatan_kamad = request.form.get('jabatan_kamad', 'Kepala MTs Muhammadiyah Tajurhalang').strip()
+
+    nama_bendahara = request.form.get('nama_bendahara', '').strip()
+    nbm_bendahara = request.form.get('nbm_bendahara', '').strip()
+    jabatan_bendahara = request.form.get('jabatan_bendahara', 'Bendahara Madrasah').strip()
+
+    nama_staff_tu = request.form.get('nama_staff_tu', '').strip()
+    nbm_staff_tu = request.form.get('nbm_staff_tu', '').strip()
+    jabatan_staff_tu = request.form.get('jabatan_staff_tu', 'Staf Tata Usaha').strip()
+
+    nama_waka_kesiswaan = request.form.get('nama_waka_kesiswaan', '').strip()
+    nbm_waka_kesiswaan = request.form.get('nbm_waka_kesiswaan', '').strip()
+    jabatan_waka_kesiswaan = request.form.get('jabatan_waka_kesiswaan', 'Waka Kesiswaan MTs Muhammadiyah').strip()
+
+    kota_tanda_tangan = request.form.get('kota_tanda_tangan', 'Tajurhalang').strip()
+
+    if not nama_kamad or not nama_bendahara or not nama_staff_tu:
+        flash("Nama Kepala Madrasah, Bendahara, dan Staf TU wajib diisi!", "danger")
+        return redirect(url_for('admin_pejabat'))
+
+    conn = get_db()
+    existing = conn.execute("SELECT id FROM pengaturan_laporan ORDER BY id DESC LIMIT 1").fetchone()
+    if existing:
+        conn.execute("""
+        UPDATE pengaturan_laporan SET
+            nama_kamad = ?,
+            nbm_kamad = ?,
+            jabatan_kamad = ?,
+            nama_bendahara = ?,
+            nbm_bendahara = ?,
+            jabatan_bendahara = ?,
+            nama_staff_tu = ?,
+            nbm_staff_tu = ?,
+            jabatan_staff_tu = ?,
+            nama_waka_kesiswaan = ?,
+            nbm_waka_kesiswaan = ?,
+            jabatan_waka_kesiswaan = ?,
+            kota_tanda_tangan = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """, (
+            nama_kamad, nbm_kamad, jabatan_kamad,
+            nama_bendahara, nbm_bendahara, jabatan_bendahara,
+            nama_staff_tu, nbm_staff_tu, jabatan_staff_tu,
+            nama_waka_kesiswaan, nbm_waka_kesiswaan, jabatan_waka_kesiswaan,
+            kota_tanda_tangan, existing['id']
+        ))
+    else:
+        conn.execute("""
+        INSERT INTO pengaturan_laporan (
+            nama_kamad, nbm_kamad, jabatan_kamad,
+            nama_bendahara, nbm_bendahara, jabatan_bendahara,
+            nama_staff_tu, nbm_staff_tu, jabatan_staff_tu,
+            nama_waka_kesiswaan, nbm_waka_kesiswaan, jabatan_waka_kesiswaan,
+            kota_tanda_tangan
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            nama_kamad, nbm_kamad, jabatan_kamad,
+            nama_bendahara, nbm_bendahara, jabatan_bendahara,
+            nama_staff_tu, nbm_staff_tu, jabatan_staff_tu,
+            nama_waka_kesiswaan, nbm_waka_kesiswaan, jabatan_waka_kesiswaan,
+            kota_tanda_tangan
+        ))
+    conn.commit()
+    conn.close()
+
+    flash("Data pejabat penandatangan laporan (Kamad, Bendahara, Staf TU, Waka Kesiswaan) berhasil disimpan dan telah terintegrasi ke seluruh hasil cetak laporan!", "success")
+    return redirect(url_for('admin_pejabat'))
+
+# =========================================================
 # API & PRESENSI UMUM (GEOFENCE & SUBMISSION)
 # =========================================================
 
@@ -2205,8 +2340,9 @@ def cetak_sesi(sesi_id):
     ORDER BY u.kelas ASC, u.nama ASC
     """, (sesi_id,)).fetchall()
 
+    pejabat = get_pengaturan_laporan(conn)
     conn.close()
-    return render_template('cetak.html', sesi=sesi, presensi=presensi)
+    return render_template('cetak.html', sesi=sesi, presensi=presensi, pejabat=pejabat)
 
 @app.route('/export-csv/<int:ekskul_id>')
 @login_required
@@ -2229,6 +2365,7 @@ def export_csv(ekskul_id):
     ORDER BY u.kelas ASC, u.nama ASC
     """, (ekskul_id,)).fetchall()
 
+    pejabat = get_pengaturan_laporan(conn)
     conn.close()
 
     si = io.StringIO()
@@ -2243,6 +2380,36 @@ def export_csv(ekskul_id):
         total = (r['hadir'] or 0) + (r['izin'] or 0) + (r['sakit'] or 0) + (r['alpa'] or 0)
         persen = round(((r['hadir'] or 0) / total) * 100, 1) if total > 0 else 0
         cw.writerow([idx, r['nama'], r['kelas'], r['jenis_kelamin'], r['hadir'] or 0, r['izin'] or 0, r['sakit'] or 0, r['alpa'] or 0, f"{persen}%"])
+
+    # Blok Tanda Tangan & Pengesahan Pejabat Madrasah di Hasil Unduhan Excel
+    cw.writerow([])
+    cw.writerow(["PENGESAHAN LAPORAN PRESENSI"])
+    cw.writerow([f"{pejabat.get('kota_tanda_tangan', 'Tajurhalang')}, {datetime.now().strftime('%d-%m-%Y')}"])
+    cw.writerow([])
+    cw.writerow(["Mengetahui / Memverifikasi:", "", "Verifikasi Administrasi & Honor:", "", "Menyetujui:"])
+    cw.writerow([
+        pejabat.get('jabatan_waka_kesiswaan', 'Waka Kesiswaan'),
+        "",
+        f"{pejabat.get('jabatan_staff_tu', 'Staf TU')} & {pejabat.get('jabatan_bendahara', 'Bendahara')}",
+        "",
+        pejabat.get('jabatan_kamad', 'Kepala Madrasah')
+    ])
+    cw.writerow([])
+    cw.writerow([])
+    cw.writerow([
+        pejabat.get('nama_waka_kesiswaan', ''),
+        "",
+        f"{pejabat.get('nama_staff_tu', '')} / {pejabat.get('nama_bendahara', '')}",
+        "",
+        pejabat.get('nama_kamad', '')
+    ])
+    cw.writerow([
+        pejabat.get('nbm_waka_kesiswaan', ''),
+        "",
+        f"{pejabat.get('nbm_staff_tu', '')} / {pejabat.get('nbm_bendahara', '')}",
+        "",
+        pejabat.get('nbm_kamad', '')
+    ])
 
     output = '\ufeff' + si.getvalue()
     nama_file = f"Rekap_Presensi_{ekskul['nama'].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.csv"

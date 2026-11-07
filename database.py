@@ -234,6 +234,27 @@ def init_db():
     )
     """)
 
+    # 14. Tabel Pengaturan Pejabat Penandatangan Laporan (Kamad, Bendahara, TU, Waka)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS pengaturan_laporan (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama_kamad TEXT NOT NULL DEFAULT 'H. E. Samsul Rizal, S.Ag., M.Pd.',
+        nbm_kamad TEXT DEFAULT 'NBM. 1089234',
+        jabatan_kamad TEXT DEFAULT 'Kepala MTs Muhammadiyah Tajurhalang',
+        nama_bendahara TEXT NOT NULL DEFAULT 'Hj. Siti Rohmah, S.E.',
+        nbm_bendahara TEXT DEFAULT 'NBM. 1120455',
+        jabatan_bendahara TEXT DEFAULT 'Bendahara Madrasah',
+        nama_staff_tu TEXT NOT NULL DEFAULT 'Ahmad Syarifudin, S.Kom.',
+        nbm_staff_tu TEXT DEFAULT 'NBM. 1198302',
+        jabatan_staff_tu TEXT DEFAULT 'Staf Tata Usaha',
+        nama_waka_kesiswaan TEXT NOT NULL DEFAULT 'Mulyadi, S.Pd.',
+        nbm_waka_kesiswaan TEXT DEFAULT 'NBM. 1054321',
+        jabatan_waka_kesiswaan TEXT DEFAULT 'Waka Kesiswaan MTs Muhammadiyah',
+        kota_tanda_tangan TEXT DEFAULT 'Tajurhalang',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     conn.commit()
 
     # Migrasi data relasi pelatih ke tabel pelatih_ekskul
@@ -402,6 +423,29 @@ def init_db():
             INSERT OR IGNORE INTO master_siswa (nis, nama, kelas, jenis_kelamin, no_whatsapp)
             VALUES (?, ?, ?, ?, ?)
             """, sample_unregistered)
+            conn.commit()
+    except Exception:
+        pass
+
+    # Inisialisasi default pejabat penandatangan laporan jika kosong
+    try:
+        cursor.execute("SELECT COUNT(*) FROM pengaturan_laporan")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+            INSERT INTO pengaturan_laporan (
+                nama_kamad, nbm_kamad, jabatan_kamad,
+                nama_bendahara, nbm_bendahara, jabatan_bendahara,
+                nama_staff_tu, nbm_staff_tu, jabatan_staff_tu,
+                nama_waka_kesiswaan, nbm_waka_kesiswaan, jabatan_waka_kesiswaan,
+                kota_tanda_tangan
+            ) VALUES (
+                'H. E. Samsul Rizal, S.Ag., M.Pd.', 'NBM. 1089234', 'Kepala MTs Muhammadiyah Tajurhalang',
+                'Hj. Siti Rohmah, S.E.', 'NBM. 1120455', 'Bendahara Madrasah',
+                'Ahmad Syarifudin, S.Kom.', 'NBM. 1198302', 'Staf Tata Usaha',
+                'Mulyadi, S.Pd.', 'NBM. 1054321', 'Waka Kesiswaan MTs Muhammadiyah',
+                'Tajurhalang'
+            )
+            """)
             conn.commit()
     except Exception:
         pass
