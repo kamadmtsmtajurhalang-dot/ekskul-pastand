@@ -63,7 +63,7 @@
                 Cabang Ekskul yang Diampu <span class="req">*</span>
                 <small style="color: #2563EB; font-weight: 700;">(Bisa centang lebih dari 1 jika guru memegang beberapa ekskul)</small>
             </label>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 6px; background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 8px; margin-top: 6px; background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 8px;">
                 {% for e in ekskul_list %}
                 <label style="display: flex; align-items: center; gap: 8px; background: white; border: 1px solid #E2E8F0; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
                     <input type="checkbox" name="ekskul_ids" value="{{ e.id }}" style="width: 16px; height: 16px; cursor: pointer;">
@@ -204,7 +204,7 @@
 
             <div class="form-group">
                 <label class="form-label" style="font-weight: 700;">Centang Cabang Ekskul yang Dipegang <span class="req">*</span></label>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 6px; max-height: 260px; overflow-y: auto; padding: 6px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 8px; margin-top: 6px; max-height: 260px; overflow-y: auto; padding: 6px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
                     {% for e in ekskul_list %}
                     <label style="display: flex; align-items: center; gap: 8px; background: white; border: 1px solid #CBD5E1; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 600;">
                         <input type="checkbox" name="ekskul_ids" class="chk-edit-ekskul" value="{{ e.id }}" style="width: 16px; height: 16px; cursor: pointer;">

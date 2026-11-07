@@ -16,8 +16,18 @@
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
 
-* {
+html {
     box-sizing: border-box;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-text-size-adjust: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
@@ -36,6 +46,11 @@ body {
     padding-bottom: 40px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Header & Navigation */
@@ -185,9 +200,11 @@ body {
 
 /* Main Container */
 .main-container {
+    width: 100%;
     max-width: 760px;
     margin: 0 auto;
     padding: 14px;
+    box-sizing: border-box;
     transition: max-width 0.2s ease;
 }
 
@@ -195,10 +212,19 @@ body {
     max-width: 1140px !important;
 }
 
+@media (max-width: 1140px) {
+    .main-admin, .header-admin {
+        max-width: 100% !important;
+    }
+}
+
 .screen-wrapper {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Cards */
@@ -209,6 +235,9 @@ body {
     border: 1px solid var(--border);
     box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 @media (max-width: 640px) {
@@ -950,9 +979,13 @@ code {
 
 /* Tables */
 .table-responsive {
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 10px;
+    box-sizing: border-box;
+    display: block;
 }
 
 .data-table {
@@ -990,22 +1023,28 @@ code {
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw;
+    max-width: 100vw;
     background: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 12px;
     z-index: 1100;
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .modal-card {
     background: white;
     border-radius: 14px;
     padding: 20px;
-    max-width: 340px;
+    max-width: min(360px, calc(100vw - 24px));
     width: 100%;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .modal-icon { font-size: 36px; margin-bottom: 6px; }
@@ -1500,37 +1539,49 @@ code {
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw;
+    max-width: 100vw;
     background: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 12px;
     z-index: 1100;
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .modal-card {
     background: white;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: min(420px, calc(100vw - 24px));
+    box-sizing: border-box;
 }
 
 .modal-card-lg {
-    max-width: 680px;
+    max-width: min(680px, calc(100vw - 24px));
     width: 100%;
     max-height: 85vh;
     overflow-y: auto;
+    overflow-x: hidden;
     text-align: left;
     padding: 22px;
+    box-sizing: border-box;
 }
 
 .modal-card-md {
-    max-width: 480px;
+    max-width: min(480px, calc(100vw - 24px));
     width: 100%;
     max-height: 85vh;
     overflow-y: auto;
+    overflow-x: hidden;
     text-align: left;
     padding: 22px;
+    box-sizing: border-box;
 }
 
 .modal-header-row {
@@ -1570,6 +1621,9 @@ code {
     gap: 20px;
     align-items: flex-start;
     margin-top: 4px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Sidebar on Desktop */
@@ -1692,9 +1746,12 @@ code {
 .admin-content-area {
     flex: 1;
     min-width: 0;
+    max-width: 100%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    box-sizing: border-box;
 }
 
 /* Mobile Toggle Bar */
@@ -1735,26 +1792,42 @@ code {
     .admin-layout-wrapper {
         flex-direction: column;
         gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .admin-content-area {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
     .admin-mobile-toggle-bar {
         display: flex;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .admin-sidebar {
         position: fixed;
         top: 0;
-        left: -300px;
+        left: 0;
         width: 280px;
+        max-width: 85vw;
         height: 100vh;
         z-index: 1050;
         border-radius: 0 16px 16px 0;
         background: #FFFFFF;
         box-shadow: 6px 0 25px rgba(0, 0, 0, 0.25);
         overflow-y: auto;
+        transform: translateX(-105%);
+        transition: transform 0.25s ease;
     }
 
     .admin-sidebar.open {
+        transform: translateX(0);
         left: 0;
     }
 
@@ -1781,10 +1854,16 @@ code {
 
     .mobile-bottom-nav {
         display: flex !important;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
     }
 
     .mobile-ekskul-switcher-strip {
         display: flex !important;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .data-table th, .data-table td {
@@ -1795,6 +1874,22 @@ code {
         min-height: 32px;
         padding: 5px 9px;
         font-size: 11.5px;
+    }
+
+    /* Modal Mobile Constraint */
+    .modal-overlay {
+        padding: 10px !important;
+        overflow-x: hidden !important;
+    }
+
+    .modal-card,
+    .modal-card-md,
+    .modal-card-lg {
+        padding: 16px 14px !important;
+        margin: 0 auto !important;
+        max-width: calc(100vw - 20px) !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 }
 
@@ -1962,4 +2057,69 @@ code {
     font-size: 10.5px;
     color: var(--muted);
     padding: 0 16px;
+}
+
+/* Session Card & Attendance Summary for Riwayat */
+.attendance-summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+    align-items: center;
+}
+
+.att-stat {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.stat-hadir { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+.stat-izin  { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+.stat-sakit { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+.stat-alpa  { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+.stat-total { background: #F1F5F9; color: #334155; border: 1px solid #E2E8F0; }
+
+.session-info-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 10px 0;
+    font-size: 12px;
+}
+
+/* =========================================================
+   STRICT MOBILE HORIZONTAL LOCK (Viewport Protection)
+   ========================================================= */
+@media (max-width: 768px) {
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+        position: relative !important;
+        width: 100% !important;
+    }
+
+    .main-container,
+    .main-admin,
+    .admin-layout-wrapper,
+    .admin-content-area,
+    .screen-wrapper,
+    .card {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    img, video, iframe, canvas {
+        max-width: 100% !important;
+        height: auto;
+    }
+
+    /* Wrap flex rows cleanly */
+    .admin-hero-card > div,
+    .page-title-box > div {
+        flex-wrap: wrap !important;
+    }
 }

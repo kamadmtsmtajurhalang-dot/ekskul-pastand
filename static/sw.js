@@ -1,5 +1,5 @@
 // Service Worker - Presensi Ekskul MTs Muhammadiyah Tajurhalang
-const CACHE_NAME = 'presensi-ekskul-v1';
+const CACHE_NAME = 'presensi-ekskul-v2';
 const STATIC_ASSETS = [
   '/',
   '/static/style.css',
