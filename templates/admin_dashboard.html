@@ -87,6 +87,11 @@
             <a href="/admin/template-csv" class="btn-action-pill" style="background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; text-decoration: none; padding: 6px 12px; font-size: 12px; font-weight: 600;">
                 📥 Unduh Template CSV
             </a>
+            {% if total_master_siswa and total_master_siswa > 0 %}
+            <button type="button" class="btn-action-pill" onclick="openModalDeleteAllMasterSiswa()" style="background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Hapus seluruh data siswa (Master MTs + Akun) untuk keperluan reset total">
+                🗑️ Reset Data Siswa
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -454,6 +459,52 @@
         </div>
     </div>
 </div>
+
+<!-- =========================================================
+     MODAL KONFIRMASI HAPUS SELURUH DATA SISWA (RESET TOTAL)
+     ========================================================= -->
+<div id="modalDeleteAllMasterSiswa" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md" style="border-top: 4px solid #DC2626; max-width: 530px;">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: #991B1B;">
+                🚨 Hapus Seluruh Data Siswa (Reset Total)
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalDeleteAllMasterSiswa()">&times;</button>
+        </div>
+        
+        <div style="padding: 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; margin: 14px 0 16px 0;">
+            <p style="font-size: 13px; color: #991B1B; margin: 0 0 8px 0; font-weight: 800;">
+                ⚠️ Peringatan Kritis: Tindakan Bersifat Permanen!
+            </p>
+            <p style="font-size: 12px; color: #7F1D1D; margin: 0 0 8px 0;">
+                Opsi ini mengosongkan seluruh database siswa untuk keperluan <b>Tahun Ajaran Baru</b> atau reset total sistem:
+            </p>
+            <ul style="font-size: 12px; color: #B91C1C; margin: 0; padding-left: 18px; line-height: 1.6;">
+                <li>Seluruh <b>{{ total_master_siswa }} Data Pokok Siswa MTs</b> di tabel master akan dihapus.</li>
+                <li>Seluruh <b>{{ total_siswa_pilih_ekskul }} Akun Login Siswa</b> beserta kata sandinya akan dihapus.</li>
+                <li>Seluruh riwayat presensi, izin, dan penilaian siswa akan dibersihkan.</li>
+                <li><b>Akun Pelatih & Akun Admin Master TETAP AMAN dan TIDAK terhapus.</b></li>
+            </ul>
+        </div>
+
+        <form action="/admin/master-siswa/delete-all" method="POST" onsubmit="return validateDeleteAllMasterConfirmation();">
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 700; color: #0F172A;">
+                    Ketik teks konfirmasi <span style="color: #DC2626; font-family: monospace; font-size: 13.5px; background: #FEE2E2; padding: 2px 6px; border-radius: 4px;">HAPUS TOTAL</span> di bawah:
+                </label>
+                <input type="text" id="confirmDeleteAllMasterInput" class="form-control" placeholder="Ketik HAPUS TOTAL" autocomplete="off" required style="border-color: #F87171;">
+                <small style="color: #64748B;">Langkah ini untuk memastikan Anda benar-benar yakin ingin mereset seluruh database siswa.</small>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalDeleteAllMasterSiswa()">Batal</button>
+                <button type="submit" id="btnSubmitDeleteAllMaster" class="btn-modal-primary" style="flex: 2; background: #DC2626; border-color: #B91C1C; color: white; font-weight: 800;">
+                    🗑️ Ya, Hapus Seluruh Data Siswa
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block admin_scripts %}
@@ -466,6 +517,30 @@ function openModalSiswaBelumPilih() {
 function closeModalSiswaBelumPilih() {
     const modal = document.getElementById('modalSiswaBelumPilih');
     if (modal) modal.style.display = 'none';
+}
+
+function openModalDeleteAllMasterSiswa() {
+    const input = document.getElementById('confirmDeleteAllMasterInput');
+    if (input) input.value = '';
+    const modal = document.getElementById('modalDeleteAllMasterSiswa');
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => input && input.focus(), 100);
+    }
+}
+
+function closeModalDeleteAllMasterSiswa() {
+    const modal = document.getElementById('modalDeleteAllMasterSiswa');
+    if (modal) modal.style.display = 'none';
+}
+
+function validateDeleteAllMasterConfirmation() {
+    const val = (document.getElementById('confirmDeleteAllMasterInput').value || '').trim();
+    if (val !== 'HAPUS TOTAL') {
+        alert('Konfirmasi gagal: Silakan ketik kata "HAPUS TOTAL" (huruf kapital) untuk melanjutkan penghapusan seluruh data siswa.');
+        return false;
+    }
+    return confirm('Peringatan Terakhir: Apakah Anda benar-benar yakin ingin menghapus SELURUH data siswa? Tindakan ini tidak dapat dibatalkan.');
 }
 
 function openModalDeleteAllSesi() {
@@ -500,6 +575,10 @@ window.addEventListener('click', function(e) {
     const modalBelum = document.getElementById('modalSiswaBelumPilih');
     if (modalBelum && e.target === modalBelum) {
         modalBelum.style.display = 'none';
+    }
+    const modalDeleteMaster = document.getElementById('modalDeleteAllMasterSiswa');
+    if (modalDeleteMaster && e.target === modalDeleteMaster) {
+        modalDeleteMaster.style.display = 'none';
     }
 });
 </script>

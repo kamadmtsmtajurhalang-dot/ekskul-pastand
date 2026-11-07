@@ -1648,6 +1648,7 @@ def admin_delete_siswa(user_id):
     # Putuskan relasi user_id di master_siswa agar siswa bisa mendaftar kembali
     conn.execute("UPDATE master_siswa SET user_id = NULL WHERE user_id = ?", (user_id,))
 
+    conn.execute("DELETE FROM laporan_penilaian_siswa WHERE siswa_id = ?", (user_id,))
     conn.execute("DELETE FROM siswa_ekskul WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM pengajuan_izin WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM presensi_siswa WHERE user_id = ?", (user_id,))
@@ -1662,20 +1663,21 @@ def admin_delete_siswa(user_id):
 @app.route('/admin/siswa/delete-all', methods=['POST'])
 @role_required('admin')
 def admin_delete_all_siswa():
-    """Hapus seluruh akun data siswa dari sistem (Bulk Delete)"""
+    """Hapus seluruh akun login siswa dari sistem (Reset Akun Login Siswa)"""
     conn = get_db()
     count_row = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'siswa'").fetchone()
     total_siswa = count_row[0] if count_row else 0
 
     if total_siswa == 0:
         conn.close()
-        flash("Tidak ada data akun siswa yang dapat dihapus.", "warning")
+        flash("Tidak ada data akun login siswa yang dapat direset.", "warning")
         return redirect(url_for('admin_siswa'))
 
     # Reset relasi user_id di master_siswa
     conn.execute("UPDATE master_siswa SET user_id = NULL")
 
-    # Hapus semua data yang berelasi dengan siswa
+    # Hapus semua data yang berelasi dengan akun siswa
+    conn.execute("DELETE FROM laporan_penilaian_siswa WHERE siswa_id IN (SELECT id FROM users WHERE role = 'siswa')")
     conn.execute("DELETE FROM siswa_ekskul WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
     conn.execute("DELETE FROM pengajuan_izin WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
     conn.execute("DELETE FROM presensi_siswa WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
@@ -1685,8 +1687,41 @@ def admin_delete_all_siswa():
     conn.commit()
     conn.close()
 
-    flash(f"Berhasil! Seluruh data akun login siswa ({total_siswa} siswa) telah dihapus dari sistem. Data master siswa MTs tetap tersimpan dan status pendaftaran telah direset.", "success")
+    flash(f"Berhasil! Seluruh data akun login siswa ({total_siswa} siswa) telah dihapus dari sistem. Data master pokok siswa MTs tetap tersimpan dan status pendaftaran telah direset.", "success")
     return redirect(url_for('admin_siswa'))
+
+@app.route('/admin/master-siswa/delete-all', methods=['POST'])
+@app.route('/admin/siswa/delete-all-total', methods=['POST'])
+@role_required('admin')
+def admin_delete_all_master_siswa():
+    """Hapus seluruh data siswa secara menyeluruh (Master Data MTs + Akun Login + Seluruh Riwayat Siswa) untuk keperluan reset total."""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    count_master = cursor.execute("SELECT COUNT(*) FROM master_siswa").fetchone()[0]
+    count_users = cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'siswa'").fetchone()[0]
+
+    if count_master == 0 and count_users == 0:
+        conn.close()
+        flash("Tidak ada data siswa yang dapat dihapus (database siswa sudah kosong).", "warning")
+        return redirect(request.referrer or url_for('admin_siswa'))
+
+    # Hapus semua data yang berelasi dengan akun siswa
+    cursor.execute("DELETE FROM laporan_penilaian_siswa WHERE siswa_id IN (SELECT id FROM users WHERE role = 'siswa')")
+    cursor.execute("DELETE FROM siswa_ekskul WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
+    cursor.execute("DELETE FROM pengajuan_izin WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
+    cursor.execute("DELETE FROM presensi_siswa WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
+    cursor.execute("DELETE FROM reset_password_requests WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
+    cursor.execute("DELETE FROM users WHERE role = 'siswa'")
+
+    # Hapus seluruh basis data pokok master siswa MTs
+    cursor.execute("DELETE FROM master_siswa")
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Berhasil! Seluruh data siswa ({count_master} data pokok master MTs & {count_users} akun login) beserta seluruh riwayat presensinya telah dihapus dan direset total. Database siswa kini bersih untuk keperluan data baru.", "success")
+    return redirect(request.referrer or url_for('admin_siswa'))
 
 @app.route('/admin/master-siswa/tambah', methods=['POST'])
 @role_required('admin')
@@ -1726,6 +1761,7 @@ def admin_delete_master_siswa(master_id):
     if m:
         if m['user_id']:
             user_id = m['user_id']
+            conn.execute("DELETE FROM laporan_penilaian_siswa WHERE siswa_id = ?", (user_id,))
             conn.execute("DELETE FROM siswa_ekskul WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM pengajuan_izin WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM presensi_siswa WHERE user_id = ?", (user_id,))
