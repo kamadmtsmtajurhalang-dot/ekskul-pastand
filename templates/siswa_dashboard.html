@@ -71,6 +71,89 @@
     </div>
     {% endif %}
 
+    <!-- JADWAL LATIHAN EKSKUL YANG DIIKUTI SISWA -->
+    <div class="card" style="margin-bottom: 14px; border-top: 4px solid #1E3A8A; background: #FFFFFF; border-radius: 14px; padding: 18px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="badge-tag tag-blue" style="font-size: 11px;">⏰ Jadwal Latihan Resmi</span>
+                    <span style="font-size: 11.5px; color: #64748B;">Tahun Ajaran 2026/2027</span>
+                </div>
+                <h2 style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 0 0;">
+                    Jadwal Latihan Ekstrakurikuler yang Anda Ikuti
+                </h2>
+            </div>
+            {% if ekskul_diikuti and ekskul_diikuti|length > 0 %}
+            <span style="font-size: 12px; font-weight: 700; color: #1E40AF; background: #EFF6FF; padding: 4px 10px; border-radius: 8px; border: 1px solid #BFDBFE;">
+                {{ ekskul_diikuti|length }} Cabang Ekskul Aktif
+            </span>
+            {% endif %}
+        </div>
+
+        {% if ekskul_diikuti and ekskul_diikuti|length > 0 %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px;">
+            {% for e in ekskul_diikuti %}
+            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 28px;">{{ e.icon }}</span>
+                        <span class="badge-tag tag-green" style="font-size: 10.5px; padding: 2px 7px;">
+                            {{ e.kategori or 'Ekstrakurikuler' }}
+                        </span>
+                    </div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: #0F172A; margin: 0 0 8px 0;">
+                        {{ e.nama }}
+                    </h3>
+
+                    <div style="background: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #64748B;">📅 Hari Rutin:</span>
+                            <strong style="color: #1E3A8A; font-weight: 800;">{{ e.hari_latihan or 'Belum disetel' }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #64748B;">⏰ Jam Latihan:</span>
+                            <strong style="color: #0F172A;">{{ e.jam_latihan or '15:30 - 17:00' }} WIB</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #E2E8F0; padding-top: 6px;">
+                            <span style="color: #64748B;">🏆 Pelatih:</span>
+                            <strong style="color: #334155;">{{ e.nama_pelatih or 'Pelatih Ekskul' }}</strong>
+                        </div>
+                    </div>
+
+                    {% if e.next_session %}
+                    <div style="background: #EFF6FF; border-left: 3px solid #2563EB; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 11.5px;">
+                        <span style="color: #1E40AF; font-weight: 700; display: block; margin-bottom: 2px;">
+                            🗓️ Jadwal Latihan Terdekat:
+                        </span>
+                        <span style="color: #0F172A; font-weight: 800;">
+                            {{ e.next_session.label }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div style="margin-top: 6px;">
+                    <button type="button" onclick="pilihEkskulDanScroll('{{ e.id }}')" class="btn-action-sm" style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; background: #1E3A8A; color: white; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">
+                        📣 Ajukan Izin / Konfirmasi Kehadiran &darr;
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 24px 16px; background: #F8FAFC; border-radius: 10px; border: 1px dashed #CBD5E1;">
+            <span style="font-size: 32px; display: block; margin-bottom: 6px;">📋</span>
+            <p style="font-size: 12.5px; color: #64748B; margin: 0;">
+                {% if ekskul_menunggu %}
+                Pendaftaran ekskul Anda masih dalam proses peninjauan oleh Pelatih. Setelah disetujui, jadwal latihan resmi akan otomatis ditampilkan di sini.
+                {% else %}
+                Anda belum terdaftar dalam cabang ekstrakurikuler manapun. Silakan pilih ekskul pada formulir pilihan di bawah.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- 1. Statistik Kehadiran Pribadi -->
     <div class="card stat-card" style="margin-bottom: 14px;">
         <h2 class="card-title">📊 Statistik Kehadiran</h2>
@@ -149,19 +232,32 @@
             {% endif %}
         </div>
         {% else %}
-        <form action="/siswa/pengajuan/kirim" method="POST" style="margin-top: 12px;">
+        <form action="/siswa/pengajuan/kirim" method="POST" id="formIzinSiswa" style="margin-top: 12px;">
             <div class="form-group">
-                <label class="form-label">Pilih Cabang Ekskul Resmi</label>
-                <select name="ekskul_id" class="form-control" required>
+                <label class="form-label" style="font-weight: 700; color: #0F172A;">Pilih Cabang Ekskul Resmi</label>
+                <select name="ekskul_id" id="selectEkskulIzin" class="form-control" onchange="onEkskulChange(this.value)" required>
                     {% for e in ekskul_diikuti %}
-                    <option value="{{ e.id }}">{{ e.icon }} {{ e.nama }} — Jadwal: {{ e.hari_latihan or 'Sesuai info pelatih' }}</option>
+                    <option value="{{ e.id }}" {% if loop.first %}selected{% endif %}>{{ e.icon }} {{ e.nama }} (Jadwal: {{ e.hari_latihan or 'Sesuai pelatih' }})</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Tanggal Latihan</label>
-                <input type="date" name="tanggal_latihan" class="form-control" value="{{ today_str }}" required>
+                <label class="form-label" style="font-weight: 700; color: #0F172A;">
+                    Pilih Jadwal Latihan Ekskul <span class="req">*</span>
+                </label>
+                <select name="tanggal_latihan" id="selectTanggalLatihan" class="form-control" required style="font-weight: 700; color: #1E3A8A; background-color: #F8FAFC;">
+                    {% if ekskul_diikuti and ekskul_diikuti[0].upcoming_dates %}
+                        {% for d in ekskul_diikuti[0].upcoming_dates %}
+                        <option value="{{ d.value }}">{{ d.label }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="{{ today_str }}">{{ today_formatted }} (Hari Ini)</option>
+                    {% endif %}
+                </select>
+                <small style="color: #64748B; margin-top: 5px; display: block; font-size: 11.5px; line-height: 1.4;">
+                    💡 <i>Jadwal otomatis disinkronkan dengan hari dan jam latihan resmi yang ditetapkan oleh Pelatih. Format: Nama Hari, Tanggal Bulan Tahun.</i>
+                </small>
             </div>
 
             <div class="form-group">
@@ -217,7 +313,7 @@
             <div class="pre-history-item">
                 <div class="pre-hist-top">
                     <span class="pre-hist-ekskul">{{ r.icon_ekskul }} {{ r.nama_ekskul }}</span>
-                    <span class="pre-hist-date">{{ r.tanggal_latihan }}</span>
+                    <span class="pre-hist-date">{{ r.tanggal_latihan | tgl_indo }}</span>
                 </div>
                 <div class="pre-hist-body">
                     <span class="pre-status-tag status-{{ r.status_pengajuan|lower }}">
@@ -272,6 +368,47 @@
 
 {% block scripts %}
 <script>
+// Data jadwal latihan per ekskul yang diampu pelatih
+const ekskulSchedules = {
+    {% for e in ekskul_diikuti %}
+    "{{ e.id }}": {{ e.upcoming_dates | tojson }},
+    {% endfor %}
+};
+
+function onEkskulChange(ekskulId) {
+    const selectTgl = document.getElementById('selectTanggalLatihan');
+    if (!selectTgl) return;
+    
+    selectTgl.innerHTML = '';
+    const dates = ekskulSchedules[ekskulId] || [];
+    
+    if (dates.length > 0) {
+        dates.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.value;
+            opt.textContent = d.label;
+            selectTgl.appendChild(opt);
+        });
+    } else {
+        const opt = document.createElement('option');
+        opt.value = "{{ today_str }}";
+        opt.textContent = "{{ today_formatted }} (Hari Ini)";
+        selectTgl.appendChild(opt);
+    }
+}
+
+function pilihEkskulDanScroll(ekskulId) {
+    const selectEkskul = document.getElementById('selectEkskulIzin');
+    if (selectEkskul) {
+        selectEkskul.value = ekskulId;
+        onEkskulChange(ekskulId);
+    }
+    const formEl = document.getElementById('formIzinSiswa');
+    if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
 function toggleAlasan(show) {
     const el = document.getElementById('alasanGroup');
     const input = document.getElementById('alasanInput');

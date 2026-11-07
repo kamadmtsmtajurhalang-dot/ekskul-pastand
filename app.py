@@ -32,7 +32,98 @@ NAMA_HARI = {
     4: 'Jumat', 5: 'Sabtu', 6: 'Minggu'
 }
 
+def parse_hari_latihan_weekdays(hari_latihan_str):
+    """Mengekstrak hari latihan ke dalam index weekday Python (0=Senin ... 6=Minggu)"""
+    if not hari_latihan_str:
+        return []
+    s = str(hari_latihan_str).lower().replace("'", "").replace("’", "")
+    found = []
+    day_map = [
+        ('senin', 0), ('selasa', 1), ('rabu', 2), ('kamis', 3),
+        ('jumat', 4), ('sabtu', 5), ('minggu', 6), ('ahad', 6)
+    ]
+    for name, wd in day_map:
+        if name in s and wd not in found:
+            found.append(wd)
+    found.sort()
+    return found
+
+def format_tanggal_indonesia(date_val):
+    """Format tanggal ke gaya bahasa Indonesia lengkap: Hari, DD MMMM YYYY"""
+    if not date_val:
+        return '-'
+    try:
+        if isinstance(date_val, str):
+            clean_str = str(date_val).strip().split(' ')[0]
+            d = datetime.strptime(clean_str, '%Y-%m-%d').date()
+        elif hasattr(date_val, 'date') and callable(getattr(date_val, 'date')):
+            d = date_val.date()
+        elif hasattr(date_val, 'weekday'):
+            d = date_val
+        else:
+            return str(date_val)
+        day_name = NAMA_HARI.get(d.weekday(), '')
+        month_name = NAMA_BULAN.get(d.month, '')
+        return f"{day_name}, {d.day} {month_name} {d.year}"
+    except Exception:
+        return str(date_val)
+
+def get_upcoming_training_dates(hari_latihan_str, jam_latihan_str=None, num_dates=8):
+    """
+    Menghasilkan daftar tanggal latihan mendatang yang valid dan sinkron sesuai hari latihan pelatih.
+    Format tampilan menyertakan nama hari, tanggal, bulan, tahun, dan rentang jam.
+    """
+    weekdays = parse_hari_latihan_weekdays(hari_latihan_str)
+    now_wib = get_wib_datetime()
+    today = now_wib.date()
+    
+    dates = []
+    # Fallback jika pelatih belum mengisi hari latihan spesifik
+    if not weekdays:
+        for i in range(num_dates):
+            d = today + timedelta(days=i)
+            day_name = NAMA_HARI.get(d.weekday(), '')
+            label = f"{day_name}, {d.day} {NAMA_BULAN.get(d.month, '')} {d.year}"
+            if i == 0:
+                label += " (Hari Ini)"
+            elif i == 1:
+                label += " (Besok)"
+            if jam_latihan_str:
+                jam_clean = jam_latihan_str.replace("WIB", "").replace("wib", "").strip()
+                label += f" [{jam_clean} WIB]"
+            dates.append({
+                'value': d.strftime('%Y-%m-%d'),
+                'label': label,
+                'day_name': day_name,
+                'is_today': i == 0
+            })
+        return dates
+
+    # Cari tanggal yang cocok dalam rentang 60 hari ke depan
+    for i in range(60):
+        d = today + timedelta(days=i)
+        if d.weekday() in weekdays:
+            day_name = NAMA_HARI.get(d.weekday(), '')
+            label = f"{day_name}, {d.day} {NAMA_BULAN.get(d.month, '')} {d.year}"
+            if i == 0:
+                label += " (Hari Ini)"
+            elif i == 1:
+                label += " (Besok)"
+            if jam_latihan_str:
+                jam_clean = jam_latihan_str.replace("WIB", "").replace("wib", "").strip()
+                label += f" [{jam_clean} WIB]"
+            dates.append({
+                'value': d.strftime('%Y-%m-%d'),
+                'label': label,
+                'day_name': day_name,
+                'is_today': i == 0
+            })
+            if len(dates) >= num_dates:
+                break
+    return dates
+
 app = Flask(__name__)
+app.jinja_env.filters['tgl_indo'] = format_tanggal_indonesia
 app.config['SECRET_KEY'] = 'presensi-ekskul-tajurhalang-multi-role-2026'
 
 # Konfigurasi Sesi Login Permanen & Aman (365 Hari / 1 Tahun)
@@ -1418,16 +1509,28 @@ def siswa_dashboard():
     
     user = conn.execute("SELECT * FROM users WHERE id = ?", (siswa_id,)).fetchone()
     
-    # Ambil ekskul resmi aktif yang diikuti siswa
-    ekskul_diikuti = conn.execute("""
-    SELECT e.* FROM ekskul e
+    # Ambil ekskul resmi aktif yang diikuti siswa beserta nama pelatih resmi
+    ekskul_diikuti_rows = conn.execute("""
+    SELECT e.*,
+           COALESCE((SELECT u.nama FROM pelatih_ekskul pe JOIN users u ON pe.user_id = u.id WHERE pe.ekskul_id = e.id LIMIT 1), e.pelatih_nama) as nama_pelatih
+    FROM ekskul e
     JOIN siswa_ekskul se ON e.id = se.ekskul_id
     WHERE se.user_id = ? AND se.status = 'AKTIF'
     """, (siswa_id,)).fetchall()
 
+    ekskul_diikuti = []
+    for r in ekskul_diikuti_rows:
+        item = dict(r)
+        upcoming = get_upcoming_training_dates(item.get('hari_latihan'), item.get('jam_latihan'), num_dates=8)
+        item['upcoming_dates'] = upcoming
+        item['next_session'] = upcoming[0] if upcoming else None
+        ekskul_diikuti.append(item)
+
     # Ambil ekskul yang masih menunggu persetujuan pelatih
     ekskul_menunggu = conn.execute("""
-    SELECT e.* FROM ekskul e
+    SELECT e.*,
+           COALESCE((SELECT u.nama FROM pelatih_ekskul pe JOIN users u ON pe.user_id = u.id WHERE pe.ekskul_id = e.id LIMIT 1), e.pelatih_nama) as nama_pelatih
+    FROM ekskul e
     JOIN siswa_ekskul se ON e.id = se.ekskul_id
     WHERE se.user_id = ? AND se.status = 'MENUNGGU'
     """, (siswa_id,)).fetchall()
@@ -1495,6 +1598,7 @@ def siswa_dashboard():
     pengumuman_list = [dict(p) for p in pengumuman_rows]
 
     today_str = get_wib_today_str()
+    today_formatted = format_tanggal_indonesia(today_str)
     conn.close()
     
     return render_template('siswa_dashboard.html', 
@@ -1507,7 +1611,8 @@ def siswa_dashboard():
                            statistik=statistik_kehadiran,
                            rapor_bulanan=rapor_bulanan,
                            pengumuman_list=pengumuman_list,
-                           today_str=today_str)
+                           today_str=today_str,
+                           today_formatted=today_formatted)
 
 @app.route('/siswa/ekskul/pilih', methods=['POST'])
 @role_required('siswa')
@@ -1580,7 +1685,8 @@ def siswa_kirim_pengajuan():
     conn.commit()
     conn.close()
 
-    flash(f"Konfirmasi '{status_pengajuan}' berhasil diajukan ke Pelatih!", "success")
+    tgl_display = format_tanggal_indonesia(tanggal)
+    flash(f"Konfirmasi '{status_pengajuan}' untuk {tgl_display} berhasil diajukan ke Pelatih!", "success")
     return redirect(url_for('siswa_dashboard'))
 
 # =========================================================
