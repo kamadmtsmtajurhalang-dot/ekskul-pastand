@@ -216,10 +216,13 @@ def register_siswa():
         master_siswa_id = request.form.get('master_siswa_id')
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
         ekskul_id = request.form.get('ekskul_id')
 
-        if not master_siswa_id or not username or not password or not ekskul_id:
-            flash("Semua kolom (Tingkat Kelas, Nama Siswa, Cabang Ekskul, Username, dan Kata Sandi) wajib diisi!", "danger")
+        if not master_siswa_id or not username or not password or not confirm_password or not ekskul_id:
+            flash("Semua kolom (Tingkat Kelas, Nama Siswa, Cabang Ekskul, Username, Kata Sandi, dan Konfirmasi Kata Sandi) wajib diisi!", "danger")
+        elif password != confirm_password:
+            flash("Kata sandi dan konfirmasi kata sandi tidak cocok! Pastikan kedua kolom kata sandi sama persis untuk menghindari kesalahan pengetikan.", "danger")
         else:
             # Validasi data pokok siswa dari master_siswa
             m_siswa = conn.execute("SELECT * FROM master_siswa WHERE id = ?", (master_siswa_id,)).fetchone()

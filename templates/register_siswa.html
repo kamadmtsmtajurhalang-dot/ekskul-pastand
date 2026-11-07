@@ -12,7 +12,7 @@
             <p class="login-desc">Pilih nama Anda sesuai data pokok MTs Muhammadiyah Tajurhalang dan tentukan cabang ekstrakurikuler yang ingin diikuti.</p>
         </div>
 
-        <form action="/register-siswa" method="POST" class="login-form">
+        <form action="/register-siswa" method="POST" class="login-form" onsubmit="return validateRegisterForm();">
             <!-- Langkah 1: Pilih Tingkat Kelas -->
             <div class="form-group">
                 <label class="form-label">1. Tingkat Kelas <span class="req">*</span></label>
@@ -60,16 +60,71 @@
                 </select>
             </div>
 
-            <!-- Langkah 4: Username & Password -->
+            <!-- Langkah 4: Username Login -->
+            <div class="form-group">
+                <label class="form-label">4. Username Login <span class="req">*</span></label>
+                <input type="text" id="inputUsername" name="username" class="form-control" placeholder="Contoh: ahmad1051" required autocomplete="off">
+                <small style="color: #64748B; font-size: 11.5px; display: block; margin-top: 3px;">
+                    Username digunakan untuk masuk (*login*) ke portal siswa.
+                </small>
+            </div>
+
+            <!-- Langkah 5 & 6: Dua Kolom Kata Sandi & Konfirmasi dengan Opsi Lihat Password -->
             <div class="form-grid-2">
+                <!-- Kolom 1: Kata Sandi Baru -->
                 <div class="form-group">
-                    <label class="form-label">4. Username Login <span class="req">*</span></label>
-                    <input type="text" id="inputUsername" name="username" class="form-control" placeholder="Contoh: ahmad1051" required autocomplete="off">
+                    <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>5. Kata Sandi Baru <span class="req">*</span></span>
+                    </label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" 
+                               id="inputPassword" 
+                               name="password" 
+                               class="form-control" 
+                               placeholder="Buat kata sandi..." 
+                               required 
+                               autocomplete="new-password"
+                               style="padding-right: 42px;" 
+                               oninput="validatePasswordMatch()">
+                        <button type="button" 
+                                onclick="togglePasswordVisibility('inputPassword', this)" 
+                                style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px 6px; font-size: 16px; line-height: 1; border-radius: 4px; color: #64748B;" 
+                                title="Lihat / Sembunyikan Kata Sandi"
+                                tabindex="-1">
+                            <span class="eye-icon">👁️</span>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Kolom 2: Konfirmasi Kata Sandi -->
                 <div class="form-group">
-                    <label class="form-label">5. Kata Sandi <span class="req">*</span></label>
-                    <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Buat kata sandi akun..." required>
+                    <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>6. Konfirmasi Kata Sandi <span class="req">*</span></span>
+                    </label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" 
+                               id="inputConfirmPassword" 
+                               name="confirm_password" 
+                               class="form-control" 
+                               placeholder="Ulangi kata sandi..." 
+                               required 
+                               autocomplete="new-password"
+                               style="padding-right: 42px;" 
+                               oninput="validatePasswordMatch()">
+                        <button type="button" 
+                                onclick="togglePasswordVisibility('inputConfirmPassword', this)" 
+                                style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px 6px; font-size: 16px; line-height: 1; border-radius: 4px; color: #64748B;" 
+                                title="Lihat / Sembunyikan Kata Sandi"
+                                tabindex="-1">
+                            <span class="eye-icon">👁️</span>
+                        </button>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Indikator Kecocokan Password Realtime -->
+            <div id="passwordMatchBox" style="display: none; padding: 7px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600; margin-top: -2px; margin-bottom: 8px;">
+                <span id="passwordMatchIcon"></span> <span id="passwordMatchText"></span>
             </div>
 
             <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12px; color: #1E40AF; line-height: 1.5;">
@@ -162,5 +217,87 @@ function onSiswaChange() {
 document.getElementById('inputUsername').addEventListener('input', function() {
     this.dataset.autosuggested = "false";
 });
+
+// Toggle Lihat / Sembunyikan Kata Sandi
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('.eye-icon');
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = '🙈';
+        btn.title = 'Sembunyikan Kata Sandi';
+    } else {
+        input.type = 'password';
+        icon.textContent = '👁️';
+        btn.title = 'Lihat Kata Sandi';
+    }
+}
+
+// Validasi Kecocokan Kata Sandi Realtime
+function validatePasswordMatch() {
+    const pwd = document.getElementById('inputPassword').value;
+    const cpwd = document.getElementById('inputConfirmPassword').value;
+    const matchBox = document.getElementById('passwordMatchBox');
+    const matchIcon = document.getElementById('passwordMatchIcon');
+    const matchText = document.getElementById('passwordMatchText');
+    const inputPwd = document.getElementById('inputPassword');
+    const inputCpwd = document.getElementById('inputConfirmPassword');
+
+    if (!cpwd && !pwd) {
+        matchBox.style.display = 'none';
+        inputPwd.style.borderColor = '';
+        inputCpwd.style.borderColor = '';
+        return true;
+    }
+
+    if (!cpwd) {
+        matchBox.style.display = 'none';
+        inputCpwd.style.borderColor = '';
+        return true;
+    }
+
+    matchBox.style.display = 'flex';
+    matchBox.style.alignItems = 'center';
+    matchBox.style.gap = '6px';
+
+    if (pwd === cpwd) {
+        matchBox.style.background = '#F0FDF4';
+        matchBox.style.color = '#166534';
+        matchBox.style.border = '1px solid #BBF7D0';
+        matchIcon.textContent = '✅';
+        matchText.textContent = 'Kata sandi cocok! Silakan lanjutkan pendaftaran.';
+        inputPwd.style.borderColor = '#16A34A';
+        inputCpwd.style.borderColor = '#16A34A';
+        return true;
+    } else {
+        matchBox.style.background = '#FEF2F2';
+        matchBox.style.color = '#991B1B';
+        matchBox.style.border = '1px solid #FECACA';
+        matchIcon.textContent = '❌';
+        matchText.textContent = 'Kata sandi belum cocok. Pastikan kedua kolom sama persis.';
+        inputCpwd.style.borderColor = '#DC2626';
+        return false;
+    }
+}
+
+// Validasi Saat Tombol Submit Ditekan
+function validateRegisterForm() {
+    const pwd = document.getElementById('inputPassword').value;
+    const cpwd = document.getElementById('inputConfirmPassword').value;
+
+    if (!pwd || !cpwd) {
+        alert("Peringatan: Kata sandi dan konfirmasi kata sandi wajib diisi!");
+        return false;
+    }
+
+    if (pwd !== cpwd) {
+        alert("Peringatan: Kata sandi dan konfirmasi kata sandi tidak cocok! Silakan periksa kembali kedua kolom kata sandi Anda untuk menghindari saltik.");
+        document.getElementById('inputConfirmPassword').focus();
+        return false;
+    }
+    return true;
+}
 </script>
 {% endblock %}
