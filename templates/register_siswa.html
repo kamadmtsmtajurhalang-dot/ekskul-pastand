@@ -4,40 +4,54 @@
 
 {% block content %}
 <div class="login-wrapper">
-    <div class="card login-card">
+    <div class="card login-card" style="max-width: 520px;">
         <div class="login-header">
             <img src="/static/logo-mtsm.png" alt="Logo MTs Muhammadiyah Tajurhalang" class="login-logo-img" width="68" height="68" style="width: 68px !important; height: 68px !important; max-width: 68px !important; max-height: 68px !important; object-fit: contain;">
             <h1 class="login-title">Daftar Akun Siswa</h1>
             <p class="login-school-sub">PRESENSI EKSKUL MTs Muhammadiyah Tajurhalang TA 2026/2027</p>
-            <p class="login-desc">Pilih cabang ekstrakurikuler dan daftarkan akun siswa untuk presensi latihan.</p>
+            <p class="login-desc">Pilih nama Anda sesuai data pokok MTs Muhammadiyah Tajurhalang dan tentukan cabang ekstrakurikuler yang ingin diikuti.</p>
         </div>
 
         <form action="/register-siswa" method="POST" class="login-form">
+            <!-- Langkah 1: Pilih Tingkat Kelas -->
             <div class="form-group">
-                <label class="form-label">Nama Lengkap Siswa <span class="req">*</span></label>
-                <input type="text" name="nama" class="form-control" placeholder="Nama lengkap..." required>
+                <label class="form-label">1. Tingkat Kelas <span class="req">*</span></label>
+                <select id="selectKelas" name="kelas" class="form-control" onchange="onKelasChange()" required>
+                    <option value="" disabled selected>-- Pilih Tingkat Kelas (7, 8, atau 9) --</option>
+                    <option value="Kelas 7">Kelas 7</option>
+                    <option value="Kelas 8">Kelas 8</option>
+                    <option value="Kelas 9">Kelas 9</option>
+                </select>
             </div>
 
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label">Tingkat Kelas <span class="req">*</span></label>
-                    <select name="kelas" class="form-control">
-                        <option value="Kelas 7">Kelas 7</option>
-                        <option value="Kelas 8">Kelas 8</option>
-                        <option value="Kelas 9">Kelas 9</option>
-                    </select>
+            <!-- Langkah 2: Pilih Nama Siswa dari Database MTs -->
+            <div class="form-group">
+                <label class="form-label">2. Nama Lengkap Siswa (Data MTs Muhammadiyah) <span class="req">*</span></label>
+                <select id="selectMasterSiswa" name="master_siswa_id" class="form-control" onchange="onSiswaChange()" required disabled>
+                    <option value="" disabled selected>-- Pilih Tingkat Kelas Terlebih Dahulu --</option>
+                </select>
+                <small style="color: #64748B; font-size: 11.5px; display: block; margin-top: 4px;">
+                    💡 Nama siswa diambil langsung dari Database Pokok Siswa MTs Muhammadiyah Tajurhalang. Setiap siswa hanya dapat membuat 1 akun.
+                </small>
+            </div>
+
+            <!-- Info Card Siswa Terpilih -->
+            <div id="siswaInfoCard" style="display: none; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 11.5px; font-weight: 700; color: #166534; text-transform: uppercase;">✓ Data Siswa Terverifikasi</span>
+                    <span id="badgeStatusAkun" style="font-size: 11px; background: #DCFCE7; color: #15803D; padding: 2px 7px; border-radius: 10px; font-weight: 700;">Belum Ada Akun</span>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Jenis Kelamin</label>
-                    <select name="jenis_kelamin" class="form-control">
-                        <option value="L">Laki-laki (L)</option>
-                        <option value="P">Perempuan (P)</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; color: #14532D;">
+                    <div><b>NIS:</b> <span id="cardNis">-</span></div>
+                    <div><b>Kelas:</b> <span id="cardKelas">-</span></div>
+                    <div><b>Jenis Kelamin:</b> <span id="cardJk">-</span></div>
+                    <div><b>No. WhatsApp:</b> <span id="cardWa">-</span></div>
                 </div>
             </div>
 
+            <!-- Langkah 3: Cabang Ekskul Pilihan -->
             <div class="form-group">
-                <label class="form-label">Cabang Ekstrakurikuler Pilihan <span class="req">*</span></label>
+                <label class="form-label">3. Cabang Ekstrakurikuler Pilihan <span class="req">*</span></label>
                 <select name="ekskul_id" class="form-control" required>
                     <option value="" disabled selected>-- Pilih Cabang Ekskul --</option>
                     {% for e in ekskul_list %}
@@ -46,22 +60,23 @@
                 </select>
             </div>
 
+            <!-- Langkah 4: Username & Password -->
             <div class="form-grid-2">
                 <div class="form-group">
-                    <label class="form-label">Username Akun <span class="req">*</span></label>
-                    <input type="text" name="username" class="form-control" placeholder="Contoh: ahmad7a / nisn" required>
+                    <label class="form-label">4. Username Login <span class="req">*</span></label>
+                    <input type="text" id="inputUsername" name="username" class="form-control" placeholder="Contoh: ahmad1051" required autocomplete="off">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Kata Sandi <span class="req">*</span></label>
-                    <input type="password" name="password" class="form-control" placeholder="Kata sandi akun..." required>
+                    <label class="form-label">5. Kata Sandi <span class="req">*</span></label>
+                    <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Buat kata sandi akun..." required>
                 </div>
             </div>
 
             <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12px; color: #1E40AF; line-height: 1.5;">
-                <b>Catatan:</b> Pendaftaran cabang ekskul akan diverifikasi oleh pelatih terkait sebelum tercatat aktif dalam lembar presensi.
+                <b>Catatan:</b> Pendaftaran cabang ekskul Anda akan langsung masuk ke akun Pelatih cabang terkait untuk disetujui sebelum tercatat aktif dalam lembar presensi.
             </div>
 
-            <button type="submit" class="btn-submit" style="margin-top: 16px;">
+            <button type="submit" id="btnSubmitDaftar" class="btn-submit" style="margin-top: 16px;">
                 Daftarkan Akun Siswa →
             </button>
         </form>
@@ -71,4 +86,81 @@
         </div>
     </div>
 </div>
+
+<script>
+// Data master siswa yang belum memiliki akun login (dikirim dari server)
+const masterSiswaList = {{ master_siswa_list | tojson }};
+
+function onKelasChange() {
+    const kelasSelect = document.getElementById('selectKelas');
+    const siswaSelect = document.getElementById('selectMasterSiswa');
+    const infoCard = document.getElementById('siswaInfoCard');
+    const selectedKelas = kelasSelect.value;
+
+    siswaSelect.innerHTML = '';
+    infoCard.style.display = 'none';
+
+    if (!selectedKelas) {
+        siswaSelect.disabled = true;
+        siswaSelect.innerHTML = '<option value="" disabled selected>-- Pilih Tingkat Kelas Terlebih Dahulu --</option>';
+        return;
+    }
+
+    // Filter siswa berdasarkan kelas yang dipilih
+    const filtered = masterSiswaList.filter(s => s.kelas === selectedKelas);
+
+    if (filtered.length === 0) {
+        siswaSelect.disabled = true;
+        siswaSelect.innerHTML = '<option value="" disabled selected>⚠️ Seluruh siswa ' + selectedKelas + ' sudah membuat akun</option>';
+        return;
+    }
+
+    siswaSelect.disabled = false;
+    let defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.disabled = true;
+    defaultOpt.selected = true;
+    defaultOpt.textContent = '-- Pilih Nama Siswa (' + filtered.length + ' siswa belum punya akun) --';
+    siswaSelect.appendChild(defaultOpt);
+
+    filtered.forEach(s => {
+        let opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.nama + ' (NIS: ' + (s.nis || '-') + ')';
+        siswaSelect.appendChild(opt);
+    });
+}
+
+function onSiswaChange() {
+    const siswaSelect = document.getElementById('selectMasterSiswa');
+    const infoCard = document.getElementById('siswaInfoCard');
+    const usernameInput = document.getElementById('inputUsername');
+    const selectedId = parseInt(siswaSelect.value);
+
+    const student = masterSiswaList.find(s => s.id === selectedId);
+    if (!student) {
+        infoCard.style.display = 'none';
+        return;
+    }
+
+    document.getElementById('cardNis').textContent = student.nis || '-';
+    document.getElementById('cardKelas').textContent = student.kelas;
+    document.getElementById('cardJk').textContent = student.jenis_kelamin === 'L' ? 'Laki-laki (L)' : 'Perempuan (P)';
+    document.getElementById('cardWa').textContent = student.no_whatsapp || '-';
+
+    infoCard.style.display = 'block';
+
+    // Beri saran username otomatis jika belum diisi secara manual
+    if (!usernameInput.value || usernameInput.dataset.autosuggested === "true") {
+        const cleanName = student.nama.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+        usernameInput.value = cleanName + (student.nis ? student.nis.slice(-4) : '7');
+        usernameInput.dataset.autosuggested = "true";
+    }
+}
+
+// Lepas tanda auto-suggest jika pengguna mengubah username sendiri
+document.getElementById('inputUsername').addEventListener('input', function() {
+    this.dataset.autosuggested = "false";
+});
+</script>
 {% endblock %}

@@ -184,38 +184,64 @@ def register_siswa():
     ekskul_list = conn.execute("SELECT * FROM ekskul ORDER BY nama ASC").fetchall()
     
     if request.method == 'POST':
-        nama = request.form.get('nama', '').strip()
+        master_siswa_id = request.form.get('master_siswa_id')
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
-        kelas = request.form.get('kelas', 'Kelas 7')
-        jk = request.form.get('jenis_kelamin', 'L')
         ekskul_id = request.form.get('ekskul_id')
 
-        if not nama or not username or not password or not ekskul_id:
-            flash("Semua kolom wajib diisi!", "danger")
+        if not master_siswa_id or not username or not password or not ekskul_id:
+            flash("Semua kolom (Tingkat Kelas, Nama Siswa, Cabang Ekskul, Username, dan Kata Sandi) wajib diisi!", "danger")
         else:
-            try:
-                cursor = conn.cursor()
-                cursor.execute("""
-                INSERT INTO users (username, password, nama, role, ekskul_id, kelas, jenis_kelamin)
-                VALUES (?, ?, ?, 'siswa', ?, ?, ?)
-                """, (username, password, nama, ekskul_id, kelas, jk))
-                new_user_id = cursor.lastrowid
-                
-                # Masukkan ke relasi siswa_ekskul dengan status MENUNGGU persetujuan pelatih
-                cursor.execute("""
-                INSERT INTO siswa_ekskul (user_id, ekskul_id, status) VALUES (?, ?, 'MENUNGGU')
-                """, (new_user_id, ekskul_id))
-                
-                conn.commit()
-                conn.close()
-                flash("Pendaftaran akun berhasil! Pendaftaran ekskul Anda sedang menunggu persetujuan Pelatih. Silakan masuk.", "success")
-                return redirect(url_for('login'))
-            except Exception as e:
-                flash(f"Pendaftaran gagal: Username '{username}' mungkin sudah digunakan.", "danger")
+            # Validasi data pokok siswa dari master_siswa
+            m_siswa = conn.execute("SELECT * FROM master_siswa WHERE id = ?", (master_siswa_id,)).fetchone()
+            if not m_siswa:
+                flash("Data siswa tidak ditemukan dalam Database Siswa MTs Muhammadiyah Tajurhalang.", "danger")
+            elif m_siswa['user_id'] is not None:
+                flash(f"Siswa atas nama '{m_siswa['nama']}' sudah pernah membuat akun login. Setiap siswa hanya dapat membuat 1 akun.", "danger")
+            else:
+                # Periksa apakah username sudah terpakai
+                user_check = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+                if user_check:
+                    flash(f"Username '{username}' sudah digunakan oleh pengguna lain. Silakan gunakan username berbeda.", "danger")
+                else:
+                    try:
+                        cursor = conn.cursor()
+                        # Buat user baru dengan nama, kelas, jenis kelamin, dan NIS resmi dari master_siswa
+                        cursor.execute("""
+                        INSERT INTO users (username, password, nama, role, ekskul_id, kelas, jenis_kelamin, nisn, no_hp)
+                        VALUES (?, ?, ?, 'siswa', ?, ?, ?, ?, ?)
+                        """, (username, password, m_siswa['nama'], ekskul_id, m_siswa['kelas'], m_siswa['jenis_kelamin'], m_siswa['nis'], m_siswa['no_whatsapp']))
+                        new_user_id = cursor.lastrowid
+                        
+                        # Tautkan user_id ke tabel master_siswa agar nama ini terkunci dan tidak bisa didaftarkan lagi
+                        cursor.execute("""
+                        UPDATE master_siswa SET user_id = ? WHERE id = ?
+                        """, (new_user_id, master_siswa_id))
+
+                        # Masukkan ke relasi siswa_ekskul dengan status MENUNGGU persetujuan pelatih
+                        cursor.execute("""
+                        INSERT INTO siswa_ekskul (user_id, ekskul_id, status) VALUES (?, ?, 'MENUNGGU')
+                        """, (new_user_id, ekskul_id))
+                        
+                        conn.commit()
+                        conn.close()
+                        flash(f"Pendaftaran akun atas nama '{m_siswa['nama']}' berhasil! Pendaftaran ekskul Anda sedang menunggu persetujuan Pelatih. Silakan masuk.", "success")
+                        return redirect(url_for('login'))
+                    except Exception as e:
+                        conn.rollback()
+                        flash(f"Pendaftaran gagal: {e}", "danger")
     
+    # Ambil siswa master yang BELUM punya akun login (user_id IS NULL)
+    master_siswa_rows = conn.execute("""
+    SELECT id, nis, nama, kelas, jenis_kelamin, no_whatsapp 
+    FROM master_siswa 
+    WHERE user_id IS NULL 
+    ORDER BY kelas ASC, nama ASC
+    """).fetchall()
+    
+    master_siswa_list = [dict(row) for row in master_siswa_rows]
     conn.close()
-    return render_template('register_siswa.html', ekskul_list=ekskul_list)
+    return render_template('register_siswa.html', ekskul_list=ekskul_list, master_siswa_list=master_siswa_list)
 
 # =========================================================
 # 1. AKUN PELATIH (CLEAN UI & KHUSUS EKSKULNYA SAJA)
@@ -1349,6 +1375,29 @@ def admin_dashboard():
     total_siswa_count = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'siswa'").fetchone()[0]
     total_sesi_count = conn.execute("SELECT COUNT(*) FROM sesi_latihan").fetchone()[0]
 
+    # Data Real-Time Partisipasi Siswa MTs Muhammadiyah Tajurhalang
+    total_master_siswa = conn.execute("SELECT COUNT(*) FROM master_siswa").fetchone()[0]
+    total_siswa_pilih_ekskul = conn.execute("SELECT COUNT(*) FROM master_siswa WHERE user_id IS NOT NULL").fetchone()[0]
+    total_siswa_belum_pilih = conn.execute("SELECT COUNT(*) FROM master_siswa WHERE user_id IS NULL").fetchone()[0]
+    persen_pilih_ekskul = round((total_siswa_pilih_ekskul / total_master_siswa * 100), 1) if total_master_siswa > 0 else 0
+
+    stats_per_kelas = conn.execute("""
+    SELECT 
+        kelas,
+        COUNT(*) as total,
+        SUM(CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END) as sudah_pilih,
+        SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) as belum_pilih
+    FROM master_siswa
+    GROUP BY kelas
+    ORDER BY kelas ASC
+    """).fetchall()
+
+    siswa_belum_pilih_list = conn.execute("""
+    SELECT * FROM master_siswa
+    WHERE user_id IS NULL
+    ORDER BY kelas ASC, nama ASC
+    """).fetchall()
+
     # Permohonan Reset Password Pending
     reset_requests = conn.execute("""
     SELECT r.*, u.nama as nama_user, u.role as role_user
@@ -1375,6 +1424,12 @@ def admin_dashboard():
                            total_pelatih=total_pelatih_count,
                            total_siswa=total_siswa_count,
                            total_sesi=total_sesi_count,
+                           total_master_siswa=total_master_siswa,
+                           total_siswa_pilih_ekskul=total_siswa_pilih_ekskul,
+                           total_siswa_belum_pilih=total_siswa_belum_pilih,
+                           persen_pilih_ekskul=persen_pilih_ekskul,
+                           stats_per_kelas=stats_per_kelas,
+                           siswa_belum_pilih_list=siswa_belum_pilih_list,
                            reset_requests=reset_requests,
                            recent_sessions=recent_sessions,
                            active_menu='dashboard')
@@ -1426,26 +1481,34 @@ def admin_pelatih():
 @app.route('/admin/siswa')
 @role_required('admin')
 def admin_siswa():
-    """Halaman 3: Data Master Siswa, Import CSV & Hapus Akun"""
+    """Halaman 3: Data Master Siswa MTs Muhammadiyah Tajurhalang, Import CSV & Kelola Akun"""
     conn = get_db()
     current_admin = conn.execute("SELECT * FROM users WHERE id = ?", (session.get('user_id'),)).fetchone()
 
-    siswa_list = conn.execute("""
-    SELECT u.*, 
+    master_siswa_list = conn.execute("""
+    SELECT m.id as master_id, m.nis, m.nama, m.kelas, m.jenis_kelamin, m.no_whatsapp, m.user_id,
+           u.username, u.id as u_id,
            COALESCE(
                (SELECT GROUP_CONCAT(e2.icon || ' ' || e2.nama, ', ')
                 FROM siswa_ekskul se2
                 JOIN ekskul e2 ON se2.ekskul_id = e2.id
-                WHERE se2.user_id = u.id AND se2.status = 'AKTIF'),
+                WHERE se2.user_id = u.id AND se2.status IN ('AKTIF', 'MENUNGGU')),
                e.icon || ' ' || e.nama
            ) as daftar_ekskul,
-           e.nama as nama_ekskul, 
-           e.icon as icon_ekskul 
-    FROM users u
+           (SELECT se3.status FROM siswa_ekskul se3 WHERE se3.user_id = u.id LIMIT 1) as status_approval_ekskul
+    FROM master_siswa m
+    LEFT JOIN users u ON m.user_id = u.id
     LEFT JOIN ekskul e ON u.ekskul_id = e.id
-    WHERE u.role = 'siswa'
-    ORDER BY u.kelas ASC, u.nama ASC
+    ORDER BY m.kelas ASC, m.nama ASC
     """).fetchall()
+
+    # Hitung metrik real-time master siswa
+    total_master = len(master_siswa_list)
+    total_sudah_pilih = sum(1 for m in master_siswa_list if m['user_id'] is not None)
+    total_belum_pilih = sum(1 for m in master_siswa_list if m['user_id'] is None)
+
+    # Siswa yang sudah memiliki akun (kompatibilitas backward)
+    siswa_list = [m for m in master_siswa_list if m['user_id'] is not None]
 
     ekskul_list = conn.execute("SELECT * FROM ekskul ORDER BY nama ASC").fetchall()
     reset_requests = conn.execute("SELECT * FROM reset_password_requests WHERE status = 'PENDING'").fetchall()
@@ -1453,10 +1516,14 @@ def admin_siswa():
 
     return render_template('admin_siswa.html',
                            current_admin=current_admin,
+                           master_siswa_list=master_siswa_list,
                            siswa_list=siswa_list,
                            ekskul_list=ekskul_list,
                            reset_requests=reset_requests,
-                           total_siswa=len(siswa_list),
+                           total_master=total_master,
+                           total_sudah_pilih=total_sudah_pilih,
+                           total_belum_pilih=total_belum_pilih,
+                           total_siswa=total_sudah_pilih,
                            active_menu='siswa')
 
 @app.route('/admin/ekskul-gps')
@@ -1570,13 +1637,16 @@ def admin_tolak_reset_request(req_id):
 @app.route('/admin/siswa/delete/<int:user_id>', methods=['POST'])
 @role_required('admin')
 def admin_delete_siswa(user_id):
-    """Hapus akun siswa yang duplikat/salah"""
+    """Hapus akun siswa yang duplikat/salah dan reset status di master_siswa"""
     conn = get_db()
     user = conn.execute("SELECT * FROM users WHERE id = ? AND role = 'siswa'", (user_id,)).fetchone()
     if not user:
         conn.close()
         flash("Akun siswa tidak ditemukan.", "danger")
         return redirect(url_for('admin_siswa'))
+
+    # Putuskan relasi user_id di master_siswa agar siswa bisa mendaftar kembali
+    conn.execute("UPDATE master_siswa SET user_id = NULL WHERE user_id = ?", (user_id,))
 
     conn.execute("DELETE FROM siswa_ekskul WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM pengajuan_izin WHERE user_id = ?", (user_id,))
@@ -1586,7 +1656,7 @@ def admin_delete_siswa(user_id):
 
     conn.commit()
     conn.close()
-    flash(f"Akun siswa '{user['nama']}' ({user['username']}) berhasil dihapus dari sistem.", "success")
+    flash(f"Akun siswa '{user['nama']}' (@{user['username']}) berhasil dihapus. Status master siswa direset sehingga siswa dapat mendaftar kembali jika diperlukan.", "success")
     return redirect(url_for('admin_siswa'))
 
 @app.route('/admin/siswa/delete-all', methods=['POST'])
@@ -1599,8 +1669,11 @@ def admin_delete_all_siswa():
 
     if total_siswa == 0:
         conn.close()
-        flash("Tidak ada data siswa yang dapat dihapus.", "warning")
+        flash("Tidak ada data akun siswa yang dapat dihapus.", "warning")
         return redirect(url_for('admin_siswa'))
+
+    # Reset relasi user_id di master_siswa
+    conn.execute("UPDATE master_siswa SET user_id = NULL")
 
     # Hapus semua data yang berelasi dengan siswa
     conn.execute("DELETE FROM siswa_ekskul WHERE user_id IN (SELECT id FROM users WHERE role = 'siswa')")
@@ -1612,7 +1685,56 @@ def admin_delete_all_siswa():
     conn.commit()
     conn.close()
 
-    flash(f"Berhasil! Seluruh data akun siswa ({total_siswa} siswa) beserta seluruh riwayat presensinya telah dihapus dari sistem.", "success")
+    flash(f"Berhasil! Seluruh data akun login siswa ({total_siswa} siswa) telah dihapus dari sistem. Data master siswa MTs tetap tersimpan dan status pendaftaran telah direset.", "success")
+    return redirect(url_for('admin_siswa'))
+
+@app.route('/admin/master-siswa/tambah', methods=['POST'])
+@role_required('admin')
+def admin_tambah_master_siswa():
+    """Tambah 1 data master siswa MTs Muhammadiyah Tajurhalang secara manual"""
+    nis = request.form.get('nis', '').strip()
+    nama = request.form.get('nama', '').strip()
+    kelas = request.form.get('kelas', 'Kelas 7')
+    jk = request.form.get('jenis_kelamin', 'L')
+    no_wa = request.form.get('no_whatsapp', '').strip()
+
+    if not nis or not nama:
+        flash("NIS dan Nama Siswa wajib diisi!", "danger")
+        return redirect(url_for('admin_siswa'))
+
+    conn = get_db()
+    try:
+        conn.execute("""
+        INSERT INTO master_siswa (nis, nama, kelas, jenis_kelamin, no_whatsapp)
+        VALUES (?, ?, ?, ?, ?)
+        """, (nis, nama, kelas, jk, no_wa or '085111508528'))
+        conn.commit()
+        flash(f"Siswa '{nama}' (NIS: {nis}) berhasil ditambahkan ke Database Master Siswa MTs Muhammadiyah!", "success")
+    except Exception as e:
+        flash(f"Gagal menambahkan data: NIS '{nis}' mungkin sudah terdaftar ({e}).", "danger")
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin_siswa'))
+
+@app.route('/admin/master-siswa/delete/<int:master_id>', methods=['POST'])
+@role_required('admin')
+def admin_delete_master_siswa(master_id):
+    """Hapus siswa dari Master Siswa MTs Muhammadiyah"""
+    conn = get_db()
+    m = conn.execute("SELECT * FROM master_siswa WHERE id = ?", (master_id,)).fetchone()
+    if m:
+        if m['user_id']:
+            user_id = m['user_id']
+            conn.execute("DELETE FROM siswa_ekskul WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM pengajuan_izin WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM presensi_siswa WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM reset_password_requests WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.execute("DELETE FROM master_siswa WHERE id = ?", (master_id,))
+        conn.commit()
+        flash(f"Data siswa '{m['nama']}' berhasil dihapus dari Master Siswa MTs Muhammadiyah.", "success")
+    conn.close()
     return redirect(url_for('admin_siswa'))
 
 @app.route('/admin/pelatih/delete/<int:user_id>', methods=['POST'])
@@ -1801,65 +1923,99 @@ def admin_update_ekskul_pelatih():
 @app.route('/admin/siswa/import', methods=['POST'])
 @role_required('admin')
 def admin_import_siswa():
-    """Mengimpor data siswa dari berkas CSV / Excel (.csv)."""
+    """Mengimpor data Master Siswa MTs Muhammadiyah Tajurhalang dari berkas CSV (NIS, Nama, Kelas, Jenis Kelamin, No WhatsApp)."""
     file = request.files.get('file_siswa')
     if not file or file.filename == '':
         flash("Silakan pilih berkas CSV untuk diimpor.", "danger")
         return redirect(url_for('admin_siswa'))
 
     try:
-        stream = io.StringIO(file.stream.read().decode("utf-8", errors='ignore'), newline=None)
-        csv_reader = csv.reader(stream)
+        raw_bytes = file.stream.read()
+        try:
+            content = raw_bytes.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            content = raw_bytes.decode("latin-1", errors='ignore')
+
+        if not content.strip():
+            flash("Berkas CSV kosong atau tidak dapat dibaca.", "danger")
+            return redirect(url_for('admin_siswa'))
+
+        # Deteksi delimiter (; untuk Excel Indonesia, , untuk standar)
+        sample = content[:2048]
+        delimiter = ';' if sample.count(';') > sample.count(',') else ','
+        
+        stream = io.StringIO(content, newline=None)
+        csv_reader = csv.reader(stream, delimiter=delimiter)
         
         conn = get_db()
         cursor = conn.cursor()
         
-        # Peta nama ekskul ke ID ekskul
-        ekskul_rows = conn.execute("SELECT id, LOWER(nama) as nama_lower FROM ekskul").fetchall()
-        ekskul_map = {row['nama_lower']: row['id'] for row in ekskul_rows}
-        
-        count_inserted = 0
+        count_processed = 0
         for i, row in enumerate(csv_reader):
             if not row or len(row) < 2:
                 continue
-            if i == 0 and any(keyword in str(row[0]).lower() for keyword in ['nama', 'name', 'siswa']):
+            
+            # Lewati baris header jika terdapat kata kunci
+            if i == 0 and any(keyword in str(row[0]).lower() for keyword in ['nis', 'nama', 'name', 'no', 'siswa', 'id']):
                 continue
             
-            nama = row[0].strip()
-            kelas = row[1].strip() if len(row) > 1 else 'Kelas 7'
-            jk = row[2].strip().upper() if len(row) > 2 else 'L'
-            nama_ekskul_raw = row[3].strip().lower() if len(row) > 3 else ''
+            # Format 5 Kolom: NIS, Nama, Kelas, Jenis Kelamin, No WhatsApp
+            col0 = str(row[0]).strip()
+            col1 = str(row[1]).strip() if len(row) > 1 else ''
+            
+            # Deteksi apakah format standar (kolom 0 = NIS) atau lama (kolom 0 = Nama)
+            if col0.isdigit() or (len(row) >= 3 and any(k in str(row[2]).lower() for k in ['kelas', '7', '8', '9'])):
+                nis = col0
+                nama = col1
+                kelas_raw = str(row[2]).strip() if len(row) > 2 else 'Kelas 7'
+                jk_raw = str(row[3]).strip() if len(row) > 3 else 'L'
+                no_wa_raw = str(row[4]).strip() if len(row) > 4 else ''
+            else:
+                # Format cadangan: Nama, Kelas, JK
+                nama = col0
+                kelas_raw = col1
+                jk_raw = str(row[2]).strip() if len(row) > 2 else 'L'
+                no_wa_raw = ''
+                nis = f"10{cursor.execute('SELECT COUNT(*) FROM master_siswa').fetchone()[0] + 101}"
 
             if not nama:
                 continue
 
-            # Buat username acak ramah
-            base_user = "".join(filter(str.isalnum, nama.lower().replace(" ", "")))[:8]
-            username = f"{base_user}{cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0] + 1}"
-            password = 'siswa123'
-            
-            ekskul_id = ekskul_map.get(nama_ekskul_raw)
+            # Normalisasi Kelas
+            if '8' in kelas_raw:
+                kelas_clean = 'Kelas 8'
+            elif '9' in kelas_raw:
+                kelas_clean = 'Kelas 9'
+            else:
+                kelas_clean = 'Kelas 7'
 
-            try:
-                cursor.execute("""
-                INSERT INTO users (username, password, nama, role, ekskul_id, kelas, jenis_kelamin)
-                VALUES (?, ?, ?, 'siswa', ?, ?, ?)
-                """, (username, password, nama, ekskul_id, kelas, jk))
-                new_user_id = cursor.lastrowid
+            # Normalisasi Jenis Kelamin
+            jk_upper = jk_raw.upper().strip()
+            if jk_upper.startswith('P') or 'PEREMPUAN' in jk_upper:
+                jk_clean = 'P'
+            else:
+                jk_clean = 'L'
 
-                if ekskul_id:
-                    cursor.execute("""
-                    INSERT OR IGNORE INTO siswa_ekskul (user_id, ekskul_id)
-                    VALUES (?, ?)
-                    """, (new_user_id, ekskul_id))
+            # Normalisasi Nomor WhatsApp
+            no_wa_clean = "".join(ch for ch in no_wa_raw if ch.isdigit() or ch == '+')
+            if not no_wa_clean:
+                no_wa_clean = '085111508528'
 
-                count_inserted += 1
-            except Exception:
-                continue
+            # Masukkan atau perbarui ke tabel master_siswa
+            cursor.execute("""
+            INSERT INTO master_siswa (nis, nama, kelas, jenis_kelamin, no_whatsapp)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(nis) DO UPDATE SET
+                nama = excluded.nama,
+                kelas = excluded.kelas,
+                jenis_kelamin = excluded.jenis_kelamin,
+                no_whatsapp = excluded.no_whatsapp
+            """, (nis, nama, kelas_clean, jk_clean, no_wa_clean))
+            count_processed += 1
 
         conn.commit()
         conn.close()
-        flash(f"Berhasil mengimpor {count_inserted} siswa dari berkas CSV!", "success")
+        flash(f"Berhasil mengimpor / memperbarui {count_processed} data Master Siswa MTs Muhammadiyah Tajurhalang dari berkas CSV!", "success")
     except Exception as e:
         flash(f"Gagal memproses berkas CSV: {e}", "danger")
 
@@ -1868,19 +2024,20 @@ def admin_import_siswa():
 @app.route('/admin/template-csv')
 @role_required('admin')
 def admin_template_csv():
-    """Mengunduh berkas template CSV contoh untuk pendaftaran siswa."""
-    csv_content = "Nama Siswa,Kelas,Jenis Kelamin (L/P),Nama Ekskul\n" \
-                  "Ahmad Zaki Fauzan,Kelas 7,L,Voli\n" \
-                  "Bunga Citra Lestari,Kelas 8,P,Futsal Putri\n" \
-                  "Dimas Pratama,Kelas 9,L,Futsal Putra\n" \
-                  "Dewi Anggraini,Kelas 7,P,Hizbul Wathan\n" \
-                  "Farhan Maulana,Kelas 8,L,Tapak Suci\n" \
-                  "Gita Nirmala,Kelas 9,P,Badminton\n"
+    """Mengunduh berkas template CSV contoh master data siswa MTs Muhammadiyah Tajurhalang."""
+    # Sertakan UTF-8 BOM (\ufeff) agar terbaca langsung dengan kolom rapi di Microsoft Excel
+    csv_content = "\ufeffNIS,Nama,Kelas,Jenis Kelamin,No WhatsApp\n" \
+                  "1071,Ahmad Fadhil,Kelas 7,L,081234567801\n" \
+                  "1072,Annisa Rahmadani,Kelas 7,P,081234567802\n" \
+                  "1073,Bintang Pratama,Kelas 8,L,081234567803\n" \
+                  "1074,Citra Khairunnisa,Kelas 8,P,081234567804\n" \
+                  "1075,Danu Wijaya,Kelas 9,L,081234567805\n" \
+                  "1076,Farah Diba,Kelas 9,P,081234567806\n"
     
     return Response(
         csv_content,
-        mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=template_import_siswa_ekskul.csv"}
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-disposition": "attachment; filename=template_master_siswa_mts.csv"}
     )
 
 @app.route('/admin/lokasi/update', methods=['POST'])

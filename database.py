@@ -219,9 +219,30 @@ def init_db():
     )
     """)
 
+    # 13. Tabel Master Data Siswa MTs Muhammadiyah Tajurhalang
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS master_siswa (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nis TEXT UNIQUE,
+        nama TEXT NOT NULL,
+        kelas TEXT NOT NULL,          -- 'Kelas 7', 'Kelas 8', 'Kelas 9'
+        jenis_kelamin TEXT,           -- 'L' / 'P'
+        no_whatsapp TEXT,             -- No WhatsApp Siswa / Wali
+        user_id INTEGER UNIQUE,       -- ID user jika sudah punya akun login
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+    """)
+
     conn.commit()
 
     # Migrasi data relasi pelatih ke tabel pelatih_ekskul
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN no_hp TEXT")
+        conn.commit()
+    except Exception:
+        pass
+
     try:
         cursor.execute("""
         INSERT OR IGNORE INTO pelatih_ekskul (user_id, ekskul_id)
@@ -327,6 +348,12 @@ def init_db():
 
     # Migrasi data relasi pelatih ke tabel pelatih_ekskul
     try:
+        cursor.execute("ALTER TABLE users ADD COLUMN no_hp TEXT")
+        conn.commit()
+    except Exception:
+        pass
+
+    try:
         cursor.execute("""
         INSERT OR IGNORE INTO pelatih_ekskul (user_id, ekskul_id)
         SELECT id, ekskul_id FROM users
@@ -339,6 +366,43 @@ def init_db():
     try:
         cursor.execute("ALTER TABLE siswa_ekskul ADD COLUMN status TEXT DEFAULT 'AKTIF'")
         conn.commit()
+    except Exception:
+        pass
+
+    # Sinkronisasi akun siswa yang sudah ada ke master_siswa
+    try:
+        cursor.execute("""
+        INSERT OR IGNORE INTO master_siswa (nis, nama, kelas, jenis_kelamin, no_whatsapp, user_id)
+        SELECT COALESCE(nisn, '10' || id), nama, kelas, jenis_kelamin, '085111508528', id
+        FROM users WHERE role = 'siswa'
+        """)
+        conn.commit()
+    except Exception:
+        pass
+
+    # Seeding siswa master yang belum mendaftar akun jika masih kosong
+    try:
+        cursor.execute("SELECT COUNT(*) FROM master_siswa WHERE user_id IS NULL")
+        if cursor.fetchone()[0] == 0:
+            sample_unregistered = [
+                ('1051', 'Bayu Nugroho', 'Kelas 7', 'L', '081234567801'),
+                ('1052', 'Cantika Dewi', 'Kelas 7', 'P', '081234567802'),
+                ('1053', 'Dimas Anggara', 'Kelas 7', 'L', '081234567803'),
+                ('1054', 'Elisa Rahmawati', 'Kelas 7', 'P', '081234567804'),
+                ('1055', 'Fajar Ramadhan', 'Kelas 8', 'L', '081234567805'),
+                ('1056', 'Hana Marwah', 'Kelas 8', 'P', '081234567806'),
+                ('1057', 'Gilang Pratama', 'Kelas 8', 'L', '081234567807'),
+                ('1058', 'Indah Permata', 'Kelas 8', 'P', '081234567808'),
+                ('1059', 'Irfan Hakim', 'Kelas 9', 'L', '081234567809'),
+                ('1060', 'Kezia Putri', 'Kelas 9', 'P', '081234567810'),
+                ('1061', 'Lukman Syafiq', 'Kelas 9', 'L', '081234567811'),
+                ('1062', 'Nadya Safitri', 'Kelas 9', 'P', '081234567812'),
+            ]
+            cursor.executemany("""
+            INSERT OR IGNORE INTO master_siswa (nis, nama, kelas, jenis_kelamin, no_whatsapp)
+            VALUES (?, ?, ?, ?, ?)
+            """, sample_unregistered)
+            conn.commit()
     except Exception:
         pass
 

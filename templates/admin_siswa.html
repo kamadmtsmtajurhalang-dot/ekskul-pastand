@@ -4,27 +4,32 @@
 
 {% block admin_content %}
 <!-- Page Header -->
-<div class="card admin-hero-card" style="padding: 16px 20px; margin-bottom: 16px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+<div class="card admin-hero-card" style="padding: 18px 20px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
         <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="badge-tag tag-green" style="font-size: 11px; padding: 2px 8px; border-radius: 6px;">🎒 Menu Siswa</span>
-                <span style="font-size: 12px; color: #86EFAC; font-weight: 600;">Total: {{ siswa_list|length }} Siswa Terdaftar</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="badge-tag tag-green" style="font-size: 11px; padding: 2px 8px; border-radius: 6px;">🎒 Data Pokok Siswa</span>
+                <span style="font-size: 12px; color: #86EFAC; font-weight: 700;">🏫 Total Siswa MTs: {{ total_master }}</span>
+                <span style="font-size: 12px; color: #BBF7D0;">• Sudah Pilih Ekskul: <b>{{ total_sudah_pilih }}</b></span>
+                <span style="font-size: 12px; color: #FEF08A;">• Belum Pilih Ekskul: <b>{{ total_belum_pilih }}</b></span>
             </div>
             <h1 style="color: white; margin: 6px 0 2px 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">
-                Data Master Siswa Ekstrakurikuler
+                Data Master Siswa MTs Muhammadiyah Tajurhalang
             </h1>
             <p style="font-size: 12px; color: #94A3B8; margin: 0;">
-                Kelola basis data siswa, hapus akun duplikat/salah, reset sandi siswa, dan impor data massal dari file CSV.
+                Kelola basis data siswa madrasah, impor data CSV (NIS, Nama, Kelas, JK, WhatsApp), tambah siswa, dan kontrol akun login siswa.
             </p>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn-action-pill" onclick="openModalTambahMasterSiswa()" style="background: #10B981; color: white; border: 1px solid #059669; padding: 7px 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+                ➕ Tambah Siswa Baru
+            </button>
             <a href="/admin/template-csv" class="btn-action-pill" style="background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.25); text-decoration: none; padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
                 📥 Unduh Template CSV
             </a>
-            {% if siswa_list and siswa_list|length > 0 %}
-            <button type="button" class="btn-action-pill" onclick="openModalDeleteAllSiswa()" style="background: #EF4444; color: white; border: 1px solid #DC2626; padding: 7px 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="Hapus semua data siswa sekaligus">
-                🗑️ Hapus Semua Siswa ({{ siswa_list|length }})
+            {% if total_sudah_pilih and total_sudah_pilih > 0 %}
+            <button type="button" class="btn-action-pill" onclick="openModalDeleteAllSiswa()" style="background: #EF4444; color: white; border: 1px solid #DC2626; padding: 7px 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="Reset seluruh akun siswa">
+                🗑️ Reset Semua Akun ({{ total_sudah_pilih }})
             </button>
             {% endif %}
         </div>
@@ -36,14 +41,14 @@
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
         <div>
             <h2 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #0F172A;">
-                📑 Impor Siswa Massal (Format CSV)
+                📑 Impor Data Master Siswa (Format CSV / Excel)
             </h2>
             <p style="font-size: 12px; color: #64748B; margin: 2px 0 0 0;">
-                Tambahkan puluhan atau ratusan siswa sekaligus hanya dengan mengunggah satu file CSV / Excel.
+                Unggah data siswa MTs Muhammadiyah Tajurhalang. Nama yang diimpor akan otomatis muncul pada menu pilihan dropdown saat siswa mendaftar akun.
             </p>
         </div>
         <a href="/admin/template-csv" class="link-download-csv" style="font-size: 12px; color: #059669; font-weight: 700; text-decoration: none;">
-            📄 Unduh Contoh Berkas CSV (.csv) →
+            📄 Unduh Berkas Template CSV (5 Kolom) →
         </a>
     </div>
 
@@ -53,11 +58,12 @@
                 <input type="file" name="file_siswa" accept=".csv" class="form-control" style="background: white;" required>
             </div>
             <button type="submit" class="btn-submit" style="width: auto; padding: 9px 20px; font-size: 12.5px; background: #059669;">
-                🚀 Unggah & Proses CSV
+                🚀 Unggah & Sinkronkan Data
             </button>
         </div>
-        <div style="font-size: 11px; color: #64748B; margin-top: 8px;">
-            💡 <b>Petunjuk:</b> Urutan kolom CSV: <code>Nama Siswa, Kelas, L/P, Nama Ekskul</code>. Akun login dibuat otomatis dengan password default <code>siswa123</code>.
+        <div style="font-size: 11.5px; color: #475569; margin-top: 8px; line-height: 1.5;">
+            💡 <b>Unsur Kolom CSV Template:</b> <code>NIS, Nama, Kelas, Jenis Kelamin, No WhatsApp</code>.
+            Jika nomor WhatsApp tidak diisi, otomatis menggunakan kontak default madrasah.
         </div>
     </form>
 </div>
@@ -67,20 +73,21 @@
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
         <div>
             <h2 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #0F172A;">
-                👥 Daftar Master Siswa ({{ siswa_list|length }} Siswa)
+                👥 Basis Data Pokok Siswa MTs Muhammadiyah ({{ master_siswa_list|length }} Siswa)
             </h2>
             <p style="font-size: 12px; color: #64748B; margin: 2px 0 0 0;">
-                Gunakan pencarian nama atau filter kelas untuk menyaring data siswa dengan cepat.
+                Gunakan filter tingkat kelas atau status akun untuk memantau siapa saja yang sudah dan belum memilih ekskul.
             </p>
         </div>
 
         <!-- Filter & Action Tools -->
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            {% if siswa_list and siswa_list|length > 0 %}
-            <button type="button" class="btn-action-pill" onclick="openModalDeleteAllSiswa()" style="background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5; padding: 7px 11px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Opsi hapus semua data siswa sekaligus">
-                🗑️ Hapus Semua Siswa
-            </button>
-            {% endif %}
+            <!-- Filter Status Akun -->
+            <select id="filterStatus" onchange="filterSiswaTable()" class="form-control" style="width: auto; padding: 7px 10px; font-size: 12px;">
+                <option value="">Semua Status Akun</option>
+                <option value="SUDAH_PILIH">✅ Sudah Pilih Ekskul ({{ total_sudah_pilih }})</option>
+                <option value="BELUM_PILIH">⏳ Belum Pilih Ekskul ({{ total_belum_pilih }})</option>
+            </select>
 
             <!-- Filter Kelas -->
             <select id="filterKelas" onchange="filterSiswaTable()" class="form-control" style="width: auto; padding: 7px 10px; font-size: 12px;">
@@ -92,7 +99,7 @@
 
             <!-- Search Input -->
             <div style="position: relative; width: 230px; max-width: 100%;">
-                <input type="text" id="searchSiswaInput" onkeyup="filterSiswaTable()" class="form-control search-input" placeholder="🔍 Cari nama / ekskul..." style="padding: 7px 12px 7px 30px; font-size: 12px;">
+                <input type="text" id="searchSiswaInput" onkeyup="filterSiswaTable()" class="form-control search-input" placeholder="🔍 Cari nama / NIS / WA..." style="padding: 7px 12px 7px 30px; font-size: 12px;">
                 <span style="position: absolute; left: 10px; top: 7px; color: #94A3B8; font-size: 12px;">🔍</span>
             </div>
         </div>
@@ -103,21 +110,27 @@
             <thead>
                 <tr>
                     <th style="width: 36px; text-align: center;">No</th>
+                    <th style="width: 80px;">NIS</th>
                     <th>Nama Siswa</th>
                     <th style="text-align: center; width: 90px;">Kelas</th>
                     <th style="text-align: center; width: 50px;">L/P</th>
-                    <th>Ekskul yang Diikuti</th>
-                    <th>Username</th>
-                    <th style="text-align: center; width: 140px;">Aksi</th>
+                    <th>No. WhatsApp</th>
+                    <th>Status Akun & Ekskul</th>
+                    <th style="text-align: center; width: 150px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
-                {% for s in siswa_list %}
-                <tr data-kelas="{{ s.kelas or '' }}">
+                {% for s in master_siswa_list %}
+                <tr data-kelas="{{ s.kelas or '' }}" data-status="{{ 'SUDAH_PILIH' if s.user_id else 'BELUM_PILIH' }}">
                     <td style="text-align: center; color: #64748B; font-size: 12px;" class="row-num">{{ loop.index }}</td>
                     <td>
+                        <code style="font-size: 12px; font-weight: 700; color: #334155;">{{ s.nis or '-' }}</code>
+                    </td>
+                    <td>
                         <div style="font-weight: 700; color: #0F172A; font-size: 13px;">{{ s.nama }}</div>
-                        <div style="font-size: 11px; color: #64748B;">ID Siswa: #{{ s.id }}</div>
+                        {% if s.username %}
+                        <div style="font-size: 11px; color: #64748B;">Username: <code style="background: #F1F5F9; color: #0F172A; padding: 1px 4px; border-radius: 4px;">@{{ s.username }}</code></div>
+                        {% endif %}
                     </td>
                     <td style="text-align: center;">
                         <span class="badge-tag tag-amber" style="font-size: 11px; font-weight: 700; padding: 2px 7px;">
@@ -128,39 +141,123 @@
                         {{ s.jenis_kelamin or '-' }}
                     </td>
                     <td>
-                        {% if s.daftar_ekskul %}
-                        <span style="font-size: 12px; font-weight: 600; color: #0F172A;">
-                            {{ s.daftar_ekskul }}
-                        </span>
+                        {% if s.no_whatsapp %}
+                        <span style="font-size: 12px; font-family: monospace;">{{ s.no_whatsapp }}</span>
                         {% else %}
-                        <span style="font-size: 11.5px; color: #94A3B8;">Belum memilih ekskul</span>
+                        <span style="font-size: 11px; color: #94A3B8;">-</span>
                         {% endif %}
                     </td>
                     <td>
-                        <code style="background: #F1F5F9; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11.5px;">@{{ s.username }}</code>
+                        {% if s.user_id %}
+                        <div>
+                            <span class="badge-tag tag-green" style="font-size: 11px; padding: 2px 7px;">
+                                ✅ Terdaftar Akun
+                            </span>
+                            <div style="font-size: 12px; font-weight: 600; color: #0F172A; margin-top: 3px;">
+                                {{ s.daftar_ekskul or 'Menunggu persetujuan pelatih' }}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div>
+                            <span class="badge-tag tag-yellow" style="font-size: 11px; padding: 2px 7px;">
+                                ⚪ Belum Pilih Ekskul
+                            </span>
+                            <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">
+                                Belum mendaftar akun
+                            </div>
+                        </div>
+                        {% endif %}
                     </td>
                     <td style="text-align: center;">
-                        <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
-                            <button type="button" class="btn-action-pill btn-action-reset" onclick="openModalReset('{{ s.id }}', '{{ s.nama|replace('\'', '\\\'') }}', '{{ s.username|replace('\'', '\\\'') }}', 'siswa')" title="Reset kata sandi siswa ini">
-                                🔑 Reset
+                        <div style="display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                            {% if s.user_id %}
+                            <button type="button" class="btn-action-pill btn-action-reset" onclick="openModalReset('{{ s.u_id }}', '{{ s.nama|replace('\'', '\\\'') }}', '{{ s.username|replace('\'', '\\\'') }}', 'siswa')" title="Reset kata sandi siswa ini">
+                                🔑 Sandi
                             </button>
-                            <form action="/admin/siswa/delete/{{ s.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun siswa {{ s.nama }}? Seluruh riwayat presensi dan izin siswa ini akan ikut terhapus.');">
-                                <button type="submit" class="btn-action-pill btn-action-delete" title="Hapus akun siswa">
+                            <form action="/admin/siswa/delete/{{ s.u_id }}" method="POST" style="margin: 0;" onsubmit="return confirm('Hapus akun login siswa {{ s.nama }}? Status nama siswa akan direset sehingga bisa mendaftar ulang.');">
+                                <button type="submit" class="btn-action-pill btn-action-delete" title="Hapus akun login siswa (reset pendaftaran)">
+                                    🗑️ Akun
+                                </button>
+                            </form>
+                            {% else %}
+                            {% if s.no_whatsapp %}
+                            <a href="https://wa.me/{{ s.no_whatsapp|replace('+', '')|replace('-', '')|replace(' ', '') }}?text=Assalamu%27alaikum%20Ananda%20{{ s.nama|urlencode }},%20silakan%20mendaftarkan%20akun%20dan%20memilih%20cabang%20ekskul%20MTs%20Muhammadiyah%20Tajurhalang%20melalui%20portal%20resmi." 
+                               target="_blank" 
+                               class="btn-action-pill" 
+                               style="background: #25D366; color: white; padding: 4px 7px; font-size: 11px; text-decoration: none; border-radius: 4px;" 
+                               title="Ingatkan lewat WhatsApp">
+                                📲 WA
+                            </a>
+                            {% endif %}
+                            <form action="/admin/master-siswa/delete/{{ s.master_id }}" method="POST" style="margin: 0;" onsubmit="return confirm('Hapus data siswa {{ s.nama }} (NIS: {{ s.nis }}) dari Database Master MTs Muhammadiyah?');">
+                                <button type="submit" class="btn-action-pill btn-action-delete" title="Hapus dari master siswa">
                                     🗑️ Hapus
                                 </button>
                             </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 32px; color: #64748B;">
-                        Belum ada siswa terdaftar dalam sistem. Gunakan form import CSV di atas untuk menambahkan siswa.
+                    <td colspan="8" style="text-align: center; padding: 32px; color: #64748B;">
+                        Belum ada siswa terdaftar dalam sistem. Gunakan form import CSV di atas untuk menambahkan data siswa.
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL TAMBAH 1 SISWA MASTER SECARA MANUAL
+     ========================================================= -->
+<div id="modalTambahMasterSiswa" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md" style="border-top: 4px solid #10B981; max-width: 480px;">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: #065F46;">
+                ➕ Tambah Siswa ke Master Data MTs
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalTambahMasterSiswa()">&times;</button>
+        </div>
+        <form action="/admin/master-siswa/tambah" method="POST" style="margin-top: 14px;">
+            <div class="form-group">
+                <label class="form-label">NIS (Nomor Induk Siswa) <span class="req">*</span></label>
+                <input type="text" name="nis" class="form-control" placeholder="Contoh: 1071" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Siswa <span class="req">*</span></label>
+                <input type="text" name="nama" class="form-control" placeholder="Nama lengkap siswa..." required autocomplete="off">
+            </div>
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Tingkat Kelas <span class="req">*</span></label>
+                    <select name="kelas" class="form-control">
+                        <option value="Kelas 7">Kelas 7</option>
+                        <option value="Kelas 8">Kelas 8</option>
+                        <option value="Kelas 9">Kelas 9</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Jenis Kelamin <span class="req">*</span></label>
+                    <select name="jenis_kelamin" class="form-control">
+                        <option value="L">Laki-laki (L)</option>
+                        <option value="P">Perempuan (P)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nomor WhatsApp Siswa / Wali</label>
+                <input type="text" name="no_whatsapp" class="form-control" placeholder="Contoh: 081234567890" value="085111508528">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalTambahMasterSiswa()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2; background: #059669; border-color: #047857; color: white;">
+                    Simpan Siswa Master
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -171,20 +268,20 @@
     <div class="modal-card modal-card-md" style="border-top: 4px solid #DC2626;">
         <div class="modal-header-row">
             <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: #991B1B;">
-                ⚠️ Konfirmasi Hapus Seluruh Data Siswa
+                ⚠️ Konfirmasi Reset Seluruh Akun Siswa
             </h3>
             <button type="button" class="modal-close-btn" onclick="closeModalDeleteAllSiswa()">&times;</button>
         </div>
         
         <div style="padding: 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; margin: 14px 0 16px 0;">
             <p style="font-size: 13px; color: #991B1B; margin: 0 0 8px 0; font-weight: 800;">
-                🚨 Peringatan Penting: Tindakan ini bersifat PERMANEN!
+                🚨 Peringatan Penting: Tindakan ini akan mereset akun login seluruh siswa!
             </p>
             <ul style="font-size: 12px; color: #B91C1C; margin: 0; padding-left: 18px; line-height: 1.6;">
-                <li>Seluruh data master siswa (total <b>{{ siswa_list|length }} akun siswa</b>) akan dihapus secara menyeluruh.</li>
-                <li>Seluruh riwayat presensi kehadiran dan pengajuan izin latihan siswa akan terhapus.</li>
-                <li>Data relasi cabang ekskul yang diikuti siswa akan dibersihkan.</li>
-                <li><b>Akun Pelatih dan Admin Master TIDAK AKAN terhapus.</b></li>
+                <li>Seluruh akun login siswa (total <b>{{ total_sudah_pilih }} akun siswa</b>) akan dihapus.</li>
+                <li>Seluruh riwayat presensi kehadiran dan izin latihan siswa akan terhapus.</li>
+                <li>Data Master Pokok MTs ({{ total_master }} siswa) <b>tetap aman</b> dan nama mereka dapat didaftarkan kembali.</li>
+                <li>Akun Pelatih dan Admin Master <b>TIDAK AKAN terhapus</b>.</li>
             </ul>
         </div>
 
@@ -200,7 +297,7 @@
             <div style="display: flex; gap: 10px; margin-top: 18px;">
                 <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalDeleteAllSiswa()">Batal</button>
                 <button type="submit" id="btnSubmitDeleteAll" class="btn-modal-primary" style="flex: 2; background: #DC2626; border-color: #B91C1C; color: white;">
-                    🗑️ Ya, Hapus Semua Siswa
+                    🗑️ Ya, Reset Semua Akun Siswa
                 </button>
             </div>
         </form>
@@ -210,10 +307,11 @@
 
 {% block admin_scripts %}
 <script>
-// Filter / Search Siswa Table by keyword and kelas dropdown
+// Filter / Search Siswa Table by keyword, kelas, dan status akun
 function filterSiswaTable() {
     const searchVal = document.getElementById('searchSiswaInput').value.toLowerCase();
     const kelasVal = document.getElementById('filterKelas').value.toLowerCase();
+    const statusVal = document.getElementById('filterStatus').value;
     const table = document.getElementById('tableSiswa');
     const tr = table.getElementsByTagName('tr');
 
@@ -221,16 +319,29 @@ function filterSiswaTable() {
         const row = tr[i];
         const rowText = (row.textContent || row.innerText).toLowerCase();
         const rowKelas = (row.getAttribute('data-kelas') || '').toLowerCase();
+        const rowStatus = row.getAttribute('data-status') || '';
 
         const matchSearch = rowText.indexOf(searchVal) > -1;
         const matchKelas = !kelasVal || rowKelas.indexOf(kelasVal) > -1;
+        const matchStatus = !statusVal || rowStatus === statusVal;
 
-        if (matchSearch && matchKelas) {
+        if (matchSearch && matchKelas && matchStatus) {
             row.style.display = "";
         } else {
             row.style.display = "none";
         }
     }
+}
+
+// Modal Tambah Siswa Master
+function openModalTambahMasterSiswa() {
+    const modal = document.getElementById('modalTambahMasterSiswa');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeModalTambahMasterSiswa() {
+    const modal = document.getElementById('modalTambahMasterSiswa');
+    if (modal) modal.style.display = 'none';
 }
 
 // Modal Konfirmasi Hapus Semua Siswa
@@ -255,14 +366,18 @@ function validateDeleteAllConfirmation() {
         alert('Konfirmasi gagal: Silakan ketik kata "HAPUS SEMUA" (huruf kapital) untuk melanjutkan penghapusan seluruh data siswa.');
         return false;
     }
-    return confirm('Peringatan Terakhir: Apakah Anda benar-benar yakin ingin menghapus seluruh data siswa? Tindakan ini tidak dapat dibatalkan.');
+    return confirm('Peringatan Terakhir: Apakah Anda benar-benar yakin ingin menghapus seluruh data akun siswa? Tindakan ini tidak dapat dibatalkan.');
 }
 
 // Tutup modal jika klik di luar kotak modal
 window.addEventListener('click', function(e) {
-    const modal = document.getElementById('modalDeleteAllSiswa');
-    if (modal && e.target === modal) {
-        modal.style.display = 'none';
+    const modalDelete = document.getElementById('modalDeleteAllSiswa');
+    if (modalDelete && e.target === modalDelete) {
+        modalDelete.style.display = 'none';
+    }
+    const modalTambah = document.getElementById('modalTambahMasterSiswa');
+    if (modalTambah && e.target === modalTambah) {
+        modalTambah.style.display = 'none';
     }
 });
 </script>

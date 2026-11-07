@@ -66,6 +66,105 @@
     </a>
 </div>
 
+<!-- =========================================================
+     STATUS PARTISIPASI SISWA MTS MUHAMMADIYAH REAL-TIME
+     ========================================================= -->
+<div class="card" style="margin-bottom: 16px; border: 1px solid #CBD5E1; border-top: 4px solid #10B981; background: #FFFFFF; border-radius: 12px; padding: 18px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-tag tag-green" style="font-size: 11px; padding: 2px 8px; border-radius: 6px;">📊 Real-Time MTs Database</span>
+                <span style="font-size: 12px; color: #059669; font-weight: 700;">Data Pokok Siswa MTs Muhammadiyah Tajurhalang</span>
+            </div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #0F172A; margin: 4px 0 0 0;">
+                🏫 Status Partisipasi Siswa dalam Ekstrakurikuler
+            </h2>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <a href="/admin/siswa" class="btn-action-pill" style="background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; text-decoration: none; padding: 6px 12px; font-size: 12px; font-weight: 700;">
+                👥 Kelola Data Siswa →
+            </a>
+            <a href="/admin/template-csv" class="btn-action-pill" style="background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; text-decoration: none; padding: 6px 12px; font-size: 12px; font-weight: 600;">
+                📥 Unduh Template CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- 3 Metrik Real-Time Utama Sesuai Permintaan -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
+        <!-- Metrik 1: Total Siswa Keseluruhan -->
+        <div style="background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); border: 1px solid #E2E8F0; border-radius: 10px; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 12px; font-weight: 700; color: #475569;">Total Siswa MTs Keseluruhan</span>
+                <span style="font-size: 20px;">🏫</span>
+            </div>
+            <div style="font-size: 32px; font-weight: 800; color: #0F172A; line-height: 1;">{{ total_master_siswa }}</div>
+            <div style="font-size: 11.5px; color: #64748B; margin-top: 6px;">
+                Tercatat di Buku Induk MTs Muhammadiyah
+            </div>
+        </div>
+
+        <!-- Metrik 2: Siswa yang Sudah Pilih Ekskul -->
+        <div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1px solid #A7F3D0; border-radius: 10px; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 12px; font-weight: 700; color: #065F46;">Siswa Sudah Pilih Ekskul</span>
+                <span style="font-size: 20px;">✅</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <div style="font-size: 32px; font-weight: 800; color: #047857; line-height: 1;">{{ total_siswa_pilih_ekskul }}</div>
+                <span style="font-size: 12px; font-weight: 700; color: #059669; background: #A7F3D0; padding: 2px 8px; border-radius: 10px;">{{ persen_pilih_ekskul }}%</span>
+            </div>
+            <div style="font-size: 11.5px; color: #065F46; margin-top: 6px;">
+                Telah membuat akun & memilih cabang ekskul
+            </div>
+        </div>
+
+        <!-- Metrik 3: Siswa yang Belum Pilih Ekskul -->
+        <div style="background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1px solid #FDE68A; border-radius: 10px; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 12px; font-weight: 700; color: #92400E;">Siswa Belum Pilih Ekskul</span>
+                <span style="font-size: 20px;">⏳</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <div style="font-size: 32px; font-weight: 800; color: #B45309; line-height: 1;">{{ total_siswa_belum_pilih }}</div>
+                {% if total_siswa_belum_pilih > 0 %}
+                <button type="button" onclick="openModalSiswaBelumPilih()" class="btn-action-sm" style="font-size: 11px; font-weight: 700; background: #F59E0B; color: white; border: none; padding: 3px 8px; border-radius: 6px; cursor: pointer;">
+                    Lihat Siswa →
+                </button>
+                {% endif %}
+            </div>
+            <div style="font-size: 11.5px; color: #92400E; margin-top: 6px;">
+                Belum mendaftar akun di portal ekskul
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar Persentase Partisipasi -->
+    <div style="margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px;">
+            <span>Tingkat Partisipasi Siswa dalam Ekskul</span>
+            <span>{{ total_siswa_pilih_ekskul }} / {{ total_master_siswa }} Siswa ({{ persen_pilih_ekskul }}%)</span>
+        </div>
+        <div style="background: #E2E8F0; border-radius: 999px; height: 10px; overflow: hidden; display: flex;">
+            <div style="background: linear-gradient(90deg, #10B981, #059669); width: {{ persen_pilih_ekskul }}%; height: 100%; transition: width 0.6s ease;"></div>
+        </div>
+    </div>
+
+    <!-- Rincian Partisipasi Tiap Tingkat Kelas -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; padding-top: 10px; border-top: 1px dashed #E2E8F0;">
+        {% for st in stats_per_kelas %}
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px;">
+            <div style="font-size: 12.5px; font-weight: 800; color: #1E293B; margin-bottom: 4px;">{{ st.kelas }}</div>
+            <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: #64748B;">
+                <span>Total: <b>{{ st.total }}</b></span>
+                <span style="color: #059669;">Sudah: <b>{{ st.sudah_pilih }}</b></span>
+                <span style="color: #D97706;">Belum: <b>{{ st.belum_pilih }}</b></span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
 <!-- Notifikasi Permohonan Lupa / Reset Password -->
 {% if reset_requests and reset_requests|length > 0 %}
 <div class="card" style="border-left: 4px solid #EF4444; background: #FEF2F2; margin-bottom: 16px;">
@@ -282,10 +381,93 @@
         </form>
     </div>
 </div>
+<!-- =========================================================
+     MODAL DAFTAR SISWA BELUM PILIH EKSKUL
+     ========================================================= -->
+<div id="modalSiswaBelumPilih" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-lg" style="border-top: 4px solid #F59E0B; max-width: 680px; width: 95%;">
+        <div class="modal-header-row">
+            <div>
+                <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: #B45309;">
+                    ⏳ Daftar Siswa Belum Memilih Ekskul ({{ total_siswa_belum_pilih }} Siswa)
+                </h3>
+                <p style="font-size: 12px; color: #64748B; margin: 3px 0 0 0;">
+                    Siswa terdaftar di buku induk MTs Muhammadiyah Tajurhalang tetapi belum mendaftar akun ekskul.
+                </p>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeModalSiswaBelumPilih()">&times;</button>
+        </div>
+
+        <div style="max-height: 380px; overflow-y: auto; margin: 14px 0; border: 1px solid #E2E8F0; border-radius: 8px;">
+            <table class="data-table" style="margin: 0;">
+                <thead>
+                    <tr style="background: #FFFBEB;">
+                        <th style="width: 36px; text-align: center;">No</th>
+                        <th>NIS</th>
+                        <th>Nama Siswa</th>
+                        <th style="text-align: center;">Kelas</th>
+                        <th style="text-align: center;">L/P</th>
+                        <th style="text-align: center;">Kontak / WA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in siswa_belum_pilih_list %}
+                    <tr>
+                        <td style="text-align: center; color: #64748B; font-size: 12px;">{{ loop.index }}</td>
+                        <td><code style="font-size: 12px;">{{ s.nis or '-' }}</code></td>
+                        <td><b>{{ s.nama }}</b></td>
+                        <td style="text-align: center;">
+                            <span class="badge-tag tag-amber" style="font-size: 11px;">{{ s.kelas }}</span>
+                        </td>
+                        <td style="text-align: center; font-weight: 700; color: {% if s.jenis_kelamin == 'L' %}#1D4ED8{% else %}#DB2777{% endif %};">
+                            {{ s.jenis_kelamin or '-' }}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if s.no_whatsapp %}
+                            <a href="https://wa.me/{{ s.no_whatsapp|replace('+', '')|replace('-', '')|replace(' ', '') }}?text=Assalamu%27alaikum%20Ananda%20{{ s.nama|urlencode }},%20silakan%20mendaftarkan%20akun%20dan%20memilih%20cabang%20ekskul%20MTs%20Muhammadiyah%20Tajurhalang%20melalui%20portal%20resmi." 
+                               target="_blank" 
+                               class="btn-action-sm" 
+                               style="background: #25D366; color: white; text-decoration: none; padding: 3px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
+                                📲 Hubungi WA
+                            </a>
+                            {% else %}
+                            <span style="font-size: 11px; color: #94A3B8;">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: #059669; font-weight: 700;">
+                            🎉 Luar biasa! Seluruh siswa MTs Muhammadiyah telah memilih cabang ekstrakurikuler.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <a href="/admin/siswa" class="btn-action-pill" style="background: #059669; color: white; border: none; padding: 7px 14px; text-decoration: none; font-size: 12px;">
+                Buka Halaman Data Siswa →
+            </a>
+            <button type="button" class="btn-modal-secondary" onclick="closeModalSiswaBelumPilih()">Tutup</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block admin_scripts %}
 <script>
+function openModalSiswaBelumPilih() {
+    const modal = document.getElementById('modalSiswaBelumPilih');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeModalSiswaBelumPilih() {
+    const modal = document.getElementById('modalSiswaBelumPilih');
+    if (modal) modal.style.display = 'none';
+}
+
 function openModalDeleteAllSesi() {
     const input = document.getElementById('confirmDeleteAllSesiInput');
     if (input) input.value = '';
@@ -311,9 +493,13 @@ function validateDeleteAllSesiConfirmation() {
 }
 
 window.addEventListener('click', function(e) {
-    const modal = document.getElementById('modalDeleteAllSesi');
-    if (modal && e.target === modal) {
-        modal.style.display = 'none';
+    const modalSesi = document.getElementById('modalDeleteAllSesi');
+    if (modalSesi && e.target === modalSesi) {
+        modalSesi.style.display = 'none';
+    }
+    const modalBelum = document.getElementById('modalSiswaBelumPilih');
+    if (modalBelum && e.target === modalBelum) {
+        modalBelum.style.display = 'none';
     }
 });
 </script>
