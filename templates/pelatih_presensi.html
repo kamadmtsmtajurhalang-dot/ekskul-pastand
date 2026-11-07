@@ -163,9 +163,68 @@
                 </div>
             </div>
 
+            <!-- Pilihan Materi Berdasarkan Silabus & Opsi Materi Khusus -->
+            <div class="form-group" style="background: #F8FAFC; border: 1.5px solid #E2E8F0; padding: 14px; border-radius: 10px; margin-bottom: 14px;">
+                <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">
+                    <span style="font-weight: 700; color: #0F172A; display: inline-flex; align-items: center; gap: 6px;">
+                        🎯 <span>Silabus / Rencana Materi Latihan</span>
+                    </span>
+                    <span id="labelPeriodeSilabus" style="font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE;">
+                        Silabus: {{ silabus_periode }}
+                    </span>
+                </label>
+                
+                <p style="font-size: 0.82rem; color: #64748B; margin: 0 0 8px 0;">
+                    Pilih materi yang telah disusun dalam silabus bulanan, atau pilih <strong>Materi Khusus</strong> jika ada latihan di luar silabus.
+                </p>
+
+                <select id="selectMateriSilabus" class="form-control" onchange="handleMateriSelectChange(this)" style="font-size: 0.95rem; font-weight: 600; color: #1E293B; border: 1.5px solid #6366F1; background-color: #FFFFFF; border-radius: 8px; padding: 10px 12px;">
+                    <option value="">-- Pilih Materi dari Silabus Rencana Latihan --</option>
+                    {% if silabus_list %}
+                        {% for m in silabus_list %}
+                        <option value="{{ m.materi }}" 
+                                data-indikator="{{ m.indikator_ketercapaian or '' }}" 
+                                data-tgl="{{ m.tanggal_rencana or '' }}" 
+                                data-ptm="{{ m.pertemuan_ke }}"
+                                {% if recommended_ptm == m.pertemuan_ke %}data-recommended="1"{% endif %}>
+                            Pertemuan {{ m.pertemuan_ke }}: {{ m.materi }}{% if m.tanggal_rencana %} (Target: {{ m.tanggal_rencana }}){% endif %}{% if recommended_ptm == m.pertemuan_ke %} ⭐ [Target Pertemuan Ini]{% endif %}
+                        </option>
+                        {% endfor %}
+                        <option value="__KHUSUS__">✨ Materi Khusus / Di Luar Silabus (Format Isian Mandiri)</option>
+                    {% else %}
+                        <option value="__KHUSUS__" selected>✨ Materi Khusus / Di Luar Silabus (Format Isian Mandiri)</option>
+                    {% endif %}
+                </select>
+
+                <!-- Box Indikator Ketercapaian Materi Silabus -->
+                <div id="boxIndikatorSilabus" style="display: none; margin-top: 10px; padding: 10px 14px; background: #F0FDF4; border: 1px solid #BBF7D0; border-left: 4px solid #16A34A; border-radius: 8px; font-size: 0.85rem; color: #166534;">
+                    <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                        <span>🎯 Target Indikator Ketercapaian:</span>
+                    </div>
+                    <div id="textIndikatorSilabus" style="line-height: 1.45;">-</div>
+                </div>
+
+                <!-- Box Info Materi Khusus -->
+                <div id="boxMateriKhusus" style="display: {% if not silabus_list %}block{% else %}none{% endif %}; margin-top: 10px; padding: 10px 14px; background: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #3B82F6; border-radius: 8px; font-size: 0.85rem; color: #1E40AF;">
+                    <div style="font-weight: 700; margin-bottom: 2px;">💡 Mode Materi Khusus / Bebas:</div>
+                    <div style="line-height: 1.45;">Ketik fokus/materi khusus yang dilaksanakan pada kolom di bawah (misal: penguatan fisik, simulasi turnamen, latih tanding).</div>
+                </div>
+            </div>
+
             <div class="form-group">
-                <label class="form-label">Materi / Fokus Latihan</label>
-                <input type="text" id="materiLatihan" class="form-control" placeholder="Contoh: Passing bawah, jurus katak, teknik smash..." required>
+                <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-weight: 700; color: #0F172A;">✏️ Materi / Fokus Latihan yang Dilaksanakan</span>
+                    <span id="badgeTipeMateri" style="font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: {% if silabus_list %}#F1F5F9{% else %}#DBEAFE{% endif %}; color: {% if silabus_list %}#475569{% else %}#1E40AF{% endif %};">
+                        {% if silabus_list %}Pilih Silabus di Atas atau Ketik Bebas{% else %}Materi Khusus / Isian Bebas{% endif %}
+                    </span>
+                </label>
+                <input type="text" id="materiLatihan" class="form-control" placeholder="Contoh: Passing bawah, jurus katak, teknik smash..." required style="font-weight: 500;">
+                <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 0.8rem; color: #64748B;">
+                    <span>Pelatih tetap dapat mengedit teks materi di atas untuk penyesuaian lapangan.</span>
+                    <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}" target="_blank" style="color: #2563EB; font-weight: 600; text-decoration: underline;">
+                        Kelola Silabus Bulanan di sini ↗
+                    </a>
+                </div>
             </div>
 
             <div class="form-group">
@@ -267,6 +326,64 @@
 <script>
 let attendanceState = {};
 
+function handleMateriSelectChange(selectElem) {
+    const val = selectElem.value;
+    const inputMateri = document.getElementById('materiLatihan');
+    const boxIndikator = document.getElementById('boxIndikatorSilabus');
+    const textIndikator = document.getElementById('textIndikatorSilabus');
+    const boxKhusus = document.getElementById('boxMateriKhusus');
+    const badgeTipe = document.getElementById('badgeTipeMateri');
+
+    if (!val) {
+        inputMateri.value = '';
+        if (boxIndikator) boxIndikator.style.display = 'none';
+        if (boxKhusus) boxKhusus.style.display = 'none';
+        if (badgeTipe) {
+            badgeTipe.innerText = 'Pilih Silabus di Atas atau Ketik Bebas';
+            badgeTipe.style.background = '#F1F5F9';
+            badgeTipe.style.color = '#475569';
+        }
+        return;
+    }
+
+    if (val === '__KHUSUS__') {
+        inputMateri.value = '';
+        inputMateri.placeholder = 'Ketik materi / fokus latihan khusus hari ini...';
+        inputMateri.focus();
+        if (boxIndikator) boxIndikator.style.display = 'none';
+        if (boxKhusus) boxKhusus.style.display = 'block';
+        if (badgeTipe) {
+            badgeTipe.innerText = 'Materi Khusus / Isian Bebas';
+            badgeTipe.style.background = '#DBEAFE';
+            badgeTipe.style.color = '#1E40AF';
+        }
+    } else {
+        // Pilihan materi dari silabus
+        inputMateri.value = val;
+        if (boxKhusus) boxKhusus.style.display = 'none';
+
+        const opt = selectElem.options[selectElem.selectedIndex];
+        const indikator = opt ? opt.getAttribute('data-indikator') : '';
+        const pertemuan = opt ? opt.getAttribute('data-ptm') : '';
+
+        if (boxIndikator && textIndikator) {
+            if (indikator && indikator.trim() !== '') {
+                textIndikator.innerText = indikator;
+                boxIndikator.style.display = 'block';
+            } else {
+                textIndikator.innerText = 'Standar penguasaan sesuai silabus latihan.';
+                boxIndikator.style.display = 'block';
+            }
+        }
+
+        if (badgeTipe) {
+            badgeTipe.innerText = 'Silabus Pertemuan ' + (pertemuan || '');
+            badgeTipe.style.background = '#DCFCE7';
+            badgeTipe.style.color = '#166534';
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Set jam sekarang
     const now = new Date();
@@ -274,6 +391,104 @@ document.addEventListener('DOMContentLoaded', () => {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const jamInput = document.getElementById('jamLatihan');
     if (jamInput) jamInput.value = `${hours}:${minutes}`;
+
+    // Auto-select opsi silabus target pertemuan jika tersedia
+    const selSilabus = document.getElementById('selectMateriSilabus');
+    if (selSilabus) {
+        const recOpt = selSilabus.querySelector('option[data-recommended="1"]');
+        if (recOpt) {
+            recOpt.selected = true;
+            handleMateriSelectChange(selSilabus);
+        } else if (selSilabus.value === '__KHUSUS__') {
+            handleMateriSelectChange(selSilabus);
+        }
+    }
+
+    // Listener saat pelatih mengetik langsung di materiLatihan
+    const inputMateri = document.getElementById('materiLatihan');
+    if (inputMateri) {
+        inputMateri.addEventListener('input', function() {
+            const sel = document.getElementById('selectMateriSilabus');
+            if (sel && sel.value !== '__KHUSUS__' && sel.value !== this.value) {
+                sel.value = '__KHUSUS__';
+                const boxInd = document.getElementById('boxIndikatorSilabus');
+                const boxKhs = document.getElementById('boxMateriKhusus');
+                const badgeTp = document.getElementById('badgeTipeMateri');
+                if (boxInd) boxInd.style.display = 'none';
+                if (boxKhs) boxKhs.style.display = 'block';
+                if (badgeTp) {
+                    badgeTp.innerText = 'Materi Khusus / Isian Bebas';
+                    badgeTp.style.background = '#DBEAFE';
+                    badgeTp.style.color = '#1E40AF';
+                }
+            }
+        });
+    }
+
+    // Listener jika tanggal latihan diganti (otomatis reload silabus bulanan)
+    const tglInput = document.getElementById('tglLatihan');
+    if (tglInput) {
+        tglInput.addEventListener('change', async function() {
+            const newTgl = this.value;
+            const ekskulId = document.getElementById('ekskulId').value;
+            if (!newTgl || !ekskulId) return;
+
+            try {
+                const res = await fetch(`/api/pelatih/silabus?ekskul_id=${ekskulId}&tanggal=${newTgl}`);
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    const sel = document.getElementById('selectMateriSilabus');
+                    const lbl = document.getElementById('labelPeriodeSilabus');
+                    if (lbl) {
+                        lbl.innerText = 'Silabus: ' + data.nama_periode + (data.is_fallback ? ' (Terbaru)' : '');
+                    }
+
+                    if (sel) {
+                        sel.innerHTML = '';
+                        const defOpt = document.createElement('option');
+                        defOpt.value = '';
+                        defOpt.innerText = '-- Pilih Materi dari Silabus Rencana Latihan --';
+                        sel.appendChild(defOpt);
+
+                        let recommendedOpt = null;
+                        if (data.silabus && data.silabus.length > 0) {
+                            data.silabus.forEach(m => {
+                                const opt = document.createElement('option');
+                                opt.value = m.materi;
+                                opt.setAttribute('data-indikator', m.indikator_ketercapaian || '');
+                                opt.setAttribute('data-ptm', m.pertemuan_ke);
+                                opt.setAttribute('data-tgl', m.tanggal_rencana || '');
+                                let label = `Pertemuan ${m.pertemuan_ke}: ${m.materi}`;
+                                if (m.tanggal_rencana) label += ` (Target: ${m.tanggal_rencana})`;
+                                if (data.recommended_ptm === m.pertemuan_ke) {
+                                    label += ' ⭐ [Target Pertemuan Ini]';
+                                    opt.setAttribute('data-recommended', '1');
+                                    recommendedOpt = opt;
+                                }
+                                opt.innerText = label;
+                                sel.appendChild(opt);
+                            });
+                        }
+
+                        const customOpt = document.createElement('option');
+                        customOpt.value = '__KHUSUS__';
+                        customOpt.innerText = '✨ Materi Khusus / Di Luar Silabus (Format Isian Bebas)';
+                        sel.appendChild(customOpt);
+
+                        if (recommendedOpt) {
+                            recommendedOpt.selected = true;
+                            handleMateriSelectChange(sel);
+                        } else {
+                            sel.value = '';
+                            handleMateriSelectChange(sel);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Gagal memperbarui silabus:", err);
+            }
+        });
+    }
 
     // Inisialisasi attendanceState dari DOM awal
     document.querySelectorAll('.student-row').forEach(row => {
@@ -438,6 +653,12 @@ async function submitPresensiPelatih() {
     const catatan = document.getElementById('catatanLatihan').value.trim();
     const lat = document.getElementById('userLat').value;
     const lng = document.getElementById('userLng').value;
+
+    if (!materi) {
+        alert("Silakan pilih materi silabus atau ketik materi latihan hari ini terlebih dahulu.");
+        document.getElementById('materiLatihan').focus();
+        return;
+    }
 
     const presensiArray = [];
     for (const sid in attendanceState) {

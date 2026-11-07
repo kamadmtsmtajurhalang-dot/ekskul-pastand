@@ -356,13 +356,28 @@ def pelatih_dashboard():
     """, (ekskul['id'], today_str)).fetchone()
 
     # Jadwal terdekat dan materi pelatihan dari silabus jika ada
+    sesi_count = conn.execute("""
+    SELECT COUNT(*) as cnt FROM sesi_latihan 
+    WHERE ekskul_id = ? AND tanggal LIKE ?
+    """, (ekskul['id'], f"{now_wib.year:04d}-{now_wib.month:02d}%")).fetchone()['cnt']
+    next_ptm = sesi_count + 1
+
     materi_row = conn.execute("""
-    SELECT lmm.materi FROM laporan_materi_mingguan lmm
+    SELECT lmm.materi, lmm.pertemuan_ke FROM laporan_materi_mingguan lmm
     JOIN laporan_bulanan lb ON lmm.laporan_id = lb.id
-    WHERE lb.ekskul_id = ? AND lb.bulan = ? AND lb.tahun = ?
+    WHERE lb.ekskul_id = ? AND lb.bulan = ? AND lb.tahun = ? AND lmm.pertemuan_ke >= ?
     ORDER BY lmm.pertemuan_ke ASC LIMIT 1
-    """, (ekskul['id'], now_wib.month, now_wib.year)).fetchone()
-    materi_terdekat = materi_row['materi'] if materi_row else (ekskul['deskripsi'] or 'Latihan reguler mingguan')
+    """, (ekskul['id'], now_wib.month, now_wib.year, next_ptm)).fetchone()
+
+    if not materi_row:
+        materi_row = conn.execute("""
+        SELECT lmm.materi, lmm.pertemuan_ke FROM laporan_materi_mingguan lmm
+        JOIN laporan_bulanan lb ON lmm.laporan_id = lb.id
+        WHERE lb.ekskul_id = ? AND lb.bulan = ? AND lb.tahun = ?
+        ORDER BY lmm.pertemuan_ke ASC LIMIT 1
+        """, (ekskul['id'], now_wib.month, now_wib.year)).fetchone()
+
+    materi_terdekat = f"Pertemuan {materi_row['pertemuan_ke']}: {materi_row['materi']}" if materi_row else (ekskul['deskripsi'] or 'Latihan reguler mingguan')
 
     # Pengumuman / Info dari Admin Master (berupa angka & daftar)
     pengumuman_admin_rows = conn.execute("""
@@ -427,6 +442,43 @@ def pelatih_presensi():
     ORDER BY p.created_at DESC
     """, (ekskul['id'], today_str)).fetchall()
 
+    now_wib = get_wib_datetime()
+    curr_bulan = now_wib.month
+    curr_tahun = now_wib.year
+
+    # Cari rencana silabus materi bulanan
+    silabus_rows = conn.execute("""
+    SELECT lmm.*, lb.bulan, lb.tahun, lb.status_rencana
+    FROM laporan_materi_mingguan lmm
+    JOIN laporan_bulanan lb ON lmm.laporan_id = lb.id
+    WHERE lb.ekskul_id = ? AND lb.bulan = ? AND lb.tahun = ?
+    ORDER BY lmm.pertemuan_ke ASC
+    """, (ekskul['id'], curr_bulan, curr_tahun)).fetchall()
+
+    silabus_periode = f"{NAMA_BULAN.get(curr_bulan, '')} {curr_tahun}"
+    is_silabus_fallback = False
+
+    if not silabus_rows:
+        silabus_rows = conn.execute("""
+        SELECT lmm.*, lb.bulan, lb.tahun, lb.status_rencana
+        FROM laporan_materi_mingguan lmm
+        JOIN laporan_bulanan lb ON lmm.laporan_id = lb.id
+        WHERE lb.ekskul_id = ?
+        ORDER BY lb.tahun DESC, lb.bulan DESC, lmm.pertemuan_ke ASC
+        """, (ekskul['id'],)).fetchall()
+        if silabus_rows:
+            is_silabus_fallback = True
+            silabus_periode = f"{NAMA_BULAN.get(silabus_rows[0]['bulan'], '')} {silabus_rows[0]['tahun']} (Terbaru)"
+
+    silabus_list = [dict(s) for s in silabus_rows]
+
+    # Hitung sesi yang telah terlaksana bulan ini untuk rekomendasi pertemuan
+    sesi_bulan_count = conn.execute("""
+    SELECT COUNT(*) as cnt FROM sesi_latihan
+    WHERE ekskul_id = ? AND tanggal LIKE ?
+    """, (ekskul['id'], f"{curr_tahun:04d}-{curr_bulan:02d}%")).fetchone()['cnt']
+    recommended_ptm = sesi_bulan_count + 1
+
     conn.close()
     return render_template('pelatih_presensi.html', 
                            active_menu='presensi',
@@ -439,7 +491,84 @@ def pelatih_presensi():
                            lokasi=lokasi, 
                            siswa_list=siswa_list,
                            pengajuan_izin=pengajuan_izin,
-                           today_str=today_str)
+                           today_str=today_str,
+                           silabus_list=silabus_list,
+                           silabus_periode=silabus_periode,
+                           is_silabus_fallback=is_silabus_fallback,
+                           recommended_ptm=recommended_ptm)
+
+@app.route('/api/pelatih/silabus')
+@role_required('pelatih')
+def api_pelatih_silabus():
+    pelatih_id = session['user_id']
+    ekskul_id = request.args.get('ekskul_id', type=int)
+    tanggal = request.args.get('tanggal', '').strip()
+
+    now_wib = get_wib_datetime()
+    bulan = now_wib.month
+    tahun = now_wib.year
+
+    if tanggal:
+        try:
+            parts = tanggal.split('-')
+            if len(parts) >= 2:
+                tahun = int(parts[0])
+                bulan = int(parts[1])
+        except Exception:
+            pass
+
+    conn = get_db()
+    # Verifikasi hak akses pelatih atas ekskul ini
+    assigned = conn.execute("""
+    SELECT * FROM pelatih_ekskul WHERE user_id = ? AND ekskul_id = ?
+    """, (pelatih_id, ekskul_id)).fetchone()
+
+    if not assigned and session.get('role') != 'admin':
+        conn.close()
+        return jsonify({'status': 'ERROR', 'pesan': 'Akses tidak diizinkan'}), 403
+
+    silabus_rows = conn.execute("""
+    SELECT lmm.id, lmm.pertemuan_ke, lmm.tanggal_rencana, lmm.materi, lmm.indikator_ketercapaian,
+           lb.bulan, lb.tahun, lb.status_rencana
+    FROM laporan_materi_mingguan lmm
+    JOIN laporan_bulanan lb ON lmm.laporan_id = lb.id
+    WHERE lb.ekskul_id = ? AND lb.bulan = ? AND lb.tahun = ?
+    ORDER BY lmm.pertemuan_ke ASC
+    """, (ekskul_id, bulan, tahun)).fetchall()
+
+    is_fallback = False
+    nama_periode = f"{NAMA_BULAN.get(bulan, '')} {tahun}"
+
+    if not silabus_rows:
+        silabus_rows = conn.execute("""
+        SELECT lmm.id, lmm.pertemuan_ke, lmm.tanggal_rencana, lmm.materi, lmm.indikator_ketercapaian,
+               lb.bulan, lb.tahun, lb.status_rencana
+        FROM laporan_materi_mingguan lmm
+        JOIN laporan_bulanan lb ON lmm.laporan_id = lb.id
+        WHERE lb.ekskul_id = ?
+        ORDER BY lb.tahun DESC, lb.bulan DESC, lmm.pertemuan_ke ASC
+        """, (ekskul_id,)).fetchall()
+        if silabus_rows:
+            is_fallback = True
+            nama_periode = f"{NAMA_BULAN.get(silabus_rows[0]['bulan'], '')} {silabus_rows[0]['tahun']} (Terbaru)"
+
+    sesi_count = conn.execute("""
+    SELECT COUNT(*) as cnt FROM sesi_latihan
+    WHERE ekskul_id = ? AND tanggal LIKE ?
+    """, (ekskul_id, f"{tahun:04d}-{bulan:02d}%")).fetchone()['cnt']
+    recommended_ptm = sesi_count + 1
+
+    conn.close()
+
+    return jsonify({
+        'status': 'SUCCESS',
+        'bulan': bulan,
+        'tahun': tahun,
+        'nama_periode': nama_periode,
+        'is_fallback': is_fallback,
+        'recommended_ptm': recommended_ptm,
+        'silabus': [dict(r) for r in silabus_rows]
+    })
 
 @app.route('/pelatih/laporan-pekan-terakhir')
 @role_required('pelatih')
