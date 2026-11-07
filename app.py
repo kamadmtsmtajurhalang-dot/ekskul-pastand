@@ -1914,6 +1914,78 @@ def admin_tambah_master_siswa():
 
     return redirect(url_for('admin_siswa'))
 
+@app.route('/admin/master-siswa/edit', methods=['POST'])
+@app.route('/admin/master-siswa/edit/<int:master_id>', methods=['POST'])
+@role_required('admin')
+def admin_edit_master_siswa(master_id=None):
+    """Ubah / Edit data siswa (NIS, Nama, Kelas, Jenis Kelamin, No WhatsApp) secara manual dan sinkronkan ke akun siswa jika terhubung"""
+    if not master_id:
+        master_id = request.form.get('master_id', type=int)
+
+    nis = request.form.get('nis', '').strip()
+    nama = request.form.get('nama', '').strip()
+    kelas = request.form.get('kelas', 'Kelas 7').strip()
+    jk = request.form.get('jenis_kelamin', 'L').strip()
+    no_wa = request.form.get('no_whatsapp', '').strip()
+    username = request.form.get('username', '').strip()
+
+    if not master_id or not nis or not nama:
+        flash("ID Siswa, NIS, dan Nama Siswa wajib diisi!", "danger")
+        return redirect(url_for('admin_siswa'))
+
+    conn = get_db()
+    m = conn.execute("SELECT * FROM master_siswa WHERE id = ?", (master_id,)).fetchone()
+    if not m:
+        conn.close()
+        flash("Data siswa tidak ditemukan dalam basis data master!", "danger")
+        return redirect(url_for('admin_siswa'))
+
+    # Cek keunikan NIS terhadap siswa master lain
+    duplikat_nis = conn.execute(
+        "SELECT id, nama FROM master_siswa WHERE nis = ? AND id != ?",
+        (nis, master_id)
+    ).fetchone()
+    if duplikat_nis:
+        conn.close()
+        flash(f"Gagal: NIS '{nis}' sudah terdaftar untuk siswa '{duplikat_nis['nama']}'. Silakan gunakan NIS lain.", "danger")
+        return redirect(url_for('admin_siswa'))
+
+    try:
+        # Perbarui tabel master_siswa
+        conn.execute("""
+        UPDATE master_siswa
+        SET nis = ?, nama = ?, kelas = ?, jenis_kelamin = ?, no_whatsapp = ?
+        WHERE id = ?
+        """, (nis, nama, kelas, jk, no_wa, master_id))
+
+        # Jika siswa sudah memiliki akun login (user_id terhubung), sinkronkan data ke tabel users
+        if m['user_id']:
+            conn.execute("""
+            UPDATE users
+            SET nama = ?, kelas = ?, nisn = ?, jenis_kelamin = ?, no_hp = ?
+            WHERE id = ?
+            """, (nama, kelas, nis, jk, no_wa, m['user_id']))
+
+            # Jika username juga diubah, periksa keunikan lalu update
+            if username:
+                dup_user = conn.execute(
+                    "SELECT id FROM users WHERE username = ? AND id != ?",
+                    (username, m['user_id'])
+                ).fetchone()
+                if dup_user:
+                    flash(f"Data siswa diperbarui, namun username '@{username}' sudah dipakai pengguna lain.", "warning")
+                else:
+                    conn.execute("UPDATE users SET username = ? WHERE id = ?", (username, m['user_id']))
+
+        conn.commit()
+        flash(f"Data siswa '{nama}' (NIS: {nis}) berhasil diperbarui dan disinkronkan secara aman!", "success")
+    except Exception as e:
+        flash(f"Terjadi kesalahan saat menyimpan perubahan data siswa: {e}", "danger")
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin_siswa'))
+
 @app.route('/admin/master-siswa/delete/<int:master_id>', methods=['POST'])
 @role_required('admin')
 def admin_delete_master_siswa(master_id):

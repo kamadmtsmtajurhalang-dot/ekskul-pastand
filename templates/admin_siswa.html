@@ -145,7 +145,7 @@
                     <th style="text-align: center; width: 50px;">L/P</th>
                     <th>No. WhatsApp</th>
                     <th>Status Akun & Ekskul</th>
-                    <th style="text-align: center; width: 150px;">Aksi</th>
+                    <th style="text-align: center; width: 190px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -199,6 +199,23 @@
                     </td>
                     <td style="text-align: center;">
                         <div style="display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                            <!-- Tombol Edit Siswa -->
+                            <button type="button" 
+                                    class="btn-action-pill" 
+                                    style="background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
+                                    data-id="{{ s.master_id }}"
+                                    data-nis="{{ s.nis or '' }}"
+                                    data-nama="{{ s.nama }}"
+                                    data-kelas="{{ s.kelas or 'Kelas 7' }}"
+                                    data-jk="{{ s.jenis_kelamin or 'L' }}"
+                                    data-wa="{{ s.no_whatsapp or '' }}"
+                                    data-username="{{ s.username or '' }}"
+                                    data-has-account="{{ '1' if s.user_id else '0' }}"
+                                    onclick="handleEditSiswaClick(this)"
+                                    title="Edit data siswa (Nama, NIS, Kelas, Jenis Kelamin, No. WA)">
+                                ✏️ Edit
+                            </button>
+
                             {% if s.user_id %}
                             <button type="button" class="btn-action-pill btn-action-reset" onclick="openModalReset('{{ s.u_id }}', '{{ s.nama|replace('\'', '\\\'') }}', '{{ s.username|replace('\'', '\\\'') }}', 'siswa')" title="Reset kata sandi siswa ini">
                                 🔑 Sandi
@@ -236,6 +253,83 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL EDIT DATA SISWA (MASTER POKOK & AKUN TERHUBUNG)
+     ========================================================= -->
+<div id="modalEditMasterSiswa" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-md" style="border-top: 4px solid #4F46E5; max-width: 490px;">
+        <div class="modal-header-row">
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: #1E1B4B; display: flex; align-items: center; gap: 8px;">
+                <span>✏️</span> <span>Edit Data Siswa</span>
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModalEditMasterSiswa()">&times;</button>
+        </div>
+
+        <!-- Banner Status Akun -->
+        <div id="editStatusAkunBanner" style="margin: 12px 0 14px 0; padding: 10px 12px; border-radius: 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+            <span id="editStatusAkunText">-</span>
+            <span id="editUsernameBadge" style="font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 4px;">-</span>
+        </div>
+
+        <form action="/admin/master-siswa/edit" method="POST">
+            <input type="hidden" name="master_id" id="editMasterId">
+
+            <div class="form-group">
+                <label class="form-label">NIS (Nomor Induk Siswa) <span class="req">*</span></label>
+                <input type="text" name="nis" id="editNis" class="form-control" placeholder="Contoh: 1071" required autocomplete="off">
+                <small style="color: #64748B; font-size: 11px;">Nomor induk siswa unik di MTs Muhammadiyah Tajurhalang.</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Nama Lengkap Siswa <span class="req">*</span></label>
+                <input type="text" name="nama" id="editNama" class="form-control" placeholder="Nama lengkap siswa..." required autocomplete="off">
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Tingkat Kelas <span class="req">*</span></label>
+                    <select name="kelas" id="editKelas" class="form-control">
+                        <option value="Kelas 7">Kelas 7</option>
+                        <option value="Kelas 8">Kelas 8</option>
+                        <option value="Kelas 9">Kelas 9</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Jenis Kelamin <span class="req">*</span></label>
+                    <select name="jenis_kelamin" id="editJk" class="form-control">
+                        <option value="L">Laki-laki (L)</option>
+                        <option value="P">Perempuan (P)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Nomor WhatsApp Siswa / Wali</label>
+                <input type="text" name="no_whatsapp" id="editNoWa" class="form-control" placeholder="Contoh: 081234567890">
+                <small style="color: #64748B; font-size: 11px;">Digunakan untuk pengingat latihan, presensi, dan koordinasi madrasah.</small>
+            </div>
+
+            <!-- Kolom Username (hanya aktif jika siswa sudah punya akun) -->
+            <div class="form-group" id="editUsernameGroup" style="display: none;">
+                <label class="form-label">Username Akun Siswa</label>
+                <input type="text" name="username" id="editUsernameInput" class="form-control" placeholder="username siswa" autocomplete="off">
+                <small style="color: #64748B; font-size: 11px;">Username login portal siswa. Kosongkan jika tidak ingin mengubah.</small>
+            </div>
+
+            <div id="editSyncInfo" style="margin-top: 10px; padding: 10px 12px; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; font-size: 11.5px; color: #166534; display: none; line-height: 1.45;">
+                🔄 <b>Sinkronisasi Otomatis:</b> Akun login siswa sudah terhubung. Perubahan nama, kelas, NIS, dan No. WA otomatis memperbarui profil akun siswa tanpa menghapus riwayat presensi yang telah berjalan.
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-modal-secondary" style="flex: 1;" onclick="closeModalEditMasterSiswa()">Batal</button>
+                <button type="submit" class="btn-modal-primary" style="flex: 2; background: #4F46E5; border-color: #4338CA; color: white; font-weight: 700;">
+                    💾 Simpan Perubahan Data
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -383,6 +477,94 @@
 
 {% block admin_scripts %}
 <script>
+// Handler klik tombol edit data siswa
+function handleEditSiswaClick(btn) {
+    const masterId = btn.getAttribute('data-id');
+    const nis = btn.getAttribute('data-nis') || '';
+    const nama = btn.getAttribute('data-nama') || '';
+    const kelas = btn.getAttribute('data-kelas') || 'Kelas 7';
+    const jk = btn.getAttribute('data-jk') || 'L';
+    const wa = btn.getAttribute('data-wa') || '';
+    const username = btn.getAttribute('data-username') || '';
+    const hasAccount = btn.getAttribute('data-has-account') === '1';
+
+    openModalEditMasterSiswa(masterId, nis, nama, kelas, jk, wa, username, hasAccount);
+}
+
+// Buka Modal Edit Siswa
+function openModalEditMasterSiswa(masterId, nis, nama, kelas, jk, wa, username, hasAccount) {
+    document.getElementById('editMasterId').value = masterId;
+    document.getElementById('editNis').value = nis;
+    document.getElementById('editNama').value = nama;
+    document.getElementById('editNoWa').value = wa;
+
+    // Set dropdown kelas
+    const selKelas = document.getElementById('editKelas');
+    let foundKelas = false;
+    for (let i = 0; i < selKelas.options.length; i++) {
+        if (selKelas.options[i].value === kelas) {
+            selKelas.selectedIndex = i;
+            foundKelas = true;
+            break;
+        }
+    }
+    if (!foundKelas && kelas) {
+        const opt = document.createElement('option');
+        opt.value = kelas;
+        opt.innerText = kelas;
+        selKelas.appendChild(opt);
+        selKelas.value = kelas;
+    }
+
+    // Set dropdown jenis kelamin
+    const selJk = document.getElementById('editJk');
+    if (selJk) selJk.value = jk || 'L';
+
+    // Status banner & username field
+    const banner = document.getElementById('editStatusAkunBanner');
+    const bannerText = document.getElementById('editStatusAkunText');
+    const userBadge = document.getElementById('editUsernameBadge');
+    const usernameGroup = document.getElementById('editUsernameGroup');
+    const usernameInput = document.getElementById('editUsernameInput');
+    const syncInfo = document.getElementById('editSyncInfo');
+
+    if (hasAccount) {
+        banner.style.background = '#ECFDF5';
+        banner.style.color = '#065F46';
+        banner.style.border = '1px solid #A7F3D0';
+        bannerText.innerHTML = '✅ <b>Akun Terdaftar</b> (Terhubung ke Siswa)';
+        userBadge.innerText = username ? '@' + username : 'Akun Aktif';
+        userBadge.style.display = 'inline-block';
+        if (usernameGroup) usernameGroup.style.display = 'block';
+        if (usernameInput) usernameInput.value = username || '';
+        if (syncInfo) syncInfo.style.display = 'block';
+    } else {
+        banner.style.background = '#FEF3C7';
+        banner.style.color = '#92400E';
+        banner.style.border = '1px solid #FDE68A';
+        bannerText.innerHTML = '⚪ <b>Belum Punya Akun</b> (Data Master MTs)';
+        userBadge.innerText = 'Belum Registrasi';
+        userBadge.style.display = 'inline-block';
+        if (usernameGroup) usernameGroup.style.display = 'none';
+        if (usernameInput) usernameInput.value = '';
+        if (syncInfo) syncInfo.style.display = 'none';
+    }
+
+    const modal = document.getElementById('modalEditMasterSiswa');
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            const el = document.getElementById('editNama');
+            if (el) el.focus();
+        }, 100);
+    }
+}
+
+function closeModalEditMasterSiswa() {
+    const modal = document.getElementById('modalEditMasterSiswa');
+    if (modal) modal.style.display = 'none';
+}
+
 // Filter / Search Siswa Table by keyword, kelas, dan status akun
 function filterSiswaTable() {
     const searchVal = document.getElementById('searchSiswaInput').value.toLowerCase();
@@ -483,6 +665,10 @@ window.addEventListener('click', function(e) {
     const modalTambah = document.getElementById('modalTambahMasterSiswa');
     if (modalTambah && e.target === modalTambah) {
         modalTambah.style.display = 'none';
+    }
+    const modalEdit = document.getElementById('modalEditMasterSiswa');
+    if (modalEdit && e.target === modalEdit) {
+        modalEdit.style.display = 'none';
     }
 });
 </script>
