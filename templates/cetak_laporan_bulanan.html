@@ -6,110 +6,141 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 12mm 12mm 12mm 12mm;
+            margin: 8mm 10mm 6mm 10mm;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #0F172A;
+            font-size: 8.5pt;
+            line-height: 1.25;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            margin: 15px 20px;
-            color: #0F172A;
-            font-size: 11px;
-            background: #fff;
-            line-height: 1.35;
+            padding: 10px 14px;
         }
+
+        /* Container Pengunci 1 Halaman Cetak */
+        .page-sheet {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+        }
+
+        /* KOP SURAT RESMI (COMPACT) */
         .kop {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 16px;
+            gap: 12px;
             text-align: center;
-            border-bottom: 2.5px double #1E3A8A;
-            padding-bottom: 10px;
-            margin-bottom: 14px;
+            border-bottom: 2px double #1E3A8A;
+            padding-bottom: 5px;
+            margin-bottom: 6px;
         }
         .kop img {
-            height: 65px;
-            width: 65px;
+            height: 46px;
+            width: 46px;
             object-fit: contain;
             flex-shrink: 0;
         }
         .kop h2 {
             margin: 0;
-            font-size: 15.5px;
+            font-size: 11.5pt;
             font-weight: 800;
             color: #1E3A8A;
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
         .kop p {
-            margin: 3px 0 0 0;
-            font-size: 9px;
+            margin: 1.5px 0 0 0;
+            font-size: 7.2pt;
             color: #475569;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         .kop-tag {
-            font-size: 10px;
+            font-size: 7.8pt;
             font-weight: 700;
             color: #1E3A8A;
-            margin-top: 2px;
-            letter-spacing: 0.5px;
+            margin-top: 1.5px;
+            letter-spacing: 0.4px;
+        }
+
+        /* JUDUL DOKUMEN */
+        .doc-title-box {
+            text-align: center;
+            margin: 4px 0 6px 0;
         }
         .doc-title {
-            text-align: center;
-            margin: 12px 0 4px 0;
-            font-size: 13.5px;
+            margin: 0;
+            font-size: 10pt;
             font-weight: 800;
             text-transform: uppercase;
             color: #0F172A;
             letter-spacing: 0.3px;
         }
         .doc-subtitle {
-            text-align: center;
-            font-size: 11px;
+            margin-top: 1px;
+            font-size: 8.5pt;
             font-weight: 700;
             color: #1E40AF;
-            margin-bottom: 14px;
         }
+
+        /* METADATA RINGKAS (2 BARIS) */
         .meta-box {
             background: #F8FAFC;
             border: 1px solid #CBD5E1;
-            border-radius: 6px;
-            padding: 8px 12px;
-            margin-bottom: 14px;
-            font-size: 10.5px;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-bottom: 6px;
+            font-size: 8pt;
         }
         .meta-table {
             width: 100%;
             border-collapse: collapse;
         }
         .meta-table td {
-            padding: 2.5px 4px;
+            padding: 1.5px 4px;
             vertical-align: top;
         }
         .meta-table td.label {
             font-weight: bold;
-            width: 140px;
             color: #334155;
+            width: 115px;
         }
+
+        /* SECTION HEADER COMPACT */
         .section-header {
-            font-size: 11.5px;
+            font-size: 8.2pt;
             font-weight: 800;
             color: #1E3A8A;
             background: #EFF6FF;
-            border-left: 4px solid #1E3A8A;
-            padding: 5px 8px;
-            margin: 14px 0 8px 0;
+            border-left: 3px solid #1E3A8A;
+            padding: 2.5px 6px;
+            margin: 5px 0 3px 0;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.2px;
         }
+
+        /* DATA TABLES */
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
-            font-size: 10px;
+            margin-bottom: 5px;
+            font-size: 7.8pt;
         }
         .data-table th, .data-table td {
             border: 1px solid #64748B;
-            padding: 4.5px 6px;
+            padding: 2.5px 4px;
             vertical-align: middle;
         }
         .data-table th {
@@ -117,285 +148,311 @@
             color: #0F172A;
             font-weight: 700;
             text-align: center;
+            font-size: 7.8pt;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
+
+        /* HIGHLIGHT SUMMARY COMPACT */
         .honor-highlight {
             background: #FEF3C7;
             border: 1px solid #F59E0B;
-            border-radius: 6px;
-            padding: 8px 12px;
-            margin: 10px 0 14px 0;
+            border-radius: 4px;
+            padding: 3px 8px;
+            margin: 4px 0 6px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 11px;
+            font-size: 8pt;
         }
+
+        /* TANDA TANGAN (HORIZONTAL COMPACT) */
         .sig-container {
             width: 100%;
-            margin-top: 24px;
-            page-break-inside: avoid;
+            margin-top: 6px;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
         .sig-table {
             width: 100%;
             text-align: center;
-            font-size: 10.5px;
+            font-size: 7.6pt;
             border-collapse: collapse;
         }
         .sig-table td {
-            padding: 6px 12px;
+            padding: 3px 4px;
             vertical-align: top;
-            width: 50%;
         }
         .sig-space {
-            height: 52px;
+            height: 34px;
         }
+
+        /* TOMBOL CETAK BROWSER */
         .print-btn {
             background: #1E3A8A;
             color: white;
             border: none;
-            padding: 8px 18px;
-            font-size: 12px;
+            padding: 6px 14px;
+            font-size: 11px;
             font-weight: 700;
             cursor: pointer;
-            border-radius: 6px;
+            border-radius: 5px;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
         .print-btn:hover {
             background: #1D4ED8;
         }
+
         @media print {
             .no-print { display: none !important; }
             body { margin: 0; padding: 0; }
-            .data-table th { background-color: #E2E8F0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .section-header { background-color: #EFF6FF !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .honor-highlight { background-color: #FEF3C7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .data-table th { background-color: #E2E8F0 !important; }
+            .section-header { background-color: #EFF6FF !important; }
+            .honor-highlight { background-color: #FEF3C7 !important; }
         }
     </style>
 </head>
 <body>
-    <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #E2E8F0;">
-        <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}&bulan={{ bulan }}&tahun={{ tahun }}" style="text-decoration: none; color: #1E3A8A; font-weight: 700; font-size: 12px;">&larr; Kembali ke Laporan Bulanan</a>
-        <button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF (A4)</button>
+    <!-- Top Action Bar (Hanya tampil di layar) -->
+    <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #E2E8F0;">
+        <a href="/pelatih/laporan-bulanan?ekskul_id={{ ekskul.id }}&bulan={{ bulan }}&tahun={{ tahun }}" style="text-decoration: none; color: #1E3A8A; font-weight: 700; font-size: 11.5px;">
+            &larr; Kembali ke Menu Laporan Bulanan
+        </a>
+        <button class="print-btn" onclick="window.print()">
+            🖨️ Cetak Dokumen / Simpan PDF (Pas 1 Halaman A4)
+        </button>
     </div>
 
-    <!-- KOP SURAT RESMI -->
-    <div class="kop">
-        <img src="/static/logo-mtsm.png" alt="Logo MTs">
-        <div>
-            <h2>Madrasah Tsanawiyah Muhammadiyah Tajurhalang</h2>
-            <p>Jl. Raya DS Citayam, KP Bulu 001/004 DS Citayam, Tajurhalang - Kab. Bogor, Jawa Barat 16320, Indonesia &bull; 0851 1150 8528 &bull; mtsm.pastand@gmail.com</p>
-            <div class="kop-tag">LAPORAN KINERJA KEPELATIHAN & ACUAN HONORARIUM EKSTRAKURIKULER</div>
+    <!-- Lembar Cetak 1 Halaman -->
+    <div class="page-sheet">
+        <!-- 1. KOP SURAT RESMI -->
+        <div class="kop">
+            <img src="/static/logo-mtsm.png" alt="Logo MTs">
+            <div>
+                <h2>Madrasah Tsanawiyah Muhammadiyah Tajurhalang</h2>
+                <p>Jl. Raya DS Citayam, KP Bulu 001/004 DS Citayam, Tajurhalang - Kab. Bogor, Jawa Barat 16320 &bull; 0851 1150 8528 &bull; mtsm.pastand@gmail.com</p>
+                <div class="kop-tag">LAPORAN KINERJA KEPELATIHAN & ACUAN REKAPITULASI HONORARIUM EKSTRAKURIKULER</div>
+            </div>
         </div>
-    </div>
 
-    <div class="doc-title">LEMBAR LAPORAN BULANAN & REKAPITULASI HONORARIUM PELATIH</div>
-    <div class="doc-subtitle">Periode: Bulan {{ nama_bulan }} {{ tahun }}</div>
+        <!-- 2. JUDUL DOKUMEN -->
+        <div class="doc-title-box">
+            <div class="doc-title">LEMBAR LAPORAN BULANAN & ACUAN DASAR HONORARIUM PELATIH</div>
+            <div class="doc-subtitle">Periode: Bulan {{ nama_bulan }} {{ tahun }}</div>
+        </div>
 
-    <!-- METADATA EKSKUL & PELATIH -->
-    <div class="meta-box">
-        <table class="meta-table">
-            <tr>
-                <td class="label">Cabang Ekstrakurikuler</td>
-                <td>: <b>{{ ekskul.icon }} {{ ekskul.nama }}</b> (Kategori: {{ ekskul.kategori }})</td>
-                <td class="label">Nama Pelatih</td>
-                <td>: <b>{{ pelatih.nama }}</b></td>
-            </tr>
-            <tr>
-                <td class="label">Jadwal Reguler</td>
-                <td>: {{ ekskul.hari_latihan }} (Pukul {{ ekskul.jam_latihan }})</td>
-                <td class="label">Total Siswa Aktif</td>
-                <td>: {{ siswa_penilaian|length }} Siswa Terdaftar</td>
-            </tr>
-            <tr>
-                <td class="label">Status Kelengkapan</td>
-                <td>: Silabus: <b>{{ laporan.status_rencana }}</b> &bull; Nilai Siswa: <b>{{ laporan.status_penilaian }}</b></td>
-                <td class="label">Dicetak Pada</td>
-                <td>: {{ print_date }} WIB</td>
-            </tr>
+        <!-- 3. METADATA EKSKUL & PELATIH (COMPACT 2 BARIS) -->
+        <div class="meta-box">
+            <table class="meta-table">
+                <tr>
+                    <td class="label">Cabang Ekskul</td>
+                    <td>: <b>{{ ekskul.icon }} {{ ekskul.nama }}</b> ({{ ekskul.kategori }})</td>
+                    <td class="label">Nama Pelatih</td>
+                    <td>: <b>{{ pelatih.nama }}</b></td>
+                    <td class="label">Anggota Siswa</td>
+                    <td>: <b>{{ total_siswa_aktif }} Siswa</b></td>
+                </tr>
+                <tr>
+                    <td class="label">Jadwal Reguler</td>
+                    <td>: {{ ekskul.hari_latihan }} ({{ ekskul.jam_latihan }})</td>
+                    <td class="label">Total Latihan Riil</td>
+                    <td>: <b style="color: #1E3A8A;">{{ sesi_list|length }} Hari Latihan Terlaksana</b></td>
+                    <td class="label">Titimangsa</td>
+                    <td>: {{ pejabat.kota_tanda_tangan or 'Tajurhalang' }}, {{ tgl_laporan }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 4. BAGIAN I: RENCANA SILABUS MATERI KEPELATIHAN -->
+        <div class="section-header">I. Rencana Silabus Materi Kepelatihan (Kondisional Bulanan)</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 32px;">Ptm</th>
+                    <th style="width: 80px;">Tgl Rencana</th>
+                    <th style="width: 220px;">Pokok Materi Pelatihan</th>
+                    <th>Target / Indikator Ketercapaian Kompetensi Siswa</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if materi_list and materi_list|length > 0 %}
+                    {% for m in materi_list %}
+                    <tr>
+                        <td class="text-center font-bold">{{ m.pertemuan_ke }}</td>
+                        <td class="text-center">{{ m.tanggal_rencana or '-' }}</td>
+                        <td class="font-bold">{{ m.materi }}</td>
+                        <td>{{ m.indikator_ketercapaian or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center" style="color: #64748B;"><i>Silabus materi belum disusun.</i></td>
+                    </tr>
+                {% endif %}
+            </tbody>
         </table>
-    </div>
 
-    <!-- BAGIAN 1: RENCANA SILABUS MATERI BULANAN -->
-    <div class="section-header">I. Rencana Silabus Materi Kepelatihan (Kondisional Bulanan)</div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th style="width: 35px;">Ptm</th>
-                <th style="width: 100px;">Tanggal Rencana</th>
-                <th style="width: 250px;">Pokok Materi Pelatihan</th>
-                <th>Target / Indikator Ketercapaian Kompetensi Siswa</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if materi_list and materi_list|length > 0 %}
-                {% for m in materi_list %}
+        <!-- 5. BAGIAN II: REKAPITULASI PELAKSANAAN HARI LATIHAN (DASAR ACUAN HONOR) -->
+        <div class="section-header">II. Rekapitulasi Realisasi Hari Latihan Pelatih (Dasar Acuan Verifikasi Staf TU & Bendahara)</div>
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td class="text-center font-bold">Ke-{{ m.pertemuan_ke }}</td>
-                    <td class="text-center">{{ m.tanggal_rencana or '-' }}</td>
-                    <td class="font-bold">{{ m.materi }}</td>
-                    <td>{{ m.indikator_ketercapaian or '-' }}</td>
+                    <th style="width: 30px;">No</th>
+                    <th style="width: 80px;">Hari & Tanggal</th>
+                    <th style="width: 65px;">Waktu</th>
+                    <th>Materi Latihan Terlaksana</th>
+                    <th style="width: 80px;">Kehadiran</th>
+                    <th style="width: 100px;">Verifikasi GPS Lapangan</th>
                 </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="4" class="text-center" style="color: #64748B;"><i>Silabus materi belum disusun.</i></td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
-
-    <!-- BAGIAN 2: REKAPITULASI PELAKSANAAN LATIHAN (ACUAN HONOR PELATIH) -->
-    <div class="section-header">II. Rekapitulasi Realisasi Hari Latihan (Dasar Acuan Pembayaran Honor Staf TU)</div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th style="width: 30px;">No</th>
-                <th style="width: 85px;">Tanggal</th>
-                <th style="width: 75px;">Waktu</th>
-                <th>Materi Latihan Terlaksana</th>
-                <th style="width: 80px;">Siswa Hadir</th>
-                <th style="width: 90px;">Lokasi GPS</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if sesi_list and sesi_list|length > 0 %}
-                {% for s in sesi_list %}
-                <tr>
-                    <td class="text-center">{{ loop.index }}</td>
-                    <td class="text-center font-bold">{{ s.tanggal }}</td>
-                    <td class="text-center">{{ s.jam_mulai }} WIB</td>
-                    <td>{{ s.materi_latihan if s.materi_latihan else 'Latihan Rutin' }}</td>
-                    <td class="text-center font-bold">{{ s.total_hadir }} / {{ s.total_peserta }}</td>
-                    <td class="text-center">{{ s.status_lokasi }} ({{ s.jarak_meter }}m)</td>
-                </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="6" class="text-center" style="color: #64748B;"><i>Belum ada sesi latihan tercatat pada bulan ini.</i></td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
-
-    <!-- HIGHLIGHT SUMMARY HONOR -->
-    <div class="honor-highlight">
-        <div>
-            <strong style="color: #92400E; font-size: 11.5px;">💰 TOTAL REKAP REALISASI PELAKSANAAN LATIHAN:</strong>
-            <span style="color: #78350F; margin-left: 6px;">Berdasarkan absensi GPS riil pada sistem presensi digital.</span>
-        </div>
-        <div>
-            <span style="font-size: 13px; font-weight: 800; color: #1E3A8A; background: white; padding: 4px 10px; border-radius: 4px; border: 1px solid #CBD5E1;">
-                {{ sesi_list|length }} Hari Latihan Terlaksana
-            </span>
-        </div>
-    </div>
-
-    <!-- BAGIAN 3: REKAPITULASI PRESENSI & PENILAIAN KOMPETENSI SISWA -->
-    <div class="section-header" style="page-break-before: auto;">III. Rekapitulasi Presensi & Penilaian Capaian Siswa (Rapor Siswa)</div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th rowspan="2" style="width: 25px;">No</th>
-                <th rowspan="2">Nama Siswa</th>
-                <th rowspan="2" style="width: 55px;">Kelas</th>
-                <th colspan="4" style="width: 120px;">Kehadiran Bulan Ini</th>
-                <th rowspan="2" style="width: 45px;">% Hdr</th>
-                <th rowspan="2" style="width: 45px;">Skor</th>
-                <th rowspan="2" style="width: 75px;">Predikat</th>
-                <th rowspan="2">Evaluasi Kecakapan & Target Skill Pelatih</th>
-            </tr>
-            <tr>
-                <th style="width: 28px;">H</th>
-                <th style="width: 28px;">I</th>
-                <th style="width: 28px;">S</th>
-                <th style="width: 28px;">A</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if siswa_penilaian and siswa_penilaian|length > 0 %}
-                {% for sp in siswa_penilaian %}
-                <tr>
-                    <td class="text-center">{{ loop.index }}</td>
-                    <td class="font-bold">{{ sp.nama }}</td>
-                    <td class="text-center">{{ sp.kelas }}</td>
-                    <td class="text-center">{{ sp.total_hadir }}</td>
-                    <td class="text-center">{{ sp.total_izin }}</td>
-                    <td class="text-center">{{ sp.total_sakit }}</td>
-                    <td class="text-center">{{ sp.total_alpa }}</td>
-                    <td class="text-center font-bold">{{ "%.0f"|format(sp.persentase_kehadiran) }}%</td>
-                    <td class="text-center font-bold" style="color: #1E3A8A; font-size: 11px;">{{ sp.nilai_skor }}</td>
-                    <td class="text-center"><b>{{ sp.predikat or '-' }}</b></td>
-                    <td style="font-size: 9.5px;">{{ sp.catatan_evaluasi if sp.catatan_evaluasi else '-' }}</td>
-                </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="11" class="text-center" style="color: #64748B;"><i>Data penilaian siswa belum diisi.</i></td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
-
-    {% if laporan.catatan_umum %}
-    <div style="font-size: 10px; margin-bottom: 12px; background: #F8FAFC; border: 1px dashed #CBD5E1; padding: 6px 10px; border-radius: 4px;">
-        <b>Catatan Umum Pelatih untuk Evaluasi Tim/Madrasah:</b> "{{ laporan.catatan_umum }}"
-    </div>
-    {% endif %}
-
-    <!-- BAGIAN 4: TANDA TANGAN BERJENJANG RESMI (PELATIH, WAKA, STAF TU, BENDAHARA, KEPALA MADRASAH) -->
-    <div class="sig-container">
-        <table class="sig-table">
-            <tr>
-                <td>
-                    {{ pejabat.kota_tanda_tangan or 'Tajurhalang' }}, {{ tgl_laporan }}<br/>
-                    <b>Pelatih Ekstrakurikuler</b><br/>
-                    <i>(Pembuat Laporan Kegiatan)</i>
-                    <div class="sig-space"></div>
-                    <b><u>{{ pelatih.nama }}</u></b><br/>
-                    Pelatih {{ ekskul.nama }}
-                </td>
-                <td>
-                    Mengetahui / Memverifikasi,<br/>
-                    <b>{{ pejabat.jabatan_waka_kesiswaan or 'Waka Kesiswaan MTs Muhammadiyah' }}</b><br/>
-                    <i>(Pemeriksa Kegiatan & Silabus)</i>
-                    <div class="sig-space"></div>
-                    <b><u>{{ pejabat.nama_waka_kesiswaan or 'Mulyadi, S.Pd.' }}</u></b><br/>
-                    {{ pejabat.nbm_waka_kesiswaan or 'NBM. -' }}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding-top: 24px;">
-                    Pencatatan Kehadiran & Administrasi,<br/>
-                    <b>{{ pejabat.jabatan_staff_tu or 'Staf Tata Usaha' }}</b><br/>
-                    <i>(Acuan Perhitungan Jam Latihan)</i>
-                    <div class="sig-space"></div>
-                    <b><u>{{ pejabat.nama_staff_tu or 'Staf Tata Usaha' }}</u></b><br/>
-                    {{ pejabat.nbm_staff_tu or 'NBM. -' }}
-                </td>
-                <td style="padding-top: 24px;">
-                    Verifikasi Anggaran & Persetujuan Honor,<br/>
-                    <b>{{ pejabat.jabatan_bendahara or 'Bendahara Madrasah' }}</b><br/>
-                    <i>(Acuan Dasar Pencairan Honorarium)</i>
-                    <div class="sig-space"></div>
-                    <b><u>{{ pejabat.nama_bendahara or 'Bendahara Madrasah' }}</u></b><br/>
-                    {{ pejabat.nbm_bendahara or 'NBM. -' }}
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" style="padding-top: 26px; text-align: center;">
-                    Menyetujui & Mengesahkan,<br/>
-                    <b>{{ pejabat.jabatan_kamad or 'Kepala MTs Muhammadiyah Tajurhalang' }}</b><br/>
-                    <i>Pengesahan Laporan Resmi Madrasah</i>
-                    <div class="sig-space"></div>
-                    <b><u>{{ pejabat.nama_kamad or 'H. E. Samsul Rizal, S.Ag., M.Pd.' }}</u></b><br/>
-                    {{ pejabat.nbm_kamad or 'NBM. -' }}
-                </td>
-            </tr>
+            </thead>
+            <tbody>
+                {% if sesi_list and sesi_list|length > 0 %}
+                    {% for s in sesi_list %}
+                    <tr>
+                        <td class="text-center">{{ loop.index }}</td>
+                        <td class="text-center font-bold">{{ s.tanggal }}</td>
+                        <td class="text-center">{{ s.jam_mulai }} WIB</td>
+                        <td>{{ s.materi_latihan if s.materi_latihan else 'Latihan Reguler' }}</td>
+                        <td class="text-center font-bold">{{ s.total_hadir }} / {{ s.total_peserta }}</td>
+                        <td class="text-center">
+                            <span style="color: {% if s.status_lokasi == 'VALID' %}#16A34A{% else %}#DC2626{% endif %}; font-weight: 700;">
+                                {{ s.status_lokasi }}
+                            </span> 
+                            <span style="font-size: 7pt; color: #64748B;">({{ s.jarak_meter }}m)</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center" style="color: #64748B;"><i>Belum ada sesi latihan tercatat pada bulan ini.</i></td>
+                    </tr>
+                {% endif %}
+            </tbody>
         </table>
+
+        <!-- HIGHLIGHT REKAP HONOR -->
+        <div class="honor-highlight">
+            <div>
+                <strong style="color: #92400E;">💰 REKAPITULASI HARI LATIHAN TERLAKSANA:</strong>
+                <span style="color: #78350F; margin-left: 4px;">Pencatatan jam latihan resmi absensi digital berbasis GPS Geofencing lapangan.</span>
+            </div>
+            <div>
+                <span style="font-weight: 800; color: #1E3A8A; background: white; padding: 2px 8px; border-radius: 4px; border: 1px solid #CBD5E1;">
+                    {{ sesi_list|length }} Hari Latihan Terlaksana
+                </span>
+            </div>
+        </div>
+
+        <!-- 6. BAGIAN III: REKAPITULASI PRESENSI SISWA PER SESI LATIHAN (RINGKAS & TEPAT) -->
+        <div class="section-header">III. Rekapitulasi Presensi Kehadiran Siswa per Sesi Latihan</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 30px;">Sesi</th>
+                    <th rowspan="2" style="width: 80px;">Tanggal Latihan</th>
+                    <th rowspan="2">Materi / Topik Latihan</th>
+                    <th colspan="4" style="width: 140px;">Jumlah Kehadiran Siswa</th>
+                    <th rowspan="2" style="width: 55px;">Total Siswa</th>
+                    <th rowspan="2" style="width: 50px;">% Hadir</th>
+                </tr>
+                <tr>
+                    <th style="width: 35px; color: #16A34A;">Hadir</th>
+                    <th style="width: 35px; color: #2563EB;">Izin</th>
+                    <th style="width: 35px; color: #D97706;">Sakit</th>
+                    <th style="width: 35px; color: #DC2626;">Alpa</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if sesi_list and sesi_list|length > 0 %}
+                    {% for s in sesi_list %}
+                    <tr>
+                        <td class="text-center font-bold">Ke-{{ loop.index }}</td>
+                        <td class="text-center font-bold">{{ s.tanggal }}</td>
+                        <td>{{ s.materi_latihan if s.materi_latihan else 'Latihan Reguler' }}</td>
+                        <td class="text-center font-bold" style="color: #166534;">{{ s.total_hadir }}</td>
+                        <td class="text-center" style="color: #1D4ED8;">{{ s.total_izin }}</td>
+                        <td class="text-center" style="color: #B45309;">{{ s.total_sakit }}</td>
+                        <td class="text-center" style="color: #B91C1C;">{{ s.total_alpa }}</td>
+                        <td class="text-center font-bold">{{ s.total_peserta }}</td>
+                        <td class="text-center font-bold" style="color: #1E3A8A;">{{ "%.1f"|format(s.persen_hadir) }}%</td>
+                    </tr>
+                    {% endfor %}
+                    <!-- Baris Akumulasi Bulanan -->
+                    <tr style="background: #F8FAFC; font-weight: bold; border-top: 1.5px solid #0F172A;">
+                        <td colspan="3" class="text-center font-bold" style="letter-spacing: 0.3px;">
+                            TOTAL & RATA-RATA AKUMULASI BULANAN
+                        </td>
+                        <td class="text-center font-bold" style="color: #166534;">{{ rekap_total.hadir }}</td>
+                        <td class="text-center font-bold" style="color: #1D4ED8;">{{ rekap_total.izin }}</td>
+                        <td class="text-center font-bold" style="color: #B45309;">{{ rekap_total.sakit }}</td>
+                        <td class="text-center font-bold" style="color: #B91C1C;">{{ rekap_total.alpa }}</td>
+                        <td class="text-center font-bold">{{ rekap_total.peserta }}</td>
+                        <td class="text-center font-bold" style="color: #1E3A8A;">{{ "%.1f"|format(rekap_total.persen_rata) }}%</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center" style="color: #64748B;"><i>Belum ada sesi latihan dan presensi siswa yang terlaksana pada bulan ini.</i></td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- Catatan Integrasi Rapor Siswa -->
+        <div style="font-size: 7.2pt; color: #475569; margin-bottom: 5px; line-height: 1.3;">
+            <i>*Catatan: Nilai rapor skor capaian kompetensi dan evaluasi kecakapan individual seluruh siswa telah tersimpan digital pada sistem dan otomatis terkirim ke akun siswa masing-masing.</i>
+            {% if laporan.catatan_umum %}
+            &bull; <b>Evaluasi Umum Pelatih:</b> "{{ laporan.catatan_umum }}"
+            {% endif %}
+        </div>
+
+        <!-- 7. BAGIAN IV: TANDA TANGAN BERJENJANG RESMI 5 PIHAK (COMPACT HORIZONTAL) -->
+        <div class="sig-container">
+            <!-- Baris 1: 4 Pejabat Verifikator (Pelatih, Waka Kesiswaan, Staf TU, Bendahara) -->
+            <table class="sig-table">
+                <tr>
+                    <td style="width: 25%;">
+                        Pelatih Ekstrakurikuler,<br/>
+                        <i>(Pembuat Laporan)</i>
+                        <div class="sig-space"></div>
+                        <b><u>{{ pelatih.nama }}</u></b><br/>
+                        Pelatih {{ ekskul.nama }}
+                    </td>
+                    <td style="width: 25%;">
+                        Mengetahui / Memeriksa,<br/>
+                        <b>{{ pejabat.jabatan_waka_kesiswaan or 'Waka Kesiswaan' }}</b>
+                        <div class="sig-space"></div>
+                        <b><u>{{ pejabat.nama_waka_kesiswaan or 'Mulyadi, S.Pd.' }}</u></b><br/>
+                        {{ pejabat.nbm_waka_kesiswaan or 'NBM. -' }}
+                    </td>
+                    <td style="width: 25%;">
+                        Pencatatan Jam Latihan,<br/>
+                        <b>{{ pejabat.jabatan_staff_tu or 'Staf Tata Usaha' }}</b>
+                        <div class="sig-space"></div>
+                        <b><u>{{ pejabat.nama_staff_tu or 'Staf Tata Usaha' }}</u></b><br/>
+                        {{ pejabat.nbm_staff_tu or 'NBM. -' }}
+                    </td>
+                    <td style="width: 25%;">
+                        Persetujuan Honorarium,<br/>
+                        <b>{{ pejabat.jabatan_bendahara or 'Bendahara Madrasah' }}</b>
+                        <div class="sig-space"></div>
+                        <b><u>{{ pejabat.nama_bendahara or 'Bendahara Madrasah' }}</u></b><br/>
+                        {{ pejabat.nbm_bendahara or 'NBM. -' }}
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Baris 2: Kepala Madrasah Mengesahkan (Tengah) -->
+            <div style="margin-top: 4px; text-align: center; font-size: 7.8pt;">
+                <div>Menyetujui & Mengesahkan:</div>
+                <div style="font-weight: 700;">{{ pejabat.jabatan_kamad or 'Kepala MTs Muhammadiyah Tajurhalang' }}</div>
+                <div class="sig-space" style="height: 32px;"></div>
+                <div><b><u>{{ pejabat.nama_kamad or 'H. E. Samsul Rizal, S.Ag., M.Pd.' }}</u></b></div>
+                <div style="font-size: 7.2pt; color: #334155;">{{ pejabat.nbm_kamad or 'NBM. -' }}</div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

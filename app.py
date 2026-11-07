@@ -1304,12 +1304,58 @@ def cetak_laporan_bulanan(laporan_id):
     sesi_rows = conn.execute("""
     SELECT s.*,
            (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Hadir') as total_hadir,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Izin') as total_izin,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Sakit') as total_sakit,
+           (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id AND ps.status_kehadiran = 'Alpa') as total_alpa,
            (SELECT COUNT(*) FROM presensi_siswa ps WHERE ps.sesi_id = s.id) as total_peserta
     FROM sesi_latihan s
     WHERE s.ekskul_id = ? AND s.tanggal LIKE ?
     ORDER BY s.tanggal ASC, s.jam_mulai ASC
     """, (laporan['ekskul_id'], f"{month_prefix}%")).fetchall()
-    sesi_list = [dict(s) for s in sesi_rows]
+
+    sesi_list = []
+    total_rekap_hadir = 0
+    total_rekap_izin = 0
+    total_rekap_sakit = 0
+    total_rekap_alpa = 0
+    total_rekap_peserta = 0
+
+    for s in sesi_rows:
+        sd = dict(s)
+        h = sd.get('total_hadir') or 0
+        i = sd.get('total_izin') or 0
+        sk = sd.get('total_sakit') or 0
+        a = sd.get('total_alpa') or 0
+        tot = sd.get('total_peserta') or (h + i + sk + a)
+        pct = round((h / tot * 100), 1) if tot > 0 else 0.0
+
+        sd['total_hadir'] = h
+        sd['total_izin'] = i
+        sd['total_sakit'] = sk
+        sd['total_alpa'] = a
+        sd['total_peserta'] = tot
+        sd['persen_hadir'] = pct
+
+        total_rekap_hadir += h
+        total_rekap_izin += i
+        total_rekap_sakit += sk
+        total_rekap_alpa += a
+        total_rekap_peserta += tot
+
+        sesi_list.append(sd)
+
+    rekap_total = {
+        'hadir': total_rekap_hadir,
+        'izin': total_rekap_izin,
+        'sakit': total_rekap_sakit,
+        'alpa': total_rekap_alpa,
+        'peserta': total_rekap_peserta,
+        'persen_rata': round((total_rekap_hadir / total_rekap_peserta * 100), 1) if total_rekap_peserta > 0 else 0.0
+    }
+
+    total_siswa_aktif = conn.execute("""
+    SELECT COUNT(*) FROM siswa_ekskul WHERE ekskul_id = ? AND status = 'AKTIF'
+    """, (laporan['ekskul_id'],)).fetchone()[0]
 
     siswa_penilaian = conn.execute("""
     SELECT lp.*, u.nama, u.kelas, u.jenis_kelamin
@@ -1337,6 +1383,8 @@ def cetak_laporan_bulanan(laporan_id):
                            nama_bulan=nama_bulan,
                            materi_list=materi_list,
                            sesi_list=sesi_list,
+                           rekap_total=rekap_total,
+                           total_siswa_aktif=total_siswa_aktif,
                            siswa_penilaian=siswa_penilaian,
                            print_date=print_date,
                            tgl_laporan=tgl_laporan,
