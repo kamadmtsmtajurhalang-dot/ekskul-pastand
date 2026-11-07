@@ -35,8 +35,20 @@ NAMA_HARI = {
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'presensi-ekskul-tajurhalang-multi-role-2026'
 
+# Konfigurasi Sesi Login Permanen & Aman (365 Hari / 1 Tahun)
+# Akun tetap login otomatis saat buka-tutup aplikasi, kecuali tombol Logout ditekan sendiri
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=365)
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 # Inisialisasi basis data jika belum ada
 init_db()
+
+@app.before_request
+def make_session_permanent():
+    """Membuat sesi login otomatis permanen dan memperpanjang masa aktif setiap kali aplikasi dibuka."""
+    session.permanent = True
 
 # =========================================================
 # HELPER & AUTH DECORATORS
@@ -151,6 +163,7 @@ def login():
         conn.close()
 
         if user and user['password'] == password:
+            session.permanent = True
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['nama'] = user['nama']
